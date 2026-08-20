@@ -1,0 +1,138 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Cortex — config.yaml
+#
+# LE SEUL fichier qui varie d'un client à l'autre. Tout le reste du vault est
+# strictement identique partout. Rempli une fois à l'installation, relu à
+# chaque lint et à chaque scaffold.
+#
+# Syntaxe : sous-ensemble YAML documenté dans scripts/cortex_config.py.
+# Quatre formes admises — scalaire, mapping à UN niveau, liste de dicts inline,
+# liste inline. Un mapping à deux niveaux est refusé avec une erreur explicite.
+# ═══════════════════════════════════════════════════════════════════════════
+
+version: 1
+
+# ── OBLIGATOIRE — qui porte ce vault ───────────────────────────────────────
+# `redacteur` est au singulier et le reste : un vault, un rédacteur. Toujours.
+# Plusieurs personnes = plusieurs vaults + un commun généré (voir `mode`).
+organisation:
+  nom: "Acme Foncière"
+  code: acme                       # slug minuscule, sert aux préfixes
+  redacteur: "Jane Doe"
+  courriel: "jane@acme.fr"
+
+# solo   : un vault, autonome.
+# federe : ce vault alimente un vault commun GÉNÉRÉ, jamais édité à la main.
+mode: solo
+commun:
+  racine: ""                       # chemin du vault commun ; "" si mode solo
+
+# ── OBLIGATOIRE — où vivent les dossiers de travail ────────────────────────
+# Le vault ne contient AUCUN autre chemin. C'est ce qui le rend transmissible :
+# dans le système dont ce produit est extrait, 96 fichiers portaient un chemin
+# absolu lié à une machine, ce qui rendait le vault inopérant partout ailleurs.
+# `dossier_local` d'une fiche projet est RELATIF à cette racine.
+chemins:
+  dossiers_projets: "~/Documents/Clients"
+
+# ── OBLIGATOIRE — dé-personnalisation ──────────────────────────────────────
+# `mentions_interdites` est la liste que le grep de recette fait échouer, et le
+# contrôle est bloquant à la remise.
+#
+# Y mettre, dans cet ordre d'importance :
+#   1. les CLIENTS déjà servis — c'est la fuite qui coûte le plus cher, et la
+#      plus discrète : un exemple oublié dans un gabarit, un identifiant de page
+#      dans une note de méthode, un registre dans un fichier d'agent ;
+#   2. la marque du prestataire et ses déclinaisons ;
+#   3. ses outils internes et ses noms propres.
+#
+# Cette liste est VIDE dans l'exemple, délibérément. La remplir avec de vraies
+# marques ici les ferait voyager dans chaque config client — c'est-à-dire dans
+# le fichier même qui est censé les interdire.
+marque:
+  produit_nom: "Cortex"
+  mentions_interdites: []
+
+# ── OBLIGATOIRE — les centres de gravité. 1 à 6, jamais plus. ──────────────
+# `code` pilote DEUX choses : le tag #d/<code> et le préfixe de fiche <CODE>.
+# La casse est imposée par le lint, elle ne dérive pas.
+# Au-delà de 6 domaines, ce n'est pas une demande à satisfaire mais un signal
+# de sous-segmentation à remonter au client.
+domaines:
+  - { code: act, nom: "Actifs",        couleur: "#1c42da" }
+  - { code: dev, nom: "Développement", couleur: "#c9a227" }
+
+# ── OBLIGATOIRE — vocabulaire fermé de `phase` ─────────────────────────────
+# SOURCE UNIQUE du mapping phase -> progression. Dans le système d'origine, il
+# était dupliqué dans la doctrine et dans deux scripts, avec des jeux de clés
+# divergents — et `phase` était sorti de tout vocabulaire sur 7 fiches.
+#
+# Liste PLATE (une ligne par couple) et non mapping imbriqué : la forme
+# imbriquée demanderait un parseur bien plus gros pour aucun gain de lisibilité.
+# Une fiche porte `cycle: <nom>` et `phase: <valeur exacte de ce cycle>`.
+# Un projet sans cycle porte `cycle: aucun` et `phase:` vide.
+cycles:
+  - { cycle: mission, phase: "Cadrage",      progression: 20 }
+  - { cycle: mission, phase: "Production",   progression: 60 }
+  - { cycle: mission, phase: "Livraison",    progression: 90 }
+  - { cycle: mission, phase: "Cloturee",     progression: 100 }
+  - { cycle: produit, phase: "cadrage",      progression: 25 }
+  - { cycle: produit, phase: "construction", progression: 60 }
+  - { cycle: produit, phase: "production",   progression: 90 }
+  - { cycle: produit, phase: "maintenance",  progression: 95 }
+  - { cycle: produit, phase: "archive",      progression: 100 }
+
+# ── OBLIGATOIRE — seuils de santé, contrôles DURS ──────────────────────────
+# Les métriques d'Architecture Mémoire §7, rendues exécutables. Baisser une
+# valeur durcit le contrôle.
+#
+# max_lignes_entree_journal est le seuil le plus important du produit. Dans le
+# système d'origine il valait 15 et n'était qu'un avertissement : 7 fiches ont
+# dérivé jusqu'à 51 lignes sur une seule entrée, transformant le vault en double
+# du substrat qu'il devait seulement pointer. Ici il vaut 10 et il BLOQUE.
+sante:
+  max_lignes_entree_journal: 10
+  max_lignes_journal: 60
+  journal_perime_jours: 14
+  pointeur_canonique_obligatoire: true
+  interdire_orphelins: true
+  agent_metier_revue_mois: 6
+
+# ── OBLIGATOIRE — la couche agent livrée ───────────────────────────────────
+# `metier` est rempli au maillon 6 depuis _cortex/05-agents-metier.md. Chaque
+# agent métier porte un `revoir_le:` que le lint signale à péremption : ils
+# encodent des règles de gestion qui changent, et un agent périmé qui répond
+# quand même est plus dangereux qu'un agent absent.
+agents:
+  skills: [cloture, nouveau-projet, ingest, lint]
+  sousagents: [chercheur-vault, auditeur-ontologie]
+  metier: []
+  hooks: []
+
+# ── OPTIONNEL — axes commerciaux. Liste vide = axe non utilisé. ────────────
+# vehicule = la marque qui VEND.  payeur = qui VERSE l'argent.
+# Les deux listes ne partagent JAMAIS une valeur (le lint le vérifie).
+# Dans le système d'origine, cette propriété s'appelait « entité facturante » et
+# ne désignait pas l'émetteur de la facture : le nom mentait. Ici : `payeur`.
+vehicules: []
+payeurs: []
+
+# ── OPTIONNEL — substrats externes. "" = absent chez ce client. ────────────
+# Aucun code du produit ne suppose la présence d'un substrat. Ce sont des
+# POINTEURS, jamais des flux : rien ne se synchronise dans les deux sens.
+substrats:
+  espace_documentaire: ""          # racine SharePoint / Drive / OneDrive
+  base_projets: ""                 # URL Notion / Airtable / Confluence
+  git_remote: ""                   # remote du vault ; "" = vault non versionné
+
+# ── OBLIGATOIRE — bornes de la collecte (maillon 2) ────────────────────────
+# Jamais dépassées sans arbitrage écrit. Les plafonds ne sont pas de la
+# prudence technique : au-delà, on livre un annuaire que personne n'ouvre.
+collecte:
+  profondeur_arbre: 3
+  max_dossiers: 200
+  mail_mois: 12
+  mail_optin: false                # RGPD : agrégats seuls, sur accord écrit
+  plafond_projets: 60
+  plafond_acteurs: 80
+  plafond_domaines: 6
