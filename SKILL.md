@@ -1,0 +1,139 @@
+---
+name: cortex-1-cadrage
+description: Premier maillon de la chaîne Cortex. Cadre l'installation d'un second cerveau chez une organisation — qui la porte, quels substrats existent déjà, quelles bornes de collecte, quel white-label. Produit le config.yaml initial et le dossier d'atelier _cortex/. Déclencher quand le consultant dit "nouveau client Cortex", "on démarre l'installation chez X", "cadrage second cerveau", "maillon 1", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
+---
+
+# cortex-1-cadrage — le maillon le plus cher
+
+Premier des sept. Il consomme le temps du client, qui est la ressource la plus rare de toute la chaîne. Tout ce qui est mal cadré ici se paie six fois plus loin, quand le vault est déjà installé et peuplé.
+
+Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `references/secteurs.md`.
+
+## La chaîne complète
+
+| Maillon | Rôle |
+|---|---|
+| **`cortex-1-cadrage`** | **ce maillon — qui, quels substrats, quelles bornes** |
+| `cortex-2-inventaire` | catalogue de pointeurs vers l'existant |
+| `cortex-3-ontologie` | les domaines, avec preuve chiffrée. Le seul maillon de jugement |
+| `cortex-4-installation` | le vault et sa couche d'agents |
+| `cortex-5-ingest` | l'inventaire devient des notes-pointeurs |
+| `cortex-6-agents-metier` | les agents sur mesure, une fois le vault peuplé |
+| `cortex-7-passation` | guide de remise et recette d'acceptation |
+
+**Aucun maillon n'invoque le suivant.** Le consultant lance, parce qu'entre deux maillons il se passe des choses dans le monde réel : obtenir un accès, faire signer, laisser le client essayer.
+
+## Positionnement
+
+Ce maillon **ne décide pas des domaines**. C'est le travail du maillon 3, et il a besoin de l'inventaire pour le faire honnêtement. Ici on collecte ce qu'on ne peut pas déduire : l'identité, les substrats, les autorisations, les bornes.
+
+Il **ne promet rien sur le contenu**. Un client qui demande « et vous mettrez tous nos documents dedans » reçoit la réponse maintenant, pas au maillon 5 : non, le vault pointe, il ne stocke pas.
+
+## Étape 0
+
+Rien n'est requis. C'est le point d'entrée. Si un compte rendu de rendez-vous ou une transcription est fourni, **le lire avant de poser la moindre question** et pré-remplir tout ce qui s'y trouve. Faire ressaisir ce qui est déjà écrit est la meilleure façon de perdre l'attention d'un dirigeant.
+
+## 1. Collecte, à trois niveaux, en une seule passe
+
+Poser sous forme de liste compacte. Question par question, un cadrage prend une heure et le client décroche.
+
+### Niveau 1 — bloquant
+
+- Le nom de l'organisation, son orthographe exacte, et un slug court.
+- **Qui porte ce vault.** Une personne, nommée. Pas une équipe, pas une fonction.
+- Sa langue de travail.
+- Où vivent les dossiers de projet sur sa machine.
+
+### Niveau 2 — fortement recommandé, confirmation active
+
+L'absence se signale et demande un « oui, je confirme, on avance sans ». Un silence relance la question.
+
+- Les **substrats existants** : où vit l'état des dossiers, où vivent les fichiers, où vit le code. Nom de l'outil et adresse de la racine.
+- Le secteur, pour orienter le vocabulaire — voir `references/secteurs.md`.
+- L'effectif, qui donne l'ordre de grandeur des plafonds.
+- **L'autorisation d'inventorier la messagerie**, si elle est envisagée. Voir §3.
+
+### Niveau 3 — optionnel
+
+Axes commerciaux (`vehicules`, `payeurs`), identité légale, échéance souhaitée.
+
+## 2. Le white-label
+
+`marque.mentions_interdites` reçoit : ta marque, tes outils internes, tes noms propres, et **les clients que tu as déjà servis**.
+
+Cette dernière catégorie est celle qu'on oublie, et c'est la plus dangereuse. Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de propreté, c'est une fuite — et elle se produit par des chemins qu'on n'imagine pas : un exemple laissé dans un template, un identifiant de page dans une note de méthode, un registre oublié dans un fichier d'agent.
+
+Le contrôle est bloquant au maillon 7.
+
+## 3. La messagerie — la seule question réglementaire
+
+Si l'inventaire de la messagerie est envisagé, **poser la question explicitement et tracer la réponse**.
+
+Ce qui est extrait : `domaine expéditeur → volume sur 12 mois`. **Rien d'autre.** Jamais un objet, jamais un corps, jamais une adresse individuelle.
+
+Ce que ça apporte : la liste des organisations avec lesquelles le client travaille réellement, par ordre d'intensité. L'organigramme déclare qui compte ; la messagerie constate qui compte.
+
+**Sans accord écrit, `collecte.mail_optin` reste à `false` et le maillon 2 n'ouvre pas la messagerie.** Ce n'est pas une formalité qu'on rattrape après : une donnée personnelle lue sans base légale ne se dé-lit pas.
+
+## 4. Les plafonds — les poser maintenant
+
+- **6 domaines au maximum.** Au-delà, plus rien n'est central : chaque note hésite entre deux rattachements et le classement cesse de porter de l'information.
+- **60 projets, 80 acteurs au jour 1.** Au-delà, on livre un annuaire que personne n'ouvre.
+- Profondeur d'arbre 3, 200 dossiers, 12 mois de messagerie.
+
+Un client qui en demande quinze reçoit un **constat de sous-segmentation à discuter**, pas une case supplémentaire. C'est presque toujours un besoin de six domaines et de tags transverses.
+
+Les poser au cadrage, quand ils sont abstraits, coûte une phrase. Les poser au maillon 3, quand le client a déjà sa liste en tête, coûte un arbitrage.
+
+## 5. Écrire l'atelier
+
+`<ton espace>/Cortex/<slug>/_cortex/` — **chez toi, jamais dans la livraison**. Le client reçoit son vault, pas tes notes de travail, tes hypothèses écartées ni les constats te concernant sa propre organisation.
+
+Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `config.yaml`, `00-cadrage.md`. Initialiser git.
+
+Le frontmatter de `00-cadrage.md` porte les contrôles :
+
+```yaml
+maillon: 1
+produit_par: cortex-1-cadrage
+statut: valide            # brouillon | valide | arbitre
+controles:
+  redacteur_unique_nomme: passe
+  substrats_declares: passe
+  plafonds_acceptes: passe
+  mail_optin_trace: passe   # ou `arbitre` avec motif si non traité
+```
+
+**Un fichier dont un contrôle n'est ni `passé` ni explicitement `arbitré` ne peut pas être consommé** par le maillon suivant. C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne : le maillon 2 s'arrête en étape 0, sans repli.
+
+## 6. Validation — par bloc
+
+Identité, puis white-label, puis substrats, puis bornes. Attendre à chaque bloc.
+
+C'est la granularité la plus fine de toute la chaîne, et elle se justifie par le coût de régénération : refaire ce maillon veut dire reprendre du temps au client. Tous les autres se rejouent seuls.
+
+## Message de clôture
+
+```
+Cadrage terminé pour <organisation>.
+
+- config.yaml initialisé : <N> substrats déclarés, plafonds acceptés
+- white-label : <N> mentions interdites
+- messagerie : <opt-in tracé | hors périmètre>
+
+Pour toi :
+1. Obtiens les accès aux substrats listés en §Substrats.
+2. Quand ils répondent, lance `cortex-2-inventaire`.
+
+Le maillon 2 vérifie que chaque substrat déclaré répond avant de commencer.
+S'il en manque un, il s'arrête : mieux vaut attendre un accès que produire
+un inventaire partiel dont personne ne saura ce qu'il a manqué.
+```
+
+## Interdits
+
+- **Ne jamais décider des domaines ici.** Ils se déduisent de l'inventaire, avec preuve. Un domaine proposé au cadrage sera adopté par politesse et jamais réexaminé.
+- **Ne jamais promettre la reprise du contenu.** Le vault pointe.
+- **Ne jamais inventer** une valeur manquante : `_Non renseigné — à compléter_` est toujours préférable. Halluciner une décision de cadrage est pire que laisser un trou visible.
+- **Ne jamais ouvrir la messagerie sans accord tracé.**
+- **Ne jamais accepter un rédacteur collectif.** Un vault, une personne. « L'équipe » comme réponse est le début d'un produit différent.
