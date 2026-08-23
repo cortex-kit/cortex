@@ -5,20 +5,36 @@ Rejoue en une commande ce que le parcours a blanc du 2026-08-17 a fait a la
 main. Chaque assertion correspond a un defaut REEL trouve ce jour-la : si l'une
 d'elles casse, c'est qu'un defaut deja paye est revenu.
 
-    python3 recette/parcours_blanc.py        # sortie 0 = tout va bien
+Etendue le 2026-08-23 (phase 5, plug and play) : sections 9 a 11 — la conduite
+solo/consultant, le pivot d'etat et ses rendus, le paquet distribuable. Chaque
+controle neuf est attache a un defaut PLAUSIBLE, jamais a une intention.
 
-Stdlib seule, aucun reseau, aucune ecriture hors d'un dossier temporaire.
+    python3 recette/parcours_blanc.py        # sortie 0 = tout va bien
+    (`py` vaut `python3` sous Windows)
+
+Stdlib seule, aucun reseau, aucune ecriture hors d'un dossier temporaire —
+le zip temoin de la section 11 compris.
 """
+import json
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
 SCRIPTS = RACINE / "scripts"
+PAQUET = RACINE.parent / "cortex-paquet"
 sys.path.insert(0, str(SCRIPTS))
 import cortex_config  # noqa: E402
+
+sys.path.insert(0, str(PAQUET / "scripts"))
+import etat as m_etat          # noqa: E402
+import fabrique as m_fabrique  # noqa: E402
+import rend_deck as m_deck     # noqa: E402
+import rend_notice as m_rend   # noqa: E402
 
 MARQUES = ["Cabinet-Exemple", "ClientAnterieurA", "ClientAnterieurB"]
 succes, echecs = [], []
@@ -215,6 +231,131 @@ def main():
         verifie("aucun chemin absolu dans les notes", not absolus, str(absolus[:3]))
         verifie("aucun plugin communautaire requis",
                 not (vault / ".obsidian" / "community-plugins.json").exists())
+
+        print("\n9. Conduite (defaut plausible : le mode solo reinterprete l'existant)")
+        conf = cortex_config.charger(cfg)
+        verifie("une config sans cle conduite s'installe en consultant",
+                cortex_config.conduite(conf) == "consultant"
+                and not any("conduite" in e
+                            for e in cortex_config.valider_installable(conf)))
+        inconnu = tmp / "config-conduite.yaml"
+        inconnu.write_text(cfg.read_text(encoding="utf-8") + "conduite: duo\n",
+                           encoding="utf-8")
+        erreurs = cortex_config.valider_installable(cortex_config.charger(inconnu))
+        verifie("une conduite inconnue est refusee et le message nomme la cle",
+                any(e.startswith("conduite") for e in erreurs), str(erreurs[:2]))
+        r = scaffold("--config", str(inconnu), "--out", str(tmp / "refus-conduite"))
+        verifie("scaffold s'arrete sur une conduite inconnue", r.returncode == 2,
+                r.stderr[:200])
+
+        print("\n10. Pivot d'etat (defaut plausible : un tableau de bord qui ment)")
+        atelier = tmp / "_cortex"
+        atelier.mkdir()
+        shutil.copyfile(cfg, atelier / "config.yaml")
+        fm = ("---\nmaillon: {m}\nproduit_par: {p}\nstatut: {s}\ncontroles:\n"
+              "  premier_controle: passe\n  second_controle: {v}\n---\n# x\n")
+        (atelier / "00-cadrage.md").write_text(
+            fm.format(m=1, p="cortex-1-cadrage", s="valide", v="passe"),
+            encoding="utf-8")
+        (atelier / "04-ingest.md").write_text(
+            fm.format(m=5, p="cortex-5-ingest", s="brouillon", v="arbitre"),
+            encoding="utf-8")
+
+        def sans_horodatage(p):
+            return "\n".join(l for l in p.read_text(encoding="utf-8").splitlines()
+                             if '"genere_le"' not in l)
+
+        p1, pivot = m_etat.ecrire(atelier, tmp / "pivot-1.json")
+        p2, _ = m_etat.ecrire(atelier, tmp / "pivot-2.json")
+        verifie("le pivot porte les sept etapes", len(pivot["etapes"]) == 7)
+        verifie("le pivot se regenere a l'identique hors horodatage",
+                sans_horodatage(p1) == sans_horodatage(p2))
+        e4 = pivot["etapes"][3]
+        verifie("le trou en 03 est porte avec sa raison en clair",
+                e4["artefact"] is None and "vault" in e4.get("raison", "")
+                and "lint" in e4.get("raison", ""), str(e4))
+        verifie("l'etape 4 se deduit d'un artefact aval, jamais devinee",
+                e4["etat"] == "faite_deduite"
+                and m_etat.generer(tmp)["etapes"][3]["etat"] == "a_faire")
+
+        vierge = tmp / "atelier-vierge"
+        vierge.mkdir()
+        html_vierge = m_rend.rendre(m_etat.generer(vierge))
+        verifie("le tableau de bord vierge affiche sept lignes a faire",
+                html_vierge.count("À faire") == 7)
+        verifie("aucune URL distante dans la notice",
+                not re.search(r"https?://", html_vierge)
+                and not re.search(r"""(href|src)\s*=\s*["']//""", html_vierge))
+
+        deck = tmp / "deck.bento.html"
+        m_deck.rendre(pivot, deck)
+        doc = json.loads(re.search(
+            r'<script type="application/bento\+json" id="bento-doc"[^>]*>(.*?)'
+            r"</script>", deck.read_text(encoding="utf-8"), re.S)
+            .group(1).replace("\\u003c", "<"))
+        attendu = [{"numero": e["numero"], "nom": e["nom"], "etat": e["etat"],
+                    "libelle": m_etat.LIBELLES.get(e["etat"], e["etat"])}
+                   for e in pivot["etapes"]]
+        corps = " ".join(el.get("html", "")
+                         for s in doc["slides"] for el in s["elements"])
+        verifie("le deck porte les memes etapes et les memes statuts que le "
+                "tableau de bord",
+                doc["meta"]["cortex_etapes"] == attendu
+                and all(e["nom"] in corps for e in pivot["etapes"]))
+
+        print("\n11. Le paquet (defaut plausible : un kit muet ou une fuite de licence)")
+        zip_temoin = tmp / "cortex-temoin.zip"
+        verifie("la fabrication sort en 0",
+                m_fabrique.fabriquer(zip_temoin, version="recette") == 0)
+        with zipfile.ZipFile(zip_temoin) as z:
+            noms = z.namelist()
+            dossiers = {n.split("/")[0] for n in noms if "/" in n}
+            racine = {n for n in noms if "/" not in n}
+            skills_md = [n for n in noms if n.endswith("SKILL.md")]
+            prof1 = [n for n in skills_md if len(n.split("/")) == 2]
+            prof2 = [n for n in skills_md if len(n.split("/")) == 3]
+            plus_bas = [n for n in skills_md if len(n.split("/")) > 2
+                        and not n.startswith("cortex-4-installation/template/")]
+            verifie("le zip donne 13 dossiers et deux fichiers a la racine",
+                    len(dossiers) == 13
+                    and racine == {"LISEZ-MOI.html", "PROVENANCE.md"},
+                    f"{len(dossiers)} dossiers, racine {sorted(racine)}")
+            verifie("13 SKILL.md a la bonne profondeur", len(prof1) == 13,
+                    str(sorted(prof1)))
+            verifie("zero SKILL.md en profondeur 2 dans le zip — le critere "
+                    "qui decide si le kit est vu ou muet",
+                    not prof2 and not plus_bas, str(prof2 + plus_bas))
+
+            kit = [l.strip() for l in (PAQUET / "kit.txt")
+                   .read_text(encoding="utf-8").splitlines() if l.strip()]
+            manquants = []
+            for skill in kit:
+                chemin = f"{skill}/SKILL.md"
+                if chemin not in noms:
+                    manquants.append(chemin)
+                    continue
+                lignes = z.read(chemin).decode("utf-8").splitlines()
+                fin = next((i for i, l in enumerate(lignes[1:], 1)
+                            if l.strip() == "---"), 0)
+                cles = {l.split(":", 1)[0].strip()
+                        for l in lignes[1:fin] if ":" in l}
+                if not {"name", "description"} <= cles:
+                    manquants.append(f"{chemin} (frontmatter incomplet)")
+            verifie("chaque entree du manifeste est dans le zip avec un "
+                    "frontmatter valide", not manquants, str(manquants))
+
+            provenance = z.read("PROVENANCE.md").decode("utf-8")
+            decouverts = [s for s in kit if not re.search(
+                rf"^\|\s*{re.escape(s)}\s*\|.*\|\s*\**Oui\**.*\|\s*$",
+                provenance, re.M)]
+            verifie("chaque emprunt du zip est couvert par PROVENANCE.md",
+                    not decouverts, str(decouverts))
+
+            lisezmoi = z.read("LISEZ-MOI.html").decode("utf-8")
+            verifie("LISEZ-MOI.html : sept etapes a faire, zero URL distante",
+                    lisezmoi.count("À faire") == 7
+                    and not re.search(r"https?://", lisezmoi)
+                    and not re.search(r"""(href|src)\s*=\s*["']//""", lisezmoi))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
