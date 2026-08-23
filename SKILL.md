@@ -17,6 +17,8 @@ La raison n'est pas commerciale : un support de formation périme plus vite que 
 
 Tous les fichiers `_cortex/` en `statut: valide` ou explicitement `arbitre` avec motif. Le lint du vault sort en 0.
 
+**Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, ce maillon devient une remise à soi-même, ce qui n'a rien d'absurde : le guide d'usage et la fiche de reprise à froid servent exactement à la personne qu'on sera dans six mois, quand plus rien de l'installation ne sera frais. La recette ne perd pas un contrôle — voir §3.
+
 ## 1. Le guide d'usage — dans le vault du client
 
 `90 - Meta/Guide d'usage.md`. C'est le seul document que le client lira vraiment, donc le seul endroit où l'effort de rédaction compte.
@@ -79,6 +81,8 @@ test ! -f "$V/.obsidian/community-plugins.json"
 
 **Le contrôle 6 est le seul manuel, et il est irremplaçable.** Le lint vérifie qu'un pointeur est présent, jamais qu'il mène quelque part. Un pointeur faux est invisible pour la machine et ne se découvre qu'à l'usage, des semaines plus tard, au pire moment.
 
+**En mode solo, la recette tourne à l'identique, et la porte demeure.** Il n'y a personne à convaincre, mais il y a soi-même dans six mois, et chaque contrôle garde son objet : le white-label attrape les traces d'origine du gabarit — la liste pré-remplie au maillon 1 —, les chemins absolus rendraient l'outil intransportable, le contrôle 6 reste manuel — trois liens vérifiés de sa propre main, personne d'autre ne le fera. Une fois les six verdicts rendus, la porte : les récapituler à l'écran en langage ordinaire, demander une confirmation explicite, et la tracer dans `06-passation.md` — une ligne datée « Recette récapitulée et confirmée le <date> ». Une recette passée sans être lue n'est une porte pour personne ; une porte supprimée serait un défaut, pas une simplification.
+
 ## 4. L'invariant de remise
 
 **Un contrôle qui n'est ni `passé` ni explicitement `arbitré` avec motif bloque la remise.** Pas de « on verra après » : après la remise, plus personne ne revient sur la recette.
@@ -116,6 +120,31 @@ Pour toi :
 
 Ce maillon se relance quand tu veux : si le vault évolue, la documentation
 se régénère. C'est pour ça qu'elle n'est pas écrite à la main.
+```
+
+**En mode solo :**
+
+```
+Votre second cerveau est installé, rempli et vérifié.
+
+Recette : <N>/6 contrôles passés — vous venez de la lire et de la
+confirmer, c'est tracé.
+Dans l'outil : le guide d'usage, et la fiche de reprise — c'est elle
+qu'on ouvre après trois semaines sans y avoir touché.
+Le dossier d'atelier _cortex/ reste chez vous : c'est le carnet de
+bord de cette installation.
+
+Il ne reste qu'un geste, et tout repose sur lui : à la fin de chaque
+bloc de travail, dites « clôture ». Moins de trente secondes, trois à
+dix fois par jour. Un second cerveau sans clôture se remplit une fois,
+puis meurt.
+
+La chaîne s'arrête ici — il n'y a pas de maillon suivant. Celui-ci se
+relance quand vous voulez : si l'outil évolue, sa documentation se
+régénère.
+
+Faites une première clôture maintenant, sur cette installation même :
+dites « clôture ».
 ```
 
 ## Interdits
