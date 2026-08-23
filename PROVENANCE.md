@@ -80,12 +80,13 @@ source ». Il n'existe donc pas de canal alternatif qui autoriserait la
 redistribution.
 
 Verdict : ces quatre skills **sortent du kit**. Les inclure dans un zip livré
-à un tiers serait une violation directe de la licence. Voie de remplacement
-(à arbitrer, hors de ce fichier) : la notice indique à l'installateur comment
+à un tiers serait une violation directe de la licence. Voie de remplacement,
+arbitrée par Evrard le 2026-08-23 : la notice indique à l'installateur comment
 obtenir ces capacités directement auprès d'Anthropic — elles accompagnent
 Claude nativement dans la plupart des offres, et le dépôt public
 `anthropics/skills` reste consultable par lui, sous les conditions
-d'Anthropic, sans que le paquet n'en distribue de copie.
+d'Anthropic, sans que le paquet n'en distribue de copie. Pointeur jamais
+copie.
 
 ## Notices de licence reproduites
 
