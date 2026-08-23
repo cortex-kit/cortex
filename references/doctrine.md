@@ -50,6 +50,8 @@ Trois coupures portent tout le reste.
 
 **Aucun maillon n'invoque le suivant.** Entre deux maillons, il se passe des choses dans le monde réel : obtenir un accès, faire signer, laisser le client essayer. Une chaîne qui s'enchaîne toute seule traverse ces attentes sans les voir.
 
+*Amendement 2026-08-23 — cette phrase se qualifie par mode de conduite.* En mode **consultant**, elle s'applique telle quelle : ce qui attend entre deux maillons appartient à des tiers — un DSI qui ouvre un accès, un dirigeant qui signe — et rendre la main est la seule façon de voir ces attentes. En mode **solo** — la même personne conduit la chaîne et en bénéficie, choix fait au maillon 1 et mémorisé dans la configuration — la personne qui répond et la personne qu'on attendrait sont la même. Chaque maillon peut donc proposer le suivant et l'enchaîner après un accord explicite, jamais sans. Ce que le mode solo supprime, c'est le **délai** entre les maillons, pas la **condition d'entrée** du suivant : un prérequis manquant arrête l'enchaînement et se dit, en solo comme en consultant. Les attentes du monde réel n'ont pas disparu en solo — retrouver un mot de passe, réactiver un compte, finir autre chose d'abord — et une chaîne qui les traverserait sans les voir produirait un inventaire partiel dont personne ne saurait ce qui a manqué.
+
 ## 4. La garde formelle
 
 Chaque maillon écrit un fichier d'atelier dont le frontmatter porte `statut` et une liste de `controles`. Le maillon suivant le lit en étape 0 et **s'arrête sans repli** si un contrôle n'est ni `passe` ni explicitement `arbitre` avec motif.
@@ -82,11 +84,15 @@ Ils valent dans les sept maillons. Chacun a coûté quelque chose à quelqu'un.
 
 **L'atelier ne part pas chez le client.** Il contient l'inventaire brut, les hypothèses écartées et les constats sur son organisation — dont ceux qu'on ne lui a pas dits en ces termes.
 
+*Amendement 2026-08-23 — en mode solo, cet invariant perd son objet sans perdre sa fonction.* Le client est l'installateur : l'atelier lui appartient déjà, et il n'y a rien à lui cacher de ses propres constats. `_cortex/` reste ce qu'il est — le dossier de travail de la chaîne, et l'endroit naturel où vit le tableau de bord — mais il n'en devient pas un dossier à publier ou à transmettre : ce qui vaut pour un vault vaut pour son atelier.
+
 ## 6. Ce qui ne se négocie pas avec le client
 
 Quatre points. Ils se posent au cadrage, quand ils sont abstraits et coûtent une phrase ; les poser plus tard coûte un arbitrage contre une attente déjà formée.
 
 **Les plafonds** — 6 domaines, 60 projets, 80 acteurs au jour 1. Ce ne sont pas des limites techniques. Au-delà de 6 domaines, chaque note hésite entre deux rattachements et le classement cesse de porter de l'information. Au-delà des volumes, on livre un annuaire, et personne n'ouvre un annuaire — c'est la seule façon dont l'outil peut échouer. Un client qui en demande quinze reçoit un **constat de sous-segmentation à discuter**, pas une case supplémentaire.
+
+*Amendement 2026-08-23 — en mode solo, les plafonds n'ont plus d'avocat.* Personne ne défend les 6 domaines contre l'envie d'en avoir quinze. Ils ne bougent pas pour autant : ce sont eux qui empêchent l'outil d'échouer, et l'absence de contradicteur les rend plus nécessaires, pas moins. La défense change seulement de forme — au maillon 3, les trois seuils qui invalident deviennent explicatifs : quand un domaine proposé ne tient pas son seuil, le dire et expliquer pourquoi, au lieu de le retirer en silence.
 
 **Zéro plugin requis.** Markdown, YAML, et les greffons du cœur. Un vault dont les vues n'existent qu'après installation d'un composant tiers non signé est un vault cassé à l'ouverture, et un obstacle d'achat en entreprise.
 
