@@ -23,6 +23,8 @@ Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `ref
 
 **Aucun maillon n'invoque le suivant.** Le consultant lance, parce qu'entre deux maillons il se passe des choses dans le monde réel : obtenir un accès, faire signer, laisser le client essayer.
 
+En mode **solo** — choisi ici même, mémorisé dans la configuration — chaque maillon **propose** le suivant et l'enchaîne après un accord explicite, jamais sans, et jamais si sa condition d'entrée manque. Ce que le solo supprime, c'est le délai entre les maillons, pas la condition d'entrée du suivant. Qualification complète : `references/doctrine.md` §3, amendement 2026-08-23.
+
 ## Positionnement
 
 Ce maillon **ne décide pas des domaines**. C'est le travail du maillon 3, et il a besoin de l'inventaire pour le faire honnêtement. Ici on collecte ce qu'on ne peut pas déduire : l'identité, les substrats, les autorisations, les bornes.
@@ -32,6 +34,12 @@ Il **ne promet rien sur le contenu**. Un client qui demande « et vous mettrez t
 ## Étape 0
 
 Rien n'est requis. C'est le point d'entrée. Si un compte rendu de rendez-vous ou une transcription est fourni, **le lire avant de poser la moindre question** et pré-remplir tout ce qui s'y trouve. Faire ressaisir ce qui est déjà écrit est la meilleure façon de perdre l'attention d'un dirigeant.
+
+**Le mode de conduite se fixe ici, une fois pour toutes.** Si `_cortex/config.yaml` existe déjà et porte la clé `conduite`, la lire et ne pas reposer la question — une session qui reprend au milieu du cadrage sait où elle est. Sinon, la toute première question du maillon est, telle quelle :
+
+> « Installez-vous cet outil pour vous-même, ou pour quelqu'un d'autre ? »
+
+En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant` — tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo` — la personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les six maillons suivants.
 
 ## 1. Collecte, à trois niveaux, en une seule passe
 
@@ -57,6 +65,15 @@ L'absence se signale et demande un « oui, je confirme, on avance sans ». Un si
 
 Axes commerciaux (`vehicules`, `payeurs`), identité légale, échéance souhaitée.
 
+### En mode solo — les mêmes questions, dans les mots du quotidien
+
+Le fond ne change pas : mêmes trois niveaux, mêmes informations, même passe unique, mêmes confirmations actives au niveau 2. Seul le vocabulaire change — la personne n'a pas à apprendre le jargon de la chaîne pour répondre.
+
+- « Déclarez vos substrats » devient **« où sont vos dossiers de travail ? »**, puis, si elle en a : où suit-elle l'état de ses projets, où vit son code.
+- « Qui porte ce vault » devient **« c'est bien vous, et personne d'autre, qui écrirez dedans ? »** — la règle du rédacteur unique ne se relâche pas, elle se dit autrement.
+- Le secteur et l'effectif se demandent comme on demande « que faites-vous, et à combien ? » — ils orientent le vocabulaire et les plafonds sans qu'il soit besoin de le dire.
+- La messagerie ne se mentionne que si la personne souhaite l'inventorier. La question d'autorisation du §3 se pose alors dans les mêmes termes qu'en consultant : c'est la seule question réglementaire de la chaîne, elle ne se simplifie pas.
+
 ## 2. Le white-label
 
 `marque.mentions_interdites` reçoit : ta marque, tes outils internes, tes noms propres, et **les clients que tu as déjà servis**.
@@ -64,6 +81,8 @@ Axes commerciaux (`vehicules`, `payeurs`), identité légale, échéance souhait
 Cette dernière catégorie est celle qu'on oublie, et c'est la plus dangereuse. Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de propreté, c'est une fuite — et elle se produit par des chemins qu'on n'imagine pas : un exemple laissé dans un template, un identifiant de page dans une note de méthode, un registre oublié dans un fichier d'agent.
 
 Le contrôle est bloquant au maillon 7.
+
+**En mode solo, ce bloc sort de la conversation.** Il n'y a aucune marque à effacer : la personne installe pour elle-même. `mentions_interdites` ne se demande pas — et ne reste pas vide pour autant : elle se pré-remplit avec les traces d'origine du gabarit (noms propres, exemples et identifiants laissés par son fabricant, à relever dans le gabarit lui-même), que le contrôle bloquant du maillon 7 attrapera si elles fuient dans l'outil. Le pré-remplissage est un geste du maillon ; la personne n'a rien à fournir ni à comprendre ici.
 
 ## 3. La messagerie — la seule question réglementaire
 
@@ -130,6 +149,25 @@ S'il en manque un, il s'arrête : mieux vaut attendre un accès que produire
 un inventaire partiel dont personne ne saura ce qu'il a manqué.
 ```
 
+**En mode solo**, la clôture récapitule, énonce la condition d'entrée du maillon suivant, et **propose** — jamais n'impose :
+
+```
+Cadrage terminé.
+
+- vos endroits de travail : <N> déclarés
+- bornes confirmées : ce qu'on regarde, ce qu'on n'ouvre pas, les plafonds
+- messagerie : <autorisée et tracée | laissée de côté>
+
+La suite est l'inventaire : parcourir ce que vous avez déclaré sans rien
+en copier — noter où les choses sont, pas ce qu'elles contiennent.
+Sa condition d'entrée : chaque endroit déclaré doit répondre — dossier
+accessible, outil qui s'ouvre, compte actif.
+
+On enchaîne ?
+```
+
+Sur accord, lancer `cortex-2-inventaire`. Si un accès manque — un mot de passe à retrouver, un compte à réactiver — s'arrêter et dire ce qui manque, et que l'inventaire démarrera quand ce sera réglé. Ne jamais enchaîner par-dessus une condition d'entrée non remplie.
+
 ## Interdits
 
 - **Ne jamais décider des domaines ici.** Ils se déduisent de l'inventaire, avec preuve. Un domaine proposé au cadrage sera adopté par politesse et jamais réexaminé.
@@ -137,3 +175,4 @@ un inventaire partiel dont personne ne saura ce qu'il a manqué.
 - **Ne jamais inventer** une valeur manquante : `_Non renseigné — à compléter_` est toujours préférable. Halluciner une décision de cadrage est pire que laisser un trou visible.
 - **Ne jamais ouvrir la messagerie sans accord tracé.**
 - **Ne jamais accepter un rédacteur collectif.** Un vault, une personne. « L'équipe » comme réponse est le début d'un produit différent.
+- **En solo, ne jamais demander « quel mode »** ni prononcer « solo » ou « consultant » devant la personne. La question d'ouverture en langage ordinaire suffit, la réponse s'écrit, et elle ne se repose jamais.
