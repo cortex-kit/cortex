@@ -253,6 +253,17 @@ def codes_domaines(conf):
     return [d["code"] for d in conf.get("domaines", []) if d.get("code")]
 
 
+def conduite(conf):
+    """Mode de conduite de la chaîne : qui la mène. `solo` (l'installateur est
+    le bénéficiaire) ou `consultant` (un tiers conduit). Absente ⇒ consultant :
+    aucune config antérieure à la phase 5 ne porte la clé, et toutes étaient
+    conduites par un consultant — c'est ce qui rend l'ajout rétro-compatible.
+
+    La clé ne s'appelle pas `mode` : ce nom est déjà pris par la fédération du
+    vault (`solo` | `federe`), une sémantique sans rapport. Arbitré 2026-08-23."""
+    return conf.get("conduite", "consultant")
+
+
 def valider_installable(conf):
     """Complétude du contrat : la config est-elle prête à produire un vault ?
 
@@ -303,6 +314,12 @@ def valider_installable(conf):
         erreurs.append(
             "cycles: aucun cycle declare. `phase` n'aurait alors aucun vocabulaire "
             "ferme, et le controle qui la verifie ne pourrait plus rien refuser.")
+
+    if conduite(conf) not in ("solo", "consultant"):
+        erreurs.append(
+            f"conduite: {conf.get('conduite')!r} n'est ni 'solo' ni 'consultant'. "
+            "Absente, la cle vaut 'consultant'. Ne pas confondre avec `mode`, "
+            "qui porte la federation du vault (solo/federe).")
 
     communs = set(conf.get("vehicules") or []) & set(conf.get("payeurs") or [])
     if communs:
@@ -365,6 +382,14 @@ def _autotest():
     # Les deux axes ne partagent jamais une valeur (Conventions §8).
     assert not (set(conf.get("vehicules", [])) & set(conf.get("payeurs", []))), \
         "vehicules et payeurs partagent une valeur"
+
+    # Clé `conduite` (phase 5) : absente ⇒ consultant ; valeur inconnue ⇒
+    # erreur qui nomme la clé ; les deux valeurs attendues passent.
+    assert conduite(conf) == "consultant", "l'exemple ne porte pas la clé, le défaut doit être consultant"
+    assert not any("conduite" in e for e in valider_installable(dict(conf, conduite="solo")))
+    assert not any("conduite" in e for e in valider_installable(dict(conf, conduite="consultant")))
+    assert any(e.startswith("conduite") for e in valider_installable(dict(conf, conduite="duo"))), \
+        "une valeur de conduite inconnue doit être refusée"
 
     # Le refus explicite du mapping à 2 niveaux fait partie du contrat.
     try:
