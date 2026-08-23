@@ -23,6 +23,8 @@ C'est le point de reprise à coût nul de toute la chaîne : `rm -rf` puis relan
 
 **Aucun maillon n'invoque le suivant.** Le consultant lance.
 
+En mode **solo** — clé `conduite` de la config — chaque maillon propose le suivant et l'enchaîne après un accord explicite, jamais sans, et jamais si sa condition d'entrée manque. Qualification complète : `cortex-1-cadrage/references/doctrine.md` §3, amendement 2026-08-23.
+
 ## Positionnement
 
 Ce maillon **n'invente rien**. Si une valeur manque dans `config.yaml`, il s'arrête et le dit — il ne comble pas. Une valeur inventée à l'installation se retrouve dans la doctrine du client, où elle sera crue.
@@ -36,6 +38,7 @@ Ce qui relève d'un autre maillon : le choix des domaines (`cortex-3`), la colle
    python3 scripts/cortex_config.py <chemin config.yaml>
    ```
 2. Le fichier `_cortex/02-ontologie.md` porte `statut: valide` — les domaines ont été arbitrés et signés.
+3. Lire la clé `conduite` de la config — absente ⇒ `consultant`, comportement actuel à l'identique. Elle ne change rien au geste : ce maillon est déterministe et se moque de qui l'a lancé. Elle choisit seulement le message de clôture. Cas particulier : si aucun atelier n'existe — pas de `config.yaml` du tout —, ce n'est pas un maillon 4 qui échoue, c'est une installation qui commence. Le dire, et proposer de démarrer par `cortex-1-cadrage`.
 
 **Si un contrôle échoue, s'arrêter. Pas de repli.** Installer sur une ontologie non validée produit un vault qu'il faudra refaire, et refaire un vault déjà rempli coûte cent fois l'installation.
 
@@ -101,6 +104,25 @@ Pour toi :
 Ne peuple pas le vault à la main avant l'étape 3 : cortex-5 est idempotent,
 il détecterait une note écrite à la main comme un conflit à arbitrer.
 ```
+
+**En mode solo :**
+
+```
+Votre second cerveau est installé.
+
+- <N> notes de départ, <M> familles, contrôle de santé : vert
+- rien de ce que vous avez déclaré n'y a été copié : l'outil pointe
+  vers vos affaires, il ne les stocke pas
+
+La suite le remplit : chaque projet, chaque interlocuteur repéré à
+l'inventaire devient une fiche qui pointe vers le vrai dossier.
+Sa condition d'entrée : l'outil installé et sain — c'est fait — et
+encore vide. N'y écrivez rien à la main avant le remplissage.
+
+On enchaîne ?
+```
+
+Sur accord, lancer `cortex-5-ingest`.
 
 ## Interdits
 
