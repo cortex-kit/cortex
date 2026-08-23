@@ -131,6 +131,8 @@ Identité, puis white-label, puis substrats, puis bornes. Attendre à chaque blo
 
 C'est la granularité la plus fine de toute la chaîne, et elle se justifie par le coût de régénération : refaire ce maillon veut dire reprendre du temps au client. Tous les autres se rejouent seuls.
 
+**En mode solo, la validation par bloc demeure, et la porte des bornes devient une récapitulation à confirmer.** Avant d'écrire l'atelier, relire d'une traite : voilà ce que l'outil regardera — les dossiers et outils déclarés —, voilà ce qu'il n'ouvrira pas — tout le reste, et la messagerie sans accord —, voilà les plafonds — 6 domaines, 60 projets, 80 acteurs. Une confirmation explicite, et on avance ; un refus rouvre le bloc concerné. La confirmation se trace dans `00-cadrage.md` : une ligne datée « Bornes récapitulées et confirmées le <date> » dans le corps du fichier, et le contrôle `plafonds_acceptes` ne passe à `passe` que par elle. Une porte supprimée serait un défaut, pas une simplification.
+
 ## Message de clôture
 
 ```
