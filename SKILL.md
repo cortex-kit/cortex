@@ -19,6 +19,8 @@ Il **ne rapatrie aucun document**. Il crée des notes qui pointent.
 2. `_cortex/01-inventaire.json` et `02-ontologie.md` en `statut: valide`.
 3. **Le vault est vide de contenu** — hors doctrine et templates. Si des notes ont été écrites à la main entre-temps, le signaler : elles seront traitées comme des conflits à arbitrer, pas écrasées.
 
+**Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, le fond ne change pas : trier, pointer, ne jamais recopier. Changent l'adresse des arbitrages — ce qui déborde les plafonds se présente à la personne elle-même, dans ses mots : « voilà ce que je propose d'écarter, et pourquoi » — et le message de clôture, qui propose la suite au lieu de rendre la main.
+
 ## 1. Trier avant d'écrire
 
 Toutes les entrées du catalogue ne deviennent pas des notes. La sélection est le vrai travail de ce maillon.
@@ -112,6 +114,30 @@ L'étape 1 n'est pas une formalité. Un pointeur faux est indétectable par
 le lint — il vérifie la présence, pas la destination — et c'est la seule
 erreur de ce maillon qui ne se voit qu'à l'usage, des semaines plus tard.
 ```
+
+**En mode solo :**
+
+```
+Votre second cerveau est rempli.
+
+- <N> projets, <M> interlocuteurs, <K> ressources — des fiches qui
+  pointent vers vos vrais dossiers, jamais des copies
+- écarté : <N> éléments, motifs notés — rien n'a été laissé de côté
+  en silence
+- contrôle de santé : vert
+
+Avant d'aller plus loin, ouvrez trois fiches au hasard : le lien
+mène-t-il au bon endroit ? C'est la seule erreur d'ici qui, sinon,
+ne se verrait que des semaines plus tard.
+
+La suite examine s'il vous faut des assistants sur mesure. Sa
+condition d'entrée : l'outil rempli et sain — c'est fait. Réponse
+honnête probable : « pas encore », et c'est une bonne réponse.
+
+On enchaîne ?
+```
+
+Sur accord, lancer `cortex-6-agents-metier` — après les trois fiches vérifiées : c'est le geste qui ne se saute pas, personne d'autre ne le fera.
 
 ## Interdits
 
