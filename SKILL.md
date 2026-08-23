@@ -22,6 +22,8 @@ Si un substrat ne répond pas : **s'arrêter et le dire.** Ne pas inventorier le
 
 Un inventaire partiel est pire qu'absent, parce que le maillon 3 ne saura pas ce qui manque : il déduira une ontologie d'un corpus troué en le croyant complet, et le trou deviendra un domaine oublié. Mieux vaut attendre un accès trois jours.
 
+**Lire aussi la clé `conduite` du `config.yaml` de l'atelier** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, le fond ne change pas : la mesure n'a pas d'interlocuteur. Changent l'adresse — « vos dossiers », pas « les substrats du client » — et le message de clôture, qui propose la suite au lieu de rendre la main. Un substrat qui ne répond pas s'annonce dans les mêmes termes qu'en consultant : dire lequel, et attendre. Retrouver un mot de passe ou réactiver un compte est une attente du monde réel ; l'inventaire ne passe pas par-dessus, en solo comme en consultant.
+
 ## Le piège — et sa parade structurelle
 
 Le piège est unique et il est fatal : **recopier au lieu de pointer**. Un client le demandera, avec les meilleures raisons du monde : « mettez-nous les documents dedans, ce sera plus pratique ».
@@ -119,6 +121,25 @@ Pour toi :
 Le maillon 3 est le seul qui juge. Il ne proposera aucun domaine sans
 preuve chiffrée tirée de ce catalogue.
 ```
+
+**En mode solo :**
+
+```
+Inventaire terminé.
+
+- <N> endroits parcourus, <M> éléments repérés
+- rien n'a été copié : tout est resté à sa place, l'outil a seulement
+  noté où chaque chose vit
+- laissé de côté : <ce qui dépasse les bornes, ou rien>
+
+La suite décide les grandes familles de votre outil — sur ce que
+l'inventaire vient de constater, pas sur des impressions.
+Sa condition d'entrée : cet inventaire, complet et validé.
+
+On enchaîne ?
+```
+
+Sur accord, lancer `cortex-3-ontologie`. Si un endroit déclaré n'a pas pu être parcouru, ou si une borne a été dépassée sans arbitrage : s'arrêter et dire ce qui manque — des familles décidées sur un inventaire troué seraient fausses, et personne ne saurait pourquoi.
 
 ## Interdits
 
