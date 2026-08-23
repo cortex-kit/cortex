@@ -22,6 +22,8 @@ Il ne collecte rien non plus. Si une information manque, elle manque : **c'est u
 
 **Si un contrôle échoue, s'arrêter. Pas de repli.** Décider une ontologie sans inventaire, c'est la déduire de ce que le client a dit vouloir plutôt que de ce qu'il fait — et ces deux choses diffèrent toujours.
 
+**Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, ce maillon est le plus exposé de la chaîne : c'est le seul qui juge, et personne n'est là pour contredire le jugement. Deux conséquences, détaillées plus bas : les trois seuils qui invalident deviennent explicatifs (§3), et la signature devient une confirmation explicite dont le coût est énoncé avant (§6).
+
 ## 1. Lire l'inventaire comme un corpus, pas comme une liste
 
 Trois signaux, par ordre de valeur décroissante.
@@ -65,6 +67,8 @@ Le cas se produit sur toute organisation mono-activité, c'est-à-dire sur la pl
 
 Le premier seuil reste le plus important et le plus contre-intuitif : un client qui range 90 % de son travail dans « Opérations » n'a pas un gros domaine, il a un découpage qui ne sert à rien.
 
+**En mode solo, ces seuils s'expliquent au moment où ils frappent.** Personne ne défend les plafonds à la place du consultant, donc c'est le maillon qui le fait : quand un domaine proposé ne tient pas son seuil, ne jamais le retirer ni le re-découper en silence — dire **lequel** des trois seuils il casse, montrer le chiffre, et dire ce que ça signifie. « “Administratif” capterait 78 % des fiches : à ce niveau, le classement ne classe plus rien — tout serait administratif, donc rien ne le serait. Voici un re-découpage possible : … » vaut mieux que la même correction faite sans un mot. Le jugement s'expose, il ne s'impose pas : la personne doit pouvoir contester chaque retrait, et un domaine écarté reste visible dans `02-ontologie.md` avec son chiffre et son seuil.
+
 ## 4. Remplir la matrice d'ownership
 
 C'est le second livrable, et il est aussi structurant que les domaines. La table à trous d'`Architecture Mémoire` §2 se remplit ici, à partir de l'inventaire réel.
@@ -85,6 +89,8 @@ Pour chaque type de fait : quelle est la source de vérité, et que fait le vaul
 La granularité la plus fine de la chaîne avec le maillon 1, et pour une autre raison : chaque ligne est un arbitrage qu'il faudrait re-litiger avec le client si on le passait en bloc.
 
 Puis **faire signer `02-ontologie.md`**. Pas une formalité : c'est le document qui empêchera, dans trois mois, de refaire le débat des domaines sur un vault déjà peuplé — moment où le changer coûte cent fois ce qu'il coûte aujourd'hui.
+
+**En mode solo, la signature devient une confirmation explicite — et le coût se dit avant.** Récapituler la carte entière : les familles retenues avec leur preuve, ce qui a été écarté et pourquoi, les cycles, les points incertains. Puis énoncer le coût, en clair : « revenir sur cette carte une fois l'outil rempli demandera de tout reprendre — chaque fiche re-rattachée une à une. C'est maintenant que changer d'avis est bon marché. » Attendre la confirmation ; un refus rouvre la décision concernée, pas la carte entière. La confirmation se trace dans `02-ontologie.md` — une ligne datée « Carte récapitulée, coût de retour énoncé, confirmée le <date> » — et c'est par elle que le contrôle `ontologie_signee_client` passe : en solo, le signataire et le bénéficiaire sont la même personne, la trace remplace le papier. Une porte supprimée serait un défaut, pas une simplification.
 
 ## 7. Écrire
 
@@ -123,6 +129,27 @@ valide. Installer sur une ontologie non arbitrée produit un vault qu'il
 faudra refaire — et refaire un vault déjà rempli coûte cent fois
 l'installation.
 ```
+
+**En mode solo :**
+
+```
+La carte de votre outil est arrêtée.
+
+- <N> familles, chacune appuyée sur ce que l'inventaire a constaté
+- écarté : <ce qui n'a pas tenu son seuil, avec le chiffre — ou rien>
+- points encore incertains : <N — les relire, c'est par eux qu'on se
+  trompe>
+
+Vous venez de la confirmer, c'est tracé.
+
+La suite installe l'outil lui-même : une seconde, entièrement
+automatique, rien à décider. Sa condition d'entrée : cette carte
+confirmée — c'est fait.
+
+On enchaîne ?
+```
+
+Sur accord, lancer `cortex-4-installation`. Si la carte n'est pas confirmée : s'arrêter et dire ce qui reste en suspens — rien ne s'installe avant la confirmation.
 
 ## Interdits
 
