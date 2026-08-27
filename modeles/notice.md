@@ -19,6 +19,8 @@ seule installation supplémentaire du parcours, et elle prend cinq minutes.
 
 Il vous faut aussi Claude Code, l'application dans laquelle tout se passe.
 Si vous lisez cette notice, elle est probablement déjà sur votre machine.
+Sinon, elle s'installe depuis claude.com/code, et c'est le seul autre
+préalable du parcours.
 
 ## Installer, selon votre machine
 
@@ -32,10 +34,14 @@ laissé de côté, et signalez-le dans Claude Code à la première session.
 
 ### Sur Mac
 
-1. Double-cliquez sur le fichier zip : les dossiers apparaissent à côté.
+1. Double-cliquez sur le fichier zip : un dossier apparaît à côté, portant le
+   nom du zip, et tout le paquet est dedans.
 2. Dans le Finder, menu « Aller » puis « Aller au dossier », collez :
    `~/.claude/skills/`
-3. Glissez tous les dossiers du paquet dans ce dossier. C'est fini.
+   Si le Finder répond qu'il ne trouve pas ce dossier, c'est normal : allez à
+   `~/.claude/` et créez-y un dossier nommé `skills`, exactement comme ça.
+3. Glissez les treize dossiers du paquet dans ce dossier. C'est fini — les
+   deux fichiers, cette notice et `PROVENANCE.md`, n'ont pas à être déplacés.
 
 ### Sur Windows
 
@@ -43,7 +49,10 @@ laissé de côté, et signalez-le dans Claude Code à la première session.
 2. Clic droit sur le fichier zip, « Extraire tout ».
 3. Dans l'Explorateur, collez ce chemin dans la barre d'adresse :
    `C:\Users\VOTRE_NOM\.claude\skills\`
-4. Déplacez tous les dossiers extraits dans ce dossier. C'est fini.
+   Si l'Explorateur ne trouve pas ce dossier, c'est normal : ouvrez
+   `C:\Users\VOTRE_NOM\.claude\` et créez-y un dossier nommé `skills`.
+4. Déplacez les treize dossiers extraits dans ce dossier. C'est fini — les
+   deux fichiers, cette notice et `PROVENANCE.md`, restent où ils sont.
 
 Dans Claude Code sous Windows, la commande `py` remplace `python3`. Vous
 n'aurez pas à la taper : Claude Code s'en charge, mais si un message parle
@@ -52,8 +61,8 @@ de `python3`, lisez `py`.
 ### Sur Linux
 
 1. Décompressez le zip.
-2. Déplacez tous les dossiers dans `~/.claude/skills/` (créez le dossier
-   s'il n'existe pas).
+2. Déplacez les treize dossiers dans `~/.claude/skills/` (créez le dossier
+   s'il n'existe pas). Les deux fichiers restent où ils sont.
 3. C'est fini.
 
 ## Démarrer
@@ -75,10 +84,12 @@ Le tableau de bord en haut de cette page montre les sept étapes de
 l'installation. Avant de commencer, les sept sont à faire : c'est normal,
 c'est votre point de départ.
 
-Pendant et après l'installation, demandez à Claude Code :
-**« où en est mon installation ? »**. Il régénère le tableau de bord dans le
-dossier de travail `_cortex/`, fichier `notice.html`, et vous dit ce qui est
-fait, ce qui reste, et ce qui bloque.
+**Cette page-ci ne bougera plus.** Elle est votre point de départ figé, et
+elle affichera toujours sept étapes à faire, même une fois tout installé.
+Le tableau de bord vivant est ailleurs : demandez à Claude Code
+**« où en est mon installation ? »**. Il le régénère dans le dossier de
+travail `_cortex/`, fichier `notice.html` — c'est celui-là qu'on rouvre — et
+il vous dit ce qui est fait, ce qui reste, et ce qui bloque.
 
 L'étape 4 ne produit pas de fichier de suivi : son résultat est votre second
 cerveau lui-même, et sa preuve est un contrôle de santé qui sort à zéro
@@ -131,8 +142,9 @@ github.com/anthropics/skills, consultable sous les conditions d'Anthropic.
 ## Le geste qui décide de tout
 
 Quand vous finissez une séance de travail, dites à Claude Code :
-**« j'ai fini »**. L'outil range ce que la séance a produit : le journal du
-projet, les décisions, ce qui bloque. C'est ce geste, répété, qui fait d'un
+**« j'ai fini »**, ou **« clôture »** — les deux mènent au même endroit, et
+c'est le second que l'outil vous rappellera. L'outil range ce que la séance a
+produit : le journal du projet, les décisions, ce qui bloque. C'est ce geste, répété, qui fait d'un
 dossier de notes une mémoire. Sans lui, l'outil reste propre et vide.
 
 ## Ce que l'outil ne fait jamais
