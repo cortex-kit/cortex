@@ -53,8 +53,9 @@ ETAPES = [
 ]
 
 RAISON_TROU_03 = (
-    "Pas d'artefact 03, et ce n'est pas une étape oubliée : la sortie du "
-    "maillon 4 est le vault lui-même, et sa preuve est le lint qui sort à 0.")
+    "Cette étape ne produit aucun fichier de suivi, et ce n'est pas un oubli : "
+    "ce qu'elle produit est votre second cerveau lui-même, et sa preuve est le "
+    "contrôle de santé qui sort sans une seule erreur.")
 
 # Libellés d'affichage, partagés par les DEUX rendus (tableau de bord et deck).
 # Ils vivent ici, dans la source commune, pour qu'aucun rendu n'invente le sien.
@@ -144,6 +145,12 @@ def ecrire(atelier, sortie=None, paquet=None):
     return sortie, pivot
 
 
+def faites(pivot):
+    """Nombre d'étapes faites. `faite_deduite` compte : l'étape 4 ne produit
+    aucun artefact, et l'ignorer annonce 6/7 quand les sept sont faites."""
+    return sum(1 for e in pivot["etapes"] if e["etat"].startswith("faite"))
+
+
 def main():
     p = argparse.ArgumentParser(description="Projette _cortex/ en pivot JSON.")
     p.add_argument("--atelier", required=True, help="chemin du dossier _cortex/")
@@ -153,8 +160,7 @@ def main():
         print(f"[erreur] atelier introuvable : {a.atelier}", file=sys.stderr)
         return 2
     sortie, pivot = ecrire(a.atelier, a.sortie)
-    faites = sum(1 for e in pivot["etapes"] if e["etat"] == "faite")
-    print(f"OK — {sortie} : {faites}/7 étape(s) faite(s), "
+    print(f"OK — {sortie} : {faites(pivot)}/7 étape(s) faite(s), "
           f"conduite {pivot['conduite'] or 'non fixée'}")
     return 0
 
