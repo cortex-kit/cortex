@@ -50,7 +50,13 @@ def _scalaire(v):
         return ""
     # Retirer un commentaire de fin de ligne, sauf s'il est dans des guillemets
     # ou s'il s'agit d'une couleur hexadécimale (#1c42da).
-    if not (v.startswith('"') or v.startswith("'")):
+    if v[:1] in ('"', "'"):
+        # Valeur entre guillemets : tout ce qui suit le guillemet fermant est
+        # un commentaire. `racine: ""  # aucun` vaut "", pas '""  # aucun'.
+        fin = v.find(v[0], 1)
+        if fin != -1:
+            v = v[: fin + 1]
+    else:
         m = re.search(r"\s+#(?!\w{3,8}\b)", v)
         if m:
             v = v[: m.start()].strip()

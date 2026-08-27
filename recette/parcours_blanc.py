@@ -238,6 +238,17 @@ def main():
                 cortex_config.conduite(conf) == "consultant"
                 and not any("conduite" in e
                             for e in cortex_config.valider_installable(conf)))
+        # Defaut n5 (parcours a blanc novice, 2026-08-24) : un substrat declare
+        # absent par `cle: ""  # aucun` etait lu non vide, donc pris pour present.
+        gabarit = cortex_config.charger(RACINE / "template" / "config.example.yaml")
+        quotes = {"commun.racine": gabarit.get("commun", {}).get("racine", "")}
+        quotes.update({f"substrats.{c}": gabarit.get("substrats", {}).get(c, "")
+                       for c in ("espace_documentaire", "base_projets", "git_remote")})
+        verifie("un substrat vide suivi d'un commentaire est lu vide",
+                all(v == "" for v in quotes.values()), str(quotes))
+        verifie("un # entre guillemets survit au retrait des commentaires",
+                cortex_config._scalaire('"a # b"  # com') == "a # b")
+
         inconnu = tmp / "config-conduite.yaml"
         inconnu.write_text(cfg.read_text(encoding="utf-8") + "conduite: duo\n",
                            encoding="utf-8")
@@ -271,12 +282,36 @@ def main():
         verifie("le pivot se regenere a l'identique hors horodatage",
                 sans_horodatage(p1) == sans_horodatage(p2))
         e4 = pivot["etapes"][3]
+        # La raison s'adresse au novice : elle nomme ce que l'etape produit et
+        # ce qui le prouve, sans les mots d'atelier (« vault », « lint »), que
+        # la notice ne definit nulle part.
         verifie("le trou en 03 est porte avec sa raison en clair",
-                e4["artefact"] is None and "vault" in e4.get("raison", "")
-                and "lint" in e4.get("raison", ""), str(e4))
+                e4["artefact"] is None
+                and "second cerveau" in e4.get("raison", "")
+                and "contrôle de santé" in e4.get("raison", "")
+                and not {"vault", "lint"} & set(
+                    e4.get("raison", "").lower().split()), str(e4))
         verifie("l'etape 4 se deduit d'un artefact aval, jamais devinee",
                 e4["etat"] == "faite_deduite"
                 and m_etat.generer(tmp)["etapes"][3]["etat"] == "a_faire")
+
+        # Defaut n6 (parcours a blanc novice, 2026-08-24) : le compteur ignorait
+        # `faite_deduite` et annoncait 6/7 quand les sept lignes etaient faites.
+        complet = tmp / "_cortex-complet"
+        complet.mkdir()
+        shutil.copyfile(cfg, complet / "config.yaml")
+        for nom, m, p in (("00-cadrage", 1, "cortex-1-cadrage"),
+                          ("01-inventaire", 2, "cortex-2-inventaire"),
+                          ("02-ontologie", 3, "cortex-3-ontologie"),
+                          ("04-ingest", 5, "cortex-5-ingest"),
+                          ("05-agents-metier", 6, "cortex-6-agents-metier"),
+                          ("06-passation", 7, "cortex-7-passation")):
+            (complet / f"{nom}.md").write_text(
+                fm.format(m=m, p=p, s="valide", v="passe"), encoding="utf-8")
+        pivot_complet = m_etat.generer(complet)
+        verifie("le compteur annonce 7/7 quand les sept lignes sont faites",
+                m_etat.faites(pivot_complet) == 7,
+                str([e["etat"] for e in pivot_complet["etapes"]]))
 
         vierge = tmp / "atelier-vierge"
         vierge.mkdir()
