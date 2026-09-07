@@ -71,9 +71,15 @@ Le mail devient une source d'ingest comme une autre : recherche sur plusieurs bo
 brouillons préparés depuis la bonne adresse, classement automatique. Douze opérations
 disponibles, du listage à la pièce jointe.
 
-Claude peut lire **et** écrire : envoyer, déplacer, retirer un message de sa boîte. Deux
-habitudes à prendre. Commencer par une boîte secondaire. Demander un brouillon plutôt qu'un
-envoi direct pour tout message qui engage.
+Claude peut lire **et** écrire, dans des limites précises. Aucun outil ne supprime un message :
+la suppression n'existe pas dans ce connecteur. Deux opérations partent sans repasser par vous,
+l'envoi direct et la réponse dans le fil ; le brouillon se dépose sans rien expédier.
+
+Deux comportements à connaître. Lire un message par Claude le marque comme lu, le retour en
+non-lu se demande. Et la liste des comptes est lue au démarrage : une boîte ajoutée à
+`accounts.json` reste invisible tant que Claude n'a pas redémarré.
+
+Commencer par une boîte secondaire. Demander un brouillon pour tout message qui engage.
 
 Pour couper l'accès : révoquer le mot de passe d'application chez le fournisseur. Effet
 immédiat.
