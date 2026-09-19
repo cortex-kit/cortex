@@ -9,7 +9,7 @@ remplit selon `04-contrat.md` §7. Aucune entrée ne porte de champ `contenu` ;
 l'écriture le refuse.
 
 Le texte des candidats structurants (organigramme, process, contrat…) passe par
-`uvx markitdown` s'il est présent, borné en octets, et n'en sort que des
+`uvx --from "markitdown[all]" markitdown` s'il est present, borné en octets, et n'en sort que des
 mots-signaux comptés : le texte lui-même n'est jamais écrit.
 
 Usage :

@@ -1,11 +1,11 @@
 ---
 name: cortex-2-inventaire
-description: Deuxième maillon de la chaîne Cortex. Mesure le disque par scan.py (dossiers, extensions, dates, dépôts git, signaux de base déportée, bornes en entiers), remplit le bloc mail par le connecteur retenu au maillon 0 (en-têtes seuls, agrégats), relève les bases déportées et dérive les écarts candidats pour l'entretien du maillon 3. Produit 01-inventaire.json et son rapport lisible, sans jamais copier de contenu. Déclencher quand la personne dit "lance l'inventaire" (phrase canonique de la notice), "maillon 2", "inventaire", "on scanne l'existant", "regarde ce que j'ai", ou dispose d'un cadrage validé. Ne PAS confondre avec cortex-5-ingest, qui transforme ce catalogue en notes dans le vault.
+description: Maillon 2 de la chaîne Cortex. Mesure le disque par scan.py (dossiers, extensions, dates, dépôts git, signaux de base déportée, bornes en entiers), remplit le bloc mail par le connecteur retenu au maillon 0 (en-têtes seuls, agrégats), relève les bases déportées et dérive les écarts candidats pour l'entretien du maillon 3. Produit 01-inventaire.json et son rapport lisible, sans jamais copier de contenu. Déclencher quand la personne dit "lance l'inventaire" (phrase canonique de la notice), "maillon 2", "inventaire", "on scanne l'existant", "regarde ce que j'ai", ou dispose d'un cadrage validé. Ne PAS confondre avec cortex-5-ingest, qui transforme ce catalogue en notes dans le vault.
 ---
 
 # cortex-2-inventaire : cataloguer sans copier
 
-Deuxième des neuf maillons. Il regarde ce que la personne a déjà, sans rien en rapatrier.
+Troisième des neuf, le maillon 0 compris. Il regarde ce que la personne a déjà, sans rien en rapatrier.
 
 ## Positionnement
 
@@ -46,7 +46,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/scan.py" --config <vault>/config.yaml --out
 - parcourt chaque racine jusqu'à `collecte.profondeur_arbre`, au plus `collecte.max_dossiers` dossiers, en ignorant les dossiers cachés ;
 - écrit une entrée `disque` par dossier : chemin en forme `~`, profondeur, fichiers directs et dans le sous-arbre, sous-dossiers, extensions comptées, première et dernière modification, `depot_git`, `signal_ontologique` (mots des noms de dossiers et de fichiers, candidats structurants), `signaux_base_deportee` ;
 - écrit une entrée `depots` par dossier `.git` : langages par extensions, dernier commit, vingt premières lignes du README, `graphify_propose` vrai pour les seuls dépôts qui portent du code ;
-- extrait le texte des candidats structurants (nom qui porte organigramme, process, contrat, fiche de poste, cahier des charges, cadrage) par `uvx markitdown` s'il est présent, au plus 64 Kio par fichier et 2 Mio au total, jusqu'à `collecte.max_extractions` fichiers (quarante par défaut ; `sante.max_structurants` est le plafond de copie du maillon 5, pas celui-ci). Seuls des mots comptés en sortent ; le texte n'est jamais écrit ;
+- extrait le texte des candidats structurants (nom qui porte organigramme, process, contrat, fiche de poste, cahier des charges, cadrage) par `uvx --from "markitdown[all]" markitdown` s'il est présent, au plus 64 Kio par fichier et 2 Mio au total, jusqu'à `collecte.max_extractions` fichiers (quarante par défaut ; `sante.max_structurants` est le plafond de copie du maillon 5, pas celui-ci). Seuls des mots comptés en sortent ; le texte n'est jamais écrit ;
 - mesure `bornes` en entiers : `profondeur_max_vue`, `dossiers_vus`, `fichiers_vus`, `octets_extraits`, `dossiers_au_dela`, `extractions`, rappel de `profondeur_arbre` et `max_dossiers`, et `depassement` dès qu'un dossier n'a pas été parcouru ;
 - pré-remplit `ecarts_candidats` avec `base_deportee_non_declaree` (si `substrats.base_projets` est vide) et `depot_non_declare` ;
 - laisse `mail` en squelette (`voie: aucune`, compteurs à zéro), `bases` et `agenda` vides, `resume` vide.

@@ -15,6 +15,8 @@ metadata:
 
 # Stop Slop
 
+> Cette référence est en anglais : c'est la skill d'origine, reprise telle quelle (emprunt couvert par `PROVENANCE.md`). La skill, elle, répond en français et corrige de la prose française.
+
 Eliminate predictable AI writing patterns from prose.
 
 ## Core Rules

@@ -1,6 +1,6 @@
 ---
 name: cortex-8-federation
-description: Huitième maillon de la chaîne Cortex, réservé au profil société : il relie les cerveaux. Relie plusieurs vaults (un par rédacteur) à un vault commun généré par federe.py depuis leurs exports _export/<slug>/, jamais édité à la main, régénéré à l'identique à chaque passage. Déclencher quand la personne dit "maillon 8", "fédération", "relie les cerveaux", "relie nos cerveaux", "le commun", "regénère le commun", ou quand au moins deux vaults membres ont fait une clôture. Ne PAS utiliser pour un vault solo (l'étape vaut alors « arbitrée »), ni pour écrire dans un vault membre.
+description: Maillon 8 de la chaîne Cortex, réservé au profil société : il relie les cerveaux. Relie plusieurs vaults (un par rédacteur) à un vault commun généré par federe.py depuis leurs exports _export/<slug>/, jamais édité à la main, régénéré à l'identique à chaque passage. Déclencher quand la personne dit "maillon 8", "fédération", "relie les cerveaux", "relie nos cerveaux", "le commun", "regénère le commun", ou quand au moins deux vaults membres ont fait une clôture. Ne PAS utiliser pour un vault solo (l'étape vaut alors « arbitrée »), ni pour écrire dans un vault membre.
 ---
 
 # cortex-8-federation : plusieurs cerveaux, un commun

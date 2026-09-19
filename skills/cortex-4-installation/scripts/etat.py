@@ -270,7 +270,14 @@ def main():
         print(f"[erreur] atelier introuvable : {a.atelier}", file=sys.stderr)
         return 2
     sortie, pivot = ecrire(Path(a.atelier).expanduser(), a.sortie)
-    print(f"OK — {sortie} : {faites(pivot)}/{len(ETAPES)} étape(s) faite(s), "
+    # §5 amendé : une étape arbitrée n'est pas une étape faite, et 9/9 serait
+    # un mensonge en solo. On nomme les deux comptes séparément.
+    arbitrees = sum(1 for e in pivot["etapes"] if e["etat"] == "arbitre")
+    compte = f"{faites(pivot)} faite(s)"
+    if arbitrees:
+        compte += f" et {arbitrees} arbitrée(s)"
+    compte += f" sur {len(ETAPES)}"
+    print(f"OK — {sortie} : {compte}, "
           f"conduite {pivot['conduite'] or 'non fixée'}, "
           f"suivante : « {pivot['phrase_suivante']} »")
     return 0
