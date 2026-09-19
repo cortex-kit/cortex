@@ -1,10 +1,20 @@
 {
   "name": "cortex",
-  "version": "2.0.0-dev",
+  "version": "2.0.0-rc.1",
   "description": "Installe un second cerveau, un vault Obsidian en markdown, chez une personne ou une organisation : équipement du poste, inventaire par profil, ontologie signée, installation, peuplement, agents métier, passation, fédération. Pour commencer, écrivez : installe mon second cerveau.",
-  "author": { "name": "cortex-kit", "url": "https://github.com/cortex-kit" },
+  "author": {
+    "name": "cortex-kit",
+    "url": "https://github.com/cortex-kit"
+  },
   "homepage": "https://github.com/cortex-kit/cortex",
   "repository": "https://github.com/cortex-kit/cortex",
   "license": "MIT",
-  "keywords": ["second-cerveau", "obsidian", "vault", "memoire", "pkm", "francais"]
+  "keywords": [
+    "second-cerveau",
+    "obsidian",
+    "vault",
+    "memoire",
+    "pkm",
+    "francais"
+  ]
 }
