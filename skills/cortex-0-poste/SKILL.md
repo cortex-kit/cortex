@@ -53,7 +53,7 @@ Traduire chaque ligne en une phrase que la personne comprend, puis demander son 
 |---|---|
 | obsidian | lire et parcourir vos notes |
 | uv | faire tourner les petits programmes du parcours |
-| markitdown | lire vos documents Word, PDF, tableurs |
+| markitdown | lire vos documents Word, PDF, tableurs (toujours avec l'extra `[all]`, le paquet nu ne les lit pas) |
 | git | garder l'historique de vos notes |
 | gh | sauvegarder vos notes en privé en ligne |
 | github-desktop | voir cet historique sans terminal |

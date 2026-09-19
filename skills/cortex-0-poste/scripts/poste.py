@@ -41,8 +41,10 @@ OUTILS = {
     "uv": {"cmd": "uv", "install": {"macos": "brew install uv",
                                      "windows": "winget install --id astral-sh.uv -e",
                                      "linux": "curl -LsSf https://astral.sh/uv/install.sh | sh"}},
-    "markitdown": {"cmd": "markitdown", "install": {os_: "uv tool install markitdown"
-                                                    for os_ in ("macos", "windows", "linux")}},
+    # Le paquet nu ne lit ni pdf ni docx : toujours l'extra [all], installé et sondé par uv.
+    "markitdown": {"uvx": ["--from", "markitdown[all]", "markitdown"],
+                   "install": {os_: 'uv tool install "markitdown[all]"'
+                               for os_ in ("macos", "windows", "linux")}},
     "git": {"cmd": "git", "install": {"macos": "brew install git",
                                        "windows": "winget install --id Git.Git -e",
                                        "linux": "sudo apt-get install -y git"}},
@@ -77,6 +79,18 @@ def _version(cmd):
         return ""
 
 
+def _uvx(args):
+    """Sonde un outil servi par uvx : `uvx --from "paquet[extra]" outil --version`."""
+    if not shutil.which("uvx"):
+        return {"present": False, "version": ""}
+    try:
+        r = subprocess.run(["uvx", *args, "--version"], capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return {"present": False, "version": ""}
+    m = re.search(r"\d+(\.\d+)+", r.stdout + r.stderr)
+    return {"present": r.returncode == 0, "version": m.group(0) if m and r.returncode == 0 else ""}
+
+
 def _app(nom, systeme):
     """Rend (présent, version) pour une application de bureau."""
     if not nom:
@@ -102,7 +116,9 @@ def detecter(systeme=None):
     systeme = systeme or os_courant()
     etat = {}
     for nom, o in OUTILS.items():
-        if "cmd" in o:
+        if "uvx" in o:
+            etat[nom] = _uvx(o["uvx"])
+        elif "cmd" in o:
             present = bool(shutil.which(o["cmd"]))
             etat[nom] = {"present": present, "version": _version(o["cmd"]) if present else ""}
         else:
@@ -265,6 +281,8 @@ def _autotest():
     etat = {n: {"present": n in ("git", "uv"), "version": ""} for n in OUTILS}
     lignes = lignes_dry_run(etat, "macos")
     assert len(lignes) == 5 and lignes[0] == "obsidian : absent → brew install --cask obsidian"
+    assert lignes[1] == 'markitdown : absent → uv tool install "markitdown[all]"'
+    assert OUTILS["markitdown"]["uvx"] == ["--from", "markitdown[all]", "markitdown"]
     assert all(" : absent → " in l for l in lignes_dry_run(etat, "windows"))
     with tempfile.TemporaryDirectory() as tmp:
         config = Path(tmp) / "config.yaml"

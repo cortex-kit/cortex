@@ -212,7 +212,7 @@ def ecrire(atelier, sortie=None, paquet=None):
 
 def faites(pivot):
     """Nombre d'étapes faites. `faite_deduite` compte : l'étape 4 ne produit
-    aucun artefact, et l'ignorer annonce 8/9 quand les neuf sont faites."""
+    aucun artefact, et l'ignorer en annonce une de moins quand toutes sont faites."""
     return sum(1 for e in pivot["etapes"] if e["etat"].startswith("faite"))
 
 
