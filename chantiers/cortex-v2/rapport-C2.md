@@ -141,13 +141,17 @@ invalide sur le fond » à vert sur le fond.
 
 ## 3. Points en attente, pour le chef d'orchestre
 
-1. **`06-verification.md` et `03-backlog.md` portent encore l'ancien chemin.** `rapport-C.md`
-   (lignes 11 à 30) cite `skills/cortex-1-cadrage/scripts/rejeu_profil.py`. Ces fichiers
-   appartiennent au chef et à la lane G ; la reprise ne les a pas touchés.
+Les deux premiers points ont été soumis au chef en fin de reprise ; ses arbitrages sont repris ici.
+
+1. **`rapport-C.md` et `03-backlog.md` portent encore l'ancien chemin** `skills/cortex-1-cadrage/scripts/rejeu_profil.py`
+   (`rapport-C.md` lignes 11 à 30). **Arbitrage du 2026-09-19 : laissé au chef, qui consolide.**
+   La reprise ne touche pas `chantiers/cortex-v2/` hors de ce rapport.
 2. **`skills/cortex-4-installation/SKILL.md:152`, `cortex-5-ingest/SKILL.md:168`,
    `cortex-6-agents-metier/SKILL.md:142` portent encore « Sur accord, lancer `cortex-N` ».**
-   L'invariant I10 les vise aussi ; ces trois fichiers sont possédés par la lane E. Valeur
-   attendue : la phrase retirée, la section Notice conservée telle quelle.
+   L'invariant I10 les vise aussi ; ces trois fichiers sont possédés par la lane E.
+   **Arbitrage du 2026-09-19 : laissé en place, la reprise `fix/E` le porte déjà (consigne M-7).**
+   Valeur attendue pour mémoire : la phrase retirée, la section Notice conservée telle quelle.
 3. **Les quatre échecs de `parcours_blanc.py` restent ouverts** sur `main` comme sur `fix/C`
    (deux lane B, un lane E, un lane B). Ils ne concernent pas C, et la reprise n'y a pas touché.
-4. **Aucune décision n'a manqué.** Les cinq points des consignes ont été exécutés en entier.
+4. **Aucune décision n'a manqué.** Les cinq points des consignes ont été exécutés en entier,
+   et les deux points hors colonne sont tranchés et affectés.
