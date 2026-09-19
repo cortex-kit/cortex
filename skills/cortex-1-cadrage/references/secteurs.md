@@ -36,10 +36,10 @@ Le bon découpage suit **la nature du travail**, pas la ligne hiérarchique. Le 
 
 ## Les seuils qui invalident une proposition
 
-À vérifier au maillon 3, avant de passer `02-ontologie.md` en `statut: valide` :
+À vérifier au maillon 3, avant de passer `02-ontologie.md` en `statut: valide`. **Le dénominateur, c'est les notes attendues, pas les projets** : projets, acteurs et ressources comptent tous. Mesurés sur les seuls projets, les deux premiers seuils se combinent pour découper ce qui est homogène et supprimer ce qui est distinct (`cortex-3-ontologie/SKILL.md` §3).
 
-- **Un domaine capte plus de 70 % des projets** → sous-segmentation. Le classement ne porte plus d'information.
-- **Un domaine n'en capte aucun** → il a été créé par anticipation. Le retirer, quitte à l'ajouter le jour où il sert.
+- **Un domaine capte plus de 70 % des notes attendues** → sous-segmentation. Le classement ne porte plus d'information.
+- **Un domaine ne capte aucune note attendue** → il a été créé par anticipation. Le retirer, quitte à l'ajouter le jour où il sert. Une fonction support qui porte des acteurs et des ressources sans porter un projet daté n'est pas vide.
 - **Plus de 6 domaines** → plafond dur. C'est un constat à remonter, pas une demande à satisfaire.
 
 Ces trois seuils sont mesurables, et c'est pour ça qu'ils valent mieux qu'un avis. Une ontologie se discute mal en opinion et bien en chiffres.

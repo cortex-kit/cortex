@@ -1,18 +1,19 @@
 ---
 name: cortex-1-cadrage
-description: Premier maillon de la chaîne Cortex. Cadre l'installation d'un second cerveau chez une organisation — qui la porte, quels substrats existent déjà, quelles bornes de collecte, quel white-label. Produit le config.yaml initial et le dossier d'atelier _cortex/. Déclencher quand le consultant dit "nouveau client Cortex", "on démarre l'installation chez X", "cadrage second cerveau", "maillon 1", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
+description: Maillon 1 de la chaîne Cortex, le cadrage. Pose le profil (employé, dirigeant, société) en langage ordinaire, fixe le régime de donnée (pointeur ou copie), propose les dossiers à parcourir et les plafonds depuis references/profils/<profil>.md, lit _cortex/poste.json pour pré-remplir le poste et la voie mail. Produit config.yaml et 00-cadrage.md dans _cortex/. Déclencher quand la personne dit "cadre mon second cerveau", "on commence le cadrage", "maillon 1", "nouveau client Cortex", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
 ---
 
 # cortex-1-cadrage — le maillon le plus cher
 
-Premier des sept. Il consomme le temps du client, qui est la ressource la plus rare de toute la chaîne. Tout ce qui est mal cadré ici se paie six fois plus loin, quand le vault est déjà installé et peuplé.
+Maillon 1, après l'équipement du poste. Il consomme le temps du client, qui est la ressource la plus rare de toute la chaîne. Tout ce qui est mal cadré ici se paie six fois plus loin, quand le vault est déjà installé et peuplé.
 
-Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `references/secteurs.md`.
+Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `references/secteurs.md`. Profils : `references/profils/{employe,dirigeant,societe}.md`. Rejeu sans personne, pour la recette : `scripts/rejeu_profil.py --profil <profil> --racine <dossier> --atelier <_cortex/>` (écrit config.yaml, 00-cadrage.md et la section « Ce que l'inventaire a révélé » de 02-ontologie.md depuis un ECARTS.json).
 
 ## La chaîne complète
 
 | Maillon | Rôle |
 |---|---|
+| `cortex-0-poste` | le poste équipé, `_cortex/poste.json`, la notice ouverte |
 | **`cortex-1-cadrage`** | **ce maillon — qui, quels substrats, quelles bornes** |
 | `cortex-2-inventaire` | catalogue de pointeurs vers l'existant |
 | `cortex-3-ontologie` | les domaines, avec preuve chiffrée. Le seul maillon de jugement |
@@ -20,6 +21,7 @@ Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `ref
 | `cortex-5-ingest` | l'inventaire devient des notes-pointeurs |
 | `cortex-6-agents-metier` | les agents sur mesure, une fois le vault peuplé |
 | `cortex-7-passation` | guide de remise et recette d'acceptation |
+| `cortex-8-federation` | le commun généré, quand plusieurs vaults se relient |
 
 **Aucun maillon n'invoque le suivant.** Le consultant lance, parce qu'entre deux maillons il se passe des choses dans le monde réel : obtenir un accès, faire signer, laisser le client essayer.
 
@@ -39,7 +41,18 @@ Rien n'est requis. C'est le point d'entrée. Si un compte rendu de rendez-vous o
 
 > « Installez-vous cet outil pour vous-même, ou pour quelqu'un d'autre ? »
 
-En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant` — tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo` — la personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les six maillons suivants.
+En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant` — tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo` — la personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les maillons suivants.
+
+**Le profil se pose juste après, une seule fois.** Si `config.yaml` porte déjà `profil`, ne pas la reposer. Sinon, par AskUserQuestion, options fermées plus « autre », sans jamais prononcer « profil » ni les trois noms de l'enum :
+
+> « Dans quelle situation êtes-vous ? »
+> 1. Je travaille dans une organisation que je ne dirige pas, pour un responsable.
+> 2. Je dirige une organisation, seul ou avec des associés.
+> 3. Nous sommes plusieurs dans la même organisation à vouloir cet outil, chacun le sien.
+
+1 ⇒ `profil: employe`, 2 ⇒ `profil: dirigeant`, 3 ⇒ `profil: societe`. Le profil choisit `references/profils/<profil>.md`, qui donne les questions, les substrats attendus, les racines, les plafonds, les domaines de départ et les pièges : le lire en entier avant la première question du §1. `societe` impose `mode: federe` et trois décisions de groupe avant les questions individuelles ; le fichier de profil les détaille. « Autre » ne crée pas de quatrième profil : demander ce qui ne rentre pas, puis rattacher à l'un des trois.
+
+**Lire `_cortex/poste.json` s'il existe**, écrit par le maillon 0. Il pré-remplit sans question : le bloc `poste` de `config.yaml` (`os`, `outils` présents, `mail_fournisseur`, `mail_boites`, `mail_voie`), la voie mail que le maillon 2 prendra (`04-contrat.md` §7), et un candidat d'espace documentaire à proposer au §1 (`gmail` suggère un dossier de type Drive, `m365` un dossier de type OneDrive ou SharePoint). Proposer, jamais supposer : le candidat se confirme comme n'importe quelle racine. Sans `poste.json`, le bloc `poste` reste vide et la question mail du §3 se pose telle quelle.
 
 ## 1. Collecte, à trois niveaux, en une seule passe
 
@@ -64,6 +77,16 @@ L'absence se signale et demande un « oui, je confirme, on avance sans ». Un si
 ### Niveau 3 — optionnel
 
 Axes commerciaux (`vehicules`, `payeurs`), identité légale, échéance souhaitée.
+
+### Les questions du profil, par lots de quatre
+
+`references/profils/<profil>.md` porte huit sujets : métier, N+1, collègues, parties prenantes, projets portés, projets subis, outils, rituels. Chacun s'y trouve déjà formulé en langage ordinaire, avec ce que la réponse alimente. Les poser par AskUserQuestion, quatre par appel, options fermées plus « autre », dans l'ordre du fichier. Une réponse qui ouvre un point nouveau relance un lot ; un silence ne se comble pas.
+
+**Les racines se proposent, elles ne se demandent pas.** Le fichier de profil liste `collecte.racines` en forme `~` ; y ajouter le candidat tiré de `poste.json`. Montrer la liste, faire confirmer, retirer ou ajouter chaque entrée. Chaque racine confirmée doit répondre (le dossier s'ouvre) avant d'être écrite. Une racine absente du disque ne s'écrit pas, elle se note dans `00-cadrage.md` comme à retrouver.
+
+**Le régime de donnée se fixe ici, sans le nommer** (`04-contrat.md` §2). Dès que la réponse à « où suivez-vous l'état de vos dossiers ? » désigne un outil en ligne ou un logiciel, `substrats.base_projets` reçoit son adresse et `donnees.regime` vaut `pointeur`. Sinon, `copie` : le maillon 5 copiera, un par un et sur accord, les documents structurants listés dans `donnees.structurants`. Dire la conséquence dans les mots de la personne : « votre outil restera la référence, celui-ci y renverra » ou « vos documents de fond seront recopiés ici, un par un, avec votre accord ». Le régime peut encore basculer au maillon 3 si l'inventaire révèle une base non déclarée.
+
+**Les domaines de départ du profil ne s'écrivent pas dans `config.yaml`.** Ils vont dans `00-cadrage.md`, section « Domaines de départ (hypothèses du profil) », pour que le maillon 3 les teste en premier contre l'inventaire. Un domaine écrit dans la config avant l'inventaire serait adopté par politesse (§Interdits).
 
 ### En mode solo — les mêmes questions, dans les mots du quotidien
 
@@ -99,6 +122,7 @@ Ce que ça apporte : la liste des organisations avec lesquelles le client travai
 - **6 domaines au maximum.** Au-delà, plus rien n'est central : chaque note hésite entre deux rattachements et le classement cesse de porter de l'information.
 - **60 projets, 80 acteurs au jour 1.** Au-delà, on livre un annuaire que personne n'ouvre.
 - Profondeur d'arbre 3, 200 dossiers, 12 mois de messagerie.
+- **Le profil abaisse ces valeurs, jamais ne les relève.** Le bloc config de `references/profils/<profil>.md` porte les siennes (un employé tient en 5 domaines, 30 projets, 40 acteurs). Les écrire telles quelles dans `collecte`.
 
 Un client qui en demande quinze reçoit un **constat de sous-segmentation à discuter**, pas une case supplémentaire. C'est presque toujours un besoin de six domaines et de tags transverses.
 
@@ -108,7 +132,9 @@ Les poser au cadrage, quand ils sont abstraits, coûte une phrase. Les poser au 
 
 `<ton espace>/Cortex/<slug>/_cortex/` — **chez toi, jamais dans la livraison**. Le client reçoit son vault, pas tes notes de travail, tes hypothèses écartées ni les constats te concernant sa propre organisation.
 
-Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `config.yaml`, `00-cadrage.md`. Initialiser git.
+Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `config.yaml`, `00-cadrage.md`. Initialiser git. Si le maillon 0 a déjà créé `_cortex/` (il y a laissé `poste.json`), s'y installer sans le recréer.
+
+`config.yaml` part de `${CLAUDE_SKILL_DIR}/../cortex-4-installation/template/config.example.yaml` et reçoit, dans l'ordre : `conduite`, `profil`, le bloc config du profil (`mode`, `commun`, `donnees.regime`, `collecte` avec les racines confirmées), `organisation`, `substrats`, `poste` depuis `poste.json`, `marque` (§2). `domaines: []` et `cycles: []` restent vides : ils sont au maillon 3. `python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/cortex_config.py" _cortex/config.yaml` doit le relire sans erreur ; `valider_installable` le refusera encore, c'est attendu tant que les domaines manquent.
 
 Le frontmatter de `00-cadrage.md` porte les contrôles :
 
@@ -118,10 +144,15 @@ produit_par: cortex-1-cadrage
 statut: valide            # brouillon | valide | arbitre
 controles:
   redacteur_unique_nomme: passe
+  profil_pose: passe
+  regime_fixe: passe
+  racines_confirmees: passe
   substrats_declares: passe
   plafonds_acceptes: passe
   mail_optin_trace: passe   # ou `arbitre` avec motif si non traité
 ```
+
+Le corps porte, en plus des réponses : « Domaines de départ (hypothèses du profil) », « Projets portés » et « Projets subis » séparés, « Parties prenantes déclarées » (N+1, collègues, externes), « Rituels déclarés ». Le maillon 3 confronte ces quatre listes à l'inventaire : c'est la matière de l'entretien de compréhension.
 
 **Un fichier dont un contrôle n'est ni `passé` ni explicitement `arbitré` ne peut pas être consommé** par le maillon suivant. C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne : le maillon 2 s'arrête en étape 0, sans repli.
 
@@ -178,6 +209,8 @@ Sur accord, lancer `cortex-2-inventaire`. Si un accès manque — un mot de pass
 - **Ne jamais ouvrir la messagerie sans accord tracé.**
 - **Ne jamais accepter un rédacteur collectif.** Un vault, une personne. « L'équipe » comme réponse est le début d'un produit différent.
 - **En solo, ne jamais demander « quel mode »** ni prononcer « solo » ou « consultant » devant la personne. La question d'ouverture en langage ordinaire suffit, la réponse s'écrit, et elle ne se repose jamais.
+- **Ne jamais prononcer « profil », « employé », « dirigeant », « société », « régime », « pointeur », « copie »** devant la personne. Ce sont des clés de `config.yaml`, pas des mots de conversation.
+- **Ne jamais écrire une racine qui ne répond pas**, ni une racine en chemin absolu. Forme `~` seule.
 
 ## Notice
 

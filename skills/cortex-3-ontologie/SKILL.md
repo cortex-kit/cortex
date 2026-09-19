@@ -1,11 +1,11 @@
 ---
 name: cortex-3-ontologie
-description: Troisième maillon de la chaîne Cortex, et le seul qui juge. Décide les domaines du second cerveau à partir de l'inventaire réel, chacun avec sa preuve chiffrée, puis remplit la matrice d'ownership des substrats du client. Produit 02-ontologie.md, à faire signer avant toute matérialisation. Déclencher quand le consultant dit "maillon 3", "on décide les domaines", "ontologie du vault", ou dispose d'un 01-inventaire.json validé. Ne PAS confondre avec cortex-1-cadrage, qui collecte sans décider, ni avec cortex-4-installation, qui matérialise sans juger.
+description: Maillon 3 de la chaîne Cortex, et le seul qui juge. Mène d'abord l'entretien de compréhension (chaque écart entre ce que la personne a déclaré et ce que l'inventaire montre devient une question, par lots de quatre), puis décide les domaines du second cerveau à partir de l'inventaire réel, chacun avec sa preuve chiffrée, puis remplit la matrice d'ownership. Produit 02-ontologie.md, à faire confirmer avant toute matérialisation. Déclencher quand la personne dit "maillon 3", "on décide les domaines", "questionne-moi sur ce que tu as trouvé", "ontologie du vault", ou dispose d'un 01-inventaire.json validé. Ne PAS confondre avec cortex-1-cadrage, qui collecte sans décider, ni avec cortex-4-installation, qui matérialise sans juger.
 ---
 
 # cortex-3-ontologie — le seul maillon qui juge
 
-Troisième des sept. Tous les autres exécutent ; celui-ci arbitre. C'est aussi le seul dont la sortie se fait **signer** avant de passer à la suite.
+Troisième des neuf. Tous les autres exécutent ; celui-ci arbitre. C'est aussi le seul dont la sortie se fait **signer** avant de passer à la suite.
 
 Doctrine du découpage et pièges par famille : `cortex-1-cadrage/references/secteurs.md`.
 
@@ -17,8 +17,8 @@ Il ne collecte rien non plus. Si une information manque, elle manque : **c'est u
 
 ## Étape 0 — bloquante
 
-1. `_cortex/00-cadrage.md` en `statut: valide`.
-2. `_cortex/01-inventaire.json` existe et son `01-inventaire.md` est en `statut: valide`.
+1. `_cortex/00-cadrage.md` en `statut: valide`. Y lire les quatre listes déclarées (parties prenantes, projets portés, projets subis, rituels) et les domaines de départ du profil : ce sont les hypothèses que l'inventaire va contredire.
+2. `_cortex/01-inventaire.json` existe et son `01-inventaire.md` est en `statut: valide`. Y lire `ecarts_candidats`, `profil` et `regime`.
 
 **Si un contrôle échoue, s'arrêter. Pas de repli.** Décider une ontologie sans inventaire, c'est la déduire de ce que le client a dit vouloir plutôt que de ce qu'il fait — et ces deux choses diffèrent toujours.
 
@@ -34,7 +34,43 @@ Trois signaux, par ordre de valeur décroissante.
 
 **Les volumes et la fraîcheur.** Un dossier avec 400 fichiers et une modification d'hier est un centre de gravité. Un dossier avec 3 fichiers de 2019 est un vestige. Les deux ont l'air d'un domaine dans une liste ; un seul en est un.
 
+## 1 bis. L'entretien de compréhension, avant toute décision
+
+Ce que la personne a déclaré au cadrage et ce que l'inventaire a mesuré diffèrent toujours. Chaque écart est une question, pas une conclusion : le maillon ne sait pas si le correspondant inconnu est un fournisseur clé ou un spam, et il ne le devine pas.
+
+**Entrée.** `ecarts_candidats` de `01-inventaire.json` (`04-contrat.md` §4), complété par ce que la lecture du §1 fait apparaître face aux listes de `00-cadrage.md`. Six types : `correspondant_non_declare`, `dossier_sans_domaine`, `reunion_recurrente_sans_projet`, `projet_non_declare`, `base_deportee_non_declaree`, `depot_non_declare`.
+
+**Forme.** Par AskUserQuestion, quatre écarts par appel, chacun en langage ordinaire avec l'indice chiffré et des options fermées plus « autre ». Jamais le nom du type d'écart devant la personne. Les formulations qui tiennent :
+
+| Type | Question | Options |
+|---|---|---|
+| `correspondant_non_declare` | « <domaine ou nom>, <N> messages sur <M> mois : qui est-ce pour vous ? » | client, fournisseur ou partenaire, collègue, sans importance |
+| `dossier_sans_domaine` | « Le dossier <nom>, <N> fichiers : il relève de votre travail ? » | oui, non (il sort du périmètre), en partie |
+| `reunion_recurrente_sans_projet` | « <réunion>, <N> comptes rendus : à quoi sert-elle ? » | un projet en cours, une fonction permanente, une charge héritée, plus d'actualité |
+| `projet_non_declare` | « <dossier>, <N> fichiers, dernière modification <date> : ce dossier est à vous ? » | je le porte, je le subis, il est terminé, il n'est pas à moi |
+| `base_deportee_non_declaree` | « Des exports de <outil> dans <dossier> : suivez-vous vos dossiers dans cet outil ? » | oui (il devient la référence), non (un export ponctuel), plus maintenant |
+| `depot_non_declare` | « Un dépôt de code à <chemin>, dernier commit <date> : il fait partie de votre travail ? » | oui, non, archivé |
+
+**Sortie.** Chaque écart écrit un bloc dans `02-ontologie.md`, section « Ce que l'inventaire a révélé », une ligne `[?]` par écart, suivie de `→ <réponse>` quand la personne a répondu. Un écart sans réponse garde son `[?]` seul, et reste ouvert : il figure dans « Points incertains à challenger ».
+
+```
+## Ce que l'inventaire a révélé
+
+[?] fournitech.test, 12 messages sur 12 mois : qui est-ce pour vous ?
+    indice : Mails/, r.lemaitre@fournitech.test (correspondant_non_declare)
+    → fournisseur principal, revue mensuelle. Acteur à créer, domaine à décider.
+
+[?] Le dossier Divers, 9 fichiers : il relève de votre travail ?
+    indice : Divers/ (dossier_sans_domaine)
+```
+
+**Conséquences immédiates.** Une réponse « oui » à une base déportée bascule `donnees.regime` à `pointeur` dans `config.yaml` et l'écrit dans le bloc. Une réponse « il sort du périmètre » retire le dossier des candidats sans le retirer de l'inventaire. Un projet « subi » ou « terminé » entre avec ce marquage. Le reste alimente les preuves du §2.
+
+**Arrêt.** Quand la liste est vide, ou quand la personne le demande : les écarts restants gardent leur `[?]`. En consultant, les questions se posent au client dans les mêmes termes, réponses tracées de la même façon. Aucune décision de domaine avant la fin de cette section.
+
 ## 2. Proposer les domaines — chacun avec sa preuve
+
+**Tester d'abord les domaines de départ du profil**, lus dans `00-cadrage.md`, contre l'inventaire et les réponses du §1 bis. Un domaine de départ sans preuve chiffrée s'écarte comme un autre, avec son chiffre ; il n'a aucun droit acquis.
 
 **Format imposé.** Aucune proposition sans évidence chiffrée :
 
@@ -49,7 +85,7 @@ Une proposition sans preuve n'est pas proposée. Cette règle a un effet seconda
 
 Ce qui n'est pas observé s'écrit **`Non observé dans l'inventaire`**. Jamais une supposition plausible : une fois écrite, elle sera lue comme un constat.
 
-Marqueurs conservés dans `02-ontologie.md` : `[déduction]` pour une inférence assumée, `[?]` pour un point incertain, `[!]` pour une contradiction non tranchée. Et une section finale **« Points incertains à challenger »**, qui est ce que le client doit lire en premier.
+Marqueurs conservés dans `02-ontologie.md` : `[déduction]` pour une inférence assumée, `[?]` pour un point incertain ou un écart sans réponse, `[!]` pour une contradiction non tranchée. Et une section finale **« Points incertains à challenger »**, qui est ce que le client doit lire en premier.
 
 ## 3. Les trois seuils qui invalident
 
@@ -94,13 +130,14 @@ Puis **faire signer `02-ontologie.md`**. Pas une formalité : c'est le document 
 
 ## 7. Écrire
 
-`_cortex/02-ontologie.md`, et reporter les blocs `domaines`, `cycles` et `substrats` dans `config.yaml`.
+`_cortex/02-ontologie.md`, sections dans l'ordre : « Ce que l'inventaire a révélé », domaines avec preuve, écartés avec leur seuil, matrice d'ownership, cycles, « Points incertains à challenger ». Reporter les blocs `domaines`, `cycles`, `substrats` et, s'il a basculé, `donnees.regime` dans `config.yaml`. `valider_installable` de `cortex_config.py` doit alors accepter le fichier.
 
 ```yaml
 maillon: 3
 produit_par: cortex-3-ontologie
 statut: valide
 controles:
+  entretien_mene: passe               # ou `arbitre` avec le nombre d'écarts laissés en [?]
   domaines_sous_plafond: passe
   chaque_domaine_a_une_preuve: passe
   distribution_equilibree: passe      # aucun domaine > 70 %
@@ -115,6 +152,7 @@ controles:
 ```
 Ontologie arrêtée pour <organisation>.
 
+- entretien : <N> écarts relevés, <M> répondus, <K> laissés en [?]
 - <N> domaines, chacun avec sa preuve
 - matrice d'ownership : <M> types de faits, <K> lien(s) INTERDIT déclaré(s)
 - cycles : <liste>
@@ -135,6 +173,7 @@ l'installation.
 ```
 La carte de votre outil est arrêtée.
 
+- ce que l'inventaire a révélé : <N> questions, <M> réponses, <K> en suspens
 - <N> familles, chacune appuyée sur ce que l'inventaire a constaté
 - écarté : <ce qui n'a pas tenu son seuil, avec le chiffre — ou rien>
 - points encore incertains : <N — les relire, c'est par eux qu'on se
@@ -158,6 +197,7 @@ Sur accord, lancer `cortex-4-installation`. Si la carte n'est pas confirmée : s
 - **Jamais le découpage par organigramme.** Il décrit qui rapporte à qui, pas où le travail se fait — et il change tous les dix-huit mois.
 - **Jamais dépasser 6 domaines** pour faire plaisir.
 - **Jamais combler un trou de l'inventaire par une supposition.** `Non observé` est une réponse.
+- **Jamais décider un domaine avant la fin de l'entretien**, ni répondre à un écart à la place de la personne. Un `[?]` sans réponse vaut mieux qu'une réponse devinée.
 - **Jamais matérialiser ici.** Aucun fichier créé dans le vault : c'est le maillon 4, et le garder mécanique est ce qui le rend rejouable à coût nul.
 
 ## Notice
