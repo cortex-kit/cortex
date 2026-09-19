@@ -25,13 +25,16 @@ sys.path.insert(0, str(_DEPOT / "skills" / "cortex-4-installation" / "scripts"))
 from etat import LIBELLES  # noqa: E402
 
 # La skill presentation vit dans skills/ du dépôt. Sondée, jamais codée en dur.
+# Absente du kit depuis le 2026-09-19 : l'import ne bloque plus, seul le rendu
+# échoue, pour que la recette puisse importer ce module et mesurer le reste.
 _PRESENTATION = _DEPOT / "skills" / "presentation" / "scripts"
-if not (_PRESENTATION / "bento.py").is_file():
-    sys.exit("[erreur] skill presentation introuvable dans skills/ ; "
-             "le deck se rend avec elle.")
-sys.path.insert(0, str(_PRESENTATION))
-from chartes import charte  # noqa: E402
-from bento import txt, rect, titre, runhead, slide, document, build  # noqa: E402
+_MANQUE = "[erreur] skill presentation introuvable dans skills/ ; le deck se rend avec elle."
+if (_PRESENTATION / "bento.py").is_file():
+    sys.path.insert(0, str(_PRESENTATION))
+    from chartes import charte  # noqa: E402
+    from bento import txt, rect, titre, runhead, slide, document, build  # noqa: E402
+else:
+    charte = None
 
 _RUNTIME = _ICI.parent / "modeles" / "bento-runtime.html"
 
@@ -104,6 +107,8 @@ def _doc(pivot):
 
 def rendre(pivot, sortie):
     """Copie le runtime embarqué puis injecte le document. Zéro réseau."""
+    if charte is None:
+        raise RuntimeError(_MANQUE)
     if not _RUNTIME.is_file():
         sys.exit(f"[erreur] runtime bento absent : {_RUNTIME}")
     sortie = Path(sortie)

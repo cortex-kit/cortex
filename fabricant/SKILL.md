@@ -1,17 +1,19 @@
 ---
 name: fabricant
-description: Atelier de fabrication du paquet distribuable Cortex (chantier plug and play). Produit le zip qui se déplie en dossiers frères dans ~/.claude/skills/ chez un installateur novice : les sept maillons cortex-1 à cortex-7, les six skills annexes du manifeste kit.txt, la notice LISEZ-MOI.html avec tableau de bord vierge, et PROVENANCE.md. Porte aussi les deux rendus de l'état d'une installation (etat.py, rend_notice.py, rend_deck.py) depuis le pivot _cortex/etat.json. Réservé au fabricant : ce dossier ne part jamais dans le zip. Vit dans fabricant/ à la racine du dépôt cortex, hors plugin. Déclencher quand le consultant dit "fabrique le paquet Cortex", "fabricant", "génère le zip Cortex", "cortex-paquet", "prépare le kit plug and play", "régénère le tableau de bord Cortex", "produis le deck d'installation Cortex". Ne PAS confondre avec les sept maillons cortex-1 à cortex-7, qui installent un second cerveau : ici on fabrique ce qui les distribue.
+description: Atelier de fabrication du paquet distribuable Cortex (chantier plug and play). Produit le zip qui se déplie en dossiers frères dans ~/.claude/skills/ chez un installateur novice : les maillons cortex-* présents dans skills/, les skills annexes du manifeste kit.txt, la notice LISEZ-MOI.html à l'état vierge, et PROVENANCE.md. Porte aussi les deux rendus de l'état d'une installation (etat.py, rend_notice.py, rend_deck.py) depuis le pivot _cortex/etat.json. Réservé au fabricant : ce dossier ne part jamais dans le zip. Vit dans fabricant/ à la racine du dépôt cortex, hors plugin. Déclencher quand le consultant dit "fabrique le paquet Cortex", "fabricant", "génère le zip Cortex", "cortex-paquet", "prépare le kit plug and play", "régénère le tableau de bord Cortex", "produis le deck d'installation Cortex". Ne PAS confondre avec les sept maillons cortex-1 à cortex-7, qui installent un second cerveau : ici on fabrique ce qui les distribue.
 ---
 
 # cortex-paquet — l'atelier du fabricant
 
 Ce dossier fabrique le produit ; il n'en fait pas partie. Le zip qu'il produit
-se déplie en 13 dossiers frères (7 maillons + 6 annexes) plus `LISEZ-MOI.html`
-et `PROVENANCE.md`, et s'installe sans terminal, sans git, sans réseau.
+se déplie en dossiers frères (les maillons `cortex-*` présents dans `skills/`,
+trouvés par glob, plus les annexes de `kit.txt`) avec `LISEZ-MOI.html` et
+`PROVENANCE.md`, et s'installe sans terminal, sans git, sans réseau. Aucun
+nombre n'est codé en dur : `fabrique.py` compte ce qui est là.
 
-Le kit prévu à dix est arbitré à six le 2026-08-23 : docx, pdf, pptx et xlsx
-(Anthropic) portent une licence qui interdit la redistribution. La notice
-pointe vers leur obtention directe auprès d'Anthropic.
+Le kit d'annexes est arbitré à `stop-slop` seule le 2026-09-19. docx, pdf,
+pptx et xlsx (Anthropic) portent une licence qui interdit la redistribution ;
+les annexes internes du fabricant sont retirées du dépôt.
 
 ## Fabriquer un paquet
 
@@ -39,7 +41,7 @@ trois contrôles bloquants :
 Deux familles de copies, jamais versionnées ici (invariant I1, pointeur
 jamais copie) :
 
-- les six skills annexes, copiées depuis `~/.claude/skills/` à la fabrication ;
+- les skills annexes de `kit.txt`, copiées depuis `skills/` à la fabrication ;
 - l'outillage du tableau de bord (`etat.py`, `rend_notice.py`, `notice.md`,
   `VERSION`), déposé dans `cortex-4-installation/scripts/` du zip pour que le
   novice régénère son suivi sans cet atelier. Les scripts sondent leur
@@ -47,11 +49,12 @@ jamais copie) :
 
 ## L'état et ses deux rendus
 
-Le pivot est `_cortex/etat.json`, une projection des frontmatter `statut` et
-`controles` des artefacts. Il ne s'édite jamais à la main et se régénère à
-l'identique sur un atelier inchangé, à l'horodatage près. Il porte les sept
-étapes, dont le trou en 03 avec sa raison : la sortie du maillon 4 est le
-vault lui-même, sa preuve le lint à 0.
+Le pivot est `_cortex/etat.json`, une projection de `poste.json` (étape 0) et
+des frontmatter `statut` et `controles` des artefacts. Il ne s'édite jamais à
+la main et se régénère à l'identique sur un atelier inchangé, à l'horodatage
+près. Il porte les neuf étapes, dont le trou en 03 avec sa raison (la sortie
+du maillon 4 est le vault lui-même, sa preuve le lint à 0), le profil, le
+régime, la phrase suivante et `notice_ouverte_le`.
 
 ```bash
 python3 scripts/etat.py --atelier <chemin de _cortex/>
@@ -61,9 +64,9 @@ python3 scripts/rend_deck.py   --pivot <_cortex>/etat.json --sortie <_cortex>/de
 
 Les deux rendus lisent le même pivot et partagent leurs libellés d'état
 (importés de `etat.py`) : une divergence entre le tableau de bord et le deck
-est impossible par construction. Le deck s'appuie sur la skill `presentation`
-(dossier frère) et sur le runtime bento embarqué dans
-`modeles/bento-runtime.html` : il se rend hors ligne.
+est impossible par construction. Le deck s'appuie sur la skill `presentation`,
+qui n'est plus dans `skills/` depuis le 2026-09-19 : `rend_deck.py` s'arrête
+net si elle manque, le deck est en attente d'un arbitrage.
 
 ## Les traces d'origine du gabarit
 
@@ -86,9 +89,9 @@ python3 ../cortex-4-installation/recette/parcours_blanc.py
 ```
 
 Elle fabrique un zip témoin à chaque exécution et vérifie la profondeur, la
-complétude, la provenance, l'idempotence du pivot, le trou en 03, les sept
-lignes à faire du tableau vierge, l'absence d'URL distante et la cohérence
-deck / tableau de bord. Sortie 0 ou rien.
+complétude, la provenance, l'idempotence du pivot, le trou en 03, l'état
+vierge de la notice, l'absence d'URL distante et la cohérence deck / tableau
+de bord. Sortie 0 ou rien.
 
 ## Interdits
 

@@ -5,7 +5,7 @@ description: >
 
   Déclencher AVANT toute écriture livrable : (1) mail, brouillon, draft, CR, compte rendu, note de synthèse, réponse client, message LinkedIn ; (2) page ou section Notion destinée à un client (notion-create-pages, notion-update-page sur Hub/livrable) ; (3) fichier .md ou .docx en dossier livrable client, section rédigée d'un rendu de skill, slide PPTX contenant du texte rédigé.
 
-  Déclencher aussi quand Evrard dit : "rédige", "écris", "prépare le mail", "fais un CR", "compte rendu", "brouillon Outlook", "envoie cette page à", "je te fais un mail", "prépare la note", "monte le mail", "rédige la réponse", "relis avant envoi", "relis cette prose", "revue de texte", "corrige le ton", "anti-slop".
+  Déclencher aussi quand la personne dit : "rédige", "écris", "prépare le mail", "fais un CR", "compte rendu", "brouillon Outlook", "envoie cette page à", "je te fais un mail", "prépare la note", "monte le mail", "rédige la réponse", "relis avant envoi", "relis cette prose", "revue de texte", "corrige le ton", "anti-slop".
 
   Ne PAS déclencher pour : réponses conversationnelles courtes du chat, code, structures data (JSON, YAML, tableaux), commandes shell, docstrings techniques, messages internes techniques sans destinataire livrable.
 metadata:
