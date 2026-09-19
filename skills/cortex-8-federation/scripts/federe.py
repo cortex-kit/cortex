@@ -6,9 +6,14 @@ depuis `_export/<slug>/` de chaque membre (contrat 04 §6). Deux passages sur
 les mêmes exports rendent les mêmes fichiers, à `genere_le` près.
 
 Ce que le script refuse, avant de toucher au commun :
-  - moins de deux membres, un export absent, un index.json incohérent ;
+  - moins de deux membres, un export absent, un index.json incohérent
+    (format, `version` inconnue, `slug` qui ne nomme pas le membre) ;
+  - un `federation.yaml` d'une `version` inconnue ;
   - une note `visibilite: prive` dans un export ;
   - un dossier cible non vide qui ne porte pas `.cortex-genere`.
+
+Ce qu'il signale sans refuser : une note trouvée dans un export mais absente de
+son `index.json`. Elle n'est jamais copiée ; l'export du membre est périmé.
 
 Usage :
     python3 federe.py --config <commun>/federation.yaml
@@ -36,6 +41,15 @@ MARQUE = "# <!-- généré par federe.py, ne pas éditer -->"
 CONSERVES = {"federation.yaml", ".git", ".obsidian"}
 RE_LIEN = re.compile(r"\[\[([^\]|#]+)(#[^\]|]*)?(?:\|([^\]]+))?\]\]")
 
+# Versions lues (contrat 04 §6). Une version inconnue est refusée : mieux vaut
+# un arrêt net qu'un commun agrégé depuis un format qu'on ne comprend pas.
+VERSION_FEDERATION = 1
+VERSION_EXPORT = 1
+
+# Libellé du README, contrat 04 §6. Le préfixe sert aussi au sceau : c'est la
+# seule autre ligne générée qui porte la date.
+PREFIXE_README = "Généré par `federe.py` le "
+
 
 class Refus(Exception):
     pass
@@ -57,13 +71,23 @@ def _fm(lignes):
 
 
 def lire_export(slug, racine):
-    """Les notes listées par index.json, vérifiées (hash, visibilité)."""
+    """(notes listées par index.json et vérifiées, notes trouvées hors index).
+
+    Une note hors index n'est jamais copiée ; elle est signalée, parce qu'elle
+    signifie un export périmé, et qu'une note privée déposée là
+    échapperait sinon au refus."""
     index = racine / "index.json"
     if not index.is_file():
         raise Refus(f"{slug} : {index} introuvable, ce vault n'a pas encore fait de clôture")
     idx = json.loads(index.read_text(encoding="utf-8"))
     if idx.get("format") != "cortex/export":
         raise Refus(f"{slug} : index.json n'est pas au format cortex/export")
+    if idx.get("version") != VERSION_EXPORT:
+        raise Refus(f"{slug} : index.json est en version {idx.get('version')!r}, "
+                    f"cette fédération lit la version {VERSION_EXPORT}")
+    if str(idx.get("slug", "")) != slug:
+        raise Refus(f"{slug} : index.json porte slug {idx.get('slug')!r} ; federation.yaml "
+                    "et l'export désignent deux rédacteurs différents, aucune note n'est attribuée")
     notes = []
     for entree in sorted(idx.get("notes", []), key=lambda n: n["chemin"]):
         chemin = racine / entree["chemin"]
@@ -77,7 +101,10 @@ def lire_export(slug, racine):
         if fm.get("visibilite") == "prive":
             raise Refus(f"{slug} : {entree['chemin']} porte visibilite: prive, une note privée ne passe jamais au commun")
         notes.append({"slug": slug, "chemin": entree["chemin"], "texte": texte, "fm": fm})
-    return notes
+    indexees = {n["chemin"] for n in notes}
+    hors_index = sorted(f"{slug}/{p.relative_to(racine)}" for p in racine.rglob("*.md")
+                        if str(p.relative_to(racine)) not in indexees)
+    return notes, hors_index
 
 
 def separer(texte):
@@ -110,13 +137,19 @@ def relier(corps, renommage, presents, neutralises, renommes):
     def rempl(m):
         cible, ancre, alias = m.group(1).strip(), m.group(2) or "", m.group(3)
         if cible in renommage:
-            renommes.append(cible)
+            renommes.append(renommage[cible])  # la cible dans le commun : unique par rédacteur
             return f"[[{renommage[cible]}{ancre}|{alias or cible}]]"
         if cible in presents:
             return m.group(0)
         neutralises.append(cible)
         return alias or cible
     return RE_LIEN.sub(rempl, corps)
+
+
+def _retrograder(corps):
+    """Titres d'un cran sous « Vu par », sauf « ## Journal » : lint_sante.py le
+    reconnaît au motif `^## Journal$` et cesserait d'auditer la fiche fusionnée."""
+    return re.sub(r"^(#{1,5}) (?![ \t]*Journal[ \t]*$)", r"#\1 ", corps, flags=re.M)
 
 
 def _codes(fm):
@@ -141,26 +174,38 @@ def vider(commun):
         shutil.rmtree(p) if p.is_dir() else p.unlink()
 
 
+def _horodate(ligne):
+    """Vrai pour les deux lignes générées qui portent la date, reconnues par leur
+    début. Pas pour un corps de note qui prononce le mot `genere_le` : sinon la
+    note sortirait du sceau sans bruit."""
+    return ligne.lstrip().startswith("genere_le:") or ligne.startswith(PREFIXE_README)
+
+
 def empreinte(commun):
-    """sha256 de tous les fichiers, hors .cortex-genere et hors lignes genere_le."""
+    """sha256 de tous les fichiers, hors .cortex-genere et hors la clé genere_le."""
     h = hashlib.sha256()
     for p in sorted(commun.rglob("*")):
         if not p.is_file() or p.name == ".cortex-genere" or {".git", ".obsidian"} & set(p.parts):
             continue
         h.update(str(p.relative_to(commun)).encode("utf-8") + b"\0")
         for ligne in p.read_bytes().splitlines(keepends=True):
-            if b"genere_le" not in ligne:
+            if not _horodate(ligne.decode("utf-8", "replace")):
                 h.update(ligne)
         h.update(b"\0")
     return h.hexdigest()
 
 
 def config_commun(nom, domaines, cycles):
-    """config.yaml du commun, dérivé des exports, pour que lint_sante.py le lise."""
+    """config.yaml du commun, dérivé des exports, pour que lint_sante.py le lise.
+
+    `profil: societe` avec `mode: federe` (contrat §2) ; `commun.racine` reste
+    vide parce que le commun n'a pas de commun, ce qui suffit à ne pas armer
+    `commun_edite_main` (lint_sante.py : il exige une racine non vide)."""
     lignes = ["# généré par federe.py, ne pas éditer : ce que lint_sante.py doit connaître du commun",
               "version: 1", "conduite: consultant", "profil: societe",
               "organisation:", f'  nom: "{nom}"', "  code: commun", '  redacteur: ""', '  courriel: ""',
-              "mode: solo", "commun:", '  racine: ""', '  export: "_export"', "  visibilite_defaut: commun",
+              "mode: federe", "commun:", '  racine: ""', '  export: "_export"', "  visibilite_defaut: commun",
+              "donnees:", "  regime: pointeur", "  structurants: []",
               "chemins:", '  dossiers_projets: ""',
               "marque:", '  produit_nom: "Cortex"', "  mentions_interdites: []",
               "domaines:"]
@@ -177,13 +222,18 @@ def config_commun(nom, domaines, cycles):
 
 
 def generer(conf, commun, quand):
+    if conf.get("version") != VERSION_FEDERATION:
+        raise Refus(f"federation.yaml est en version {conf.get('version')!r}, "
+                    f"cette fédération lit la version {VERSION_FEDERATION}")
     membres = sorted(conf.get("membres") or [], key=lambda m: str(m.get("slug", "")))
     if len(membres) < 2:
         raise Refus("federation.yaml : au moins deux membres sont nécessaires, la fédération commence à deux vaults remplis")
     nom = str(conf.get("nom") or "Commun")
-    notes = []
+    notes, hors_index = [], []
     for m in membres:
-        notes += lire_export(str(m["slug"]), commun / Path(str(m["export"])).expanduser())
+        lues, hors = lire_export(str(m["slug"]), commun / Path(str(m["export"])).expanduser())
+        notes += lues
+        hors_index += hors
 
     par_type = {"10 - Domaines": [], "20 - Projets": [], "40 - Acteurs": [], "60 - Journal": []}
     for n in notes:
@@ -276,7 +326,7 @@ def generer(conf, commun, quand):
             for n in groupe:
                 _, c = separer(n["texte"])
                 c = re.sub(r"^# .*\n?", "", c.lstrip("\n"), count=1, flags=re.M)
-                c = re.sub(r"^(#{1,5}) ", r"#\1 ", c, flags=re.M)  # un cran sous « Vu par »
+                c = _retrograder(c)
                 morceaux.append(f"\n## Vu par {n['slug']}\n\n" + relier(c, renommage.get(n["slug"], {}), presents, neutralises, renommes).strip("\n") + "\n")
             texte = assembler(fm, "".join(morceaux), sources)
         (commun / "40 - Acteurs" / f"{nom_a}.md").write_text(texte, encoding="utf-8")
@@ -312,7 +362,7 @@ def generer(conf, commun, quand):
     (commun / "README.md").write_text(
         "---\n" + MARQUE + f"\ngenere_le: {quand}\n---\n"
         f"# {nom}, vault commun\n\n"
-        "Généré par `federe.py`, ne pas éditer. La date de génération est `genere_le` dans l'en-tête.\n\n"
+        + PREFIXE_README + f"{quand}, ne pas éditer.\n\n"
         "Chaque note vient de l'export d'un vault membre et porte `source_vault`. Pour corriger un fait, "
         "on l'édite dans le vault qui le possède, on clôture, puis on relance la fédération. "
         "Toute modification faite ici disparaît au passage suivant.\n\n"
@@ -322,8 +372,10 @@ def generer(conf, commun, quand):
     return {"membres": [str(m["slug"]) for m in membres], "notes": len(notes),
             "journal": len(par_type["60 - Journal"]), "domaines": len(domaines),
             "projets": len(par_type["20 - Projets"]), "acteurs": len(acteurs), "fusionnes": fusionnes,
-            "liens_renommes": len(renommes), "liens_neutralises": sorted(set(neutralises)),
-            "empreinte": sceau}
+            # Les deux comptes sont des cibles distinctes, pas des occurrences :
+            # une même unité des deux côtés de la virgule affichée.
+            "liens_renommes": sorted(set(renommes)), "liens_neutralises": sorted(set(neutralises)),
+            "hors_index": hors_index, "empreinte": sceau}
 
 
 # ── Exports fictifs (recette) ───────────────────────────────────────────────
@@ -397,7 +449,7 @@ def fixtures(dossier):
 
 def _instantane(commun):
     return {str(p.relative_to(commun)): "\n".join(l for l in p.read_text(encoding="utf-8").splitlines()
-                                                 if "genere_le" not in l)
+                                                 if not _horodate(l))
             for p in commun.rglob("*") if p.is_file()}
 
 
@@ -412,9 +464,18 @@ def _autotest():
         s2 = _instantane(commun)
         assert s1 == s2, "deux générations divergent hors genere_le"
         assert b1["empreinte"] == b2["empreinte"] == (commun / ".cortex-genere").read_text().strip()
-        assert (commun / "README.md").is_file() and "ne pas éditer" in (commun / "README.md").read_text()
+        readme = (commun / "README.md").read_text(encoding="utf-8")
+        assert PREFIXE_README + "2026-01-02T00:00:00, ne pas éditer." in readme, readme
+        cc = cortex_config.charger(commun / "config.yaml")
+        assert cc["profil"] == "societe" and cc["mode"] == "federe" and cc["commun"]["racine"] == "", cc
+        assert cc["donnees"]["regime"] == "pointeur" and cc["donnees"]["structurants"] == [], cc["donnees"]
+        assert not cortex_config.valider_installable(cc), cortex_config.valider_installable(cc)
+        assert b2["hors_index"] == [], b2["hors_index"]
         assert b2["journal"] == 3 and (commun / "60 - Journal" / "MARC - 2026-09-01 - Choix du commun.md").is_file()
-        assert b2["projets"] == 14 and b2["acteurs"] == 11 and b2["fusionnes"] == 2 and b2["liens_renommes"] == 3, b2
+        assert b2["projets"] == 14 and b2["acteurs"] == 11 and b2["fusionnes"] == 2, b2
+        assert b2["liens_renommes"] == ["CAMILLE - AFF - 2024-001 Agencement magasin Malbrun",
+                                        "MARC - AFF - 2024-001 Agencement magasin Tissot",
+                                        "YASMINE - AFF - 2024-001 Agencement magasin Malbrun"], b2
         fm = lint_sante.parse_frontmatter((commun / "40 - Acteurs" / "Malbrun.md").read_text(encoding="utf-8"))
         assert fm["source_vault"] == ["camille", "marc", "yasmine"], fm["source_vault"]
         fm = lint_sante.parse_frontmatter((commun / "40 - Acteurs" / "Vinci.md").read_text(encoding="utf-8"))
@@ -441,6 +502,34 @@ def _autotest():
         except Refus as e:
             assert "prive" in str(e)
         assert _instantane(commun) == s2, "un refus a modifié le commun"
+        idx["notes"] = [e for e in idx["notes"] if e["chemin"] != "20 - Projets/AFF - secret.md"]
+
+        # La même note privée, hors index.json : non copiée, mais signalée.
+        (exp / "index.json").write_text(json.dumps(idx), encoding="utf-8")
+        b3 = generer(conf, commun, "2026-01-04T00:00:00")
+        assert b3["hors_index"] == ["camille/20 - Projets/AFF - secret.md"], b3["hors_index"]
+        assert not any("secret" in q.read_text(encoding="utf-8") for q in commun.rglob("*.md"))
+        prive.unlink()
+
+        # index.json qui désigne un autre rédacteur, et versions inconnues : refus.
+        for cle, valeur in (("slug", "yasmine"), ("version", 2)):
+            casse = dict(idx, **{cle: valeur})
+            (exp / "index.json").write_text(json.dumps(casse), encoding="utf-8")
+            try:
+                generer(conf, commun, "2026-01-05T00:00:00")
+                raise AssertionError(f"index.json avec {cle}={valeur!r} aurait dû être refusé")
+            except Refus as e:
+                assert cle in str(e) or "version" in str(e), e
+        (exp / "index.json").write_text(json.dumps(idx), encoding="utf-8")
+        try:
+            generer(dict(conf, version=2), commun, "2026-01-05T00:00:00")
+            raise AssertionError("federation.yaml en version 2 aurait dû être refusé")
+        except Refus as e:
+            assert "version" in str(e), e
+
+        # Un « ## Journal » reste au niveau 2 sous « Vu par », le reste descend.
+        assert _retrograder("## Journal\n### 2026-09-01\n## Historique\n") == \
+            "## Journal\n#### 2026-09-01\n### Historique\n"
 
         # Un dossier cible non généré et non vide n'est jamais effacé.
         autre = Path(tmp) / "pas-un-commun"
@@ -482,9 +571,14 @@ def main():
           f"  notes lues: {bilan['notes']} (dont {bilan['journal']} de journal)\n"
           f"  domaines  : {bilan['domaines']}   projets : {bilan['projets']}   "
           f"acteurs : {bilan['acteurs']} (dont {bilan['fusionnes']} fusionnés)\n"
-          f"  liens     : {bilan['liens_renommes']} renommés, {len(bilan['liens_neutralises'])} neutralisés"
+          f"  liens     : {len(bilan['liens_renommes'])} cibles renommées, "
+          f"{len(bilan['liens_neutralises'])} neutralisées"
           + (f" ({', '.join(bilan['liens_neutralises'])})" if bilan["liens_neutralises"] else "") + "\n"
           f"  empreinte : {bilan['empreinte']}")
+    if bilan["hors_index"]:
+        print(f"  [i] {len(bilan['hors_index'])} note(s) hors index.json, non reprises : "
+              f"{', '.join(bilan['hors_index'])}\n"
+              "      relancer la clôture du membre concerné pour les indexer ou les retirer.")
     return 0
 
 

@@ -63,14 +63,16 @@ Le script lit chaque `index.json`, vérifie le hash de chaque note exportée, re
 | `40 - Acteurs/<nom>.md` | un acteur présent chez deux rédacteurs donne une note unique, `source_vault: [a, b]`, chaque vue sous un titre « Vu par <slug> » |
 | `60 - Journal/<SLUG> - <titre>.md` | les décisions partagées, telles quelles, `source_vault: <slug>` ; dossier ignoré par le lint |
 | `config.yaml` | dérivé des exports (domaines, cycles), pour que `lint_sante.py` puisse lire le commun |
-| `README.md` | « généré par federe.py, ne pas éditer », avec `genere_le` |
+| `README.md` | « Généré par `federe.py` le <date>, ne pas éditer », et `genere_le` dans l'en-tête |
 | `.cortex-genere` | sha256 de l'ensemble hors `genere_le` : deux générations identiques donnent la même empreinte |
 
 Ce que le script fait aux liens : un lien vers un projet ou une note de journal du même rédacteur suit le renommage ; un lien vers une note qui n'est pas dans le commun (note privée, note de méthode) devient du texte simple. Le titre d'une note privée ne voyage pas dans un dossier partagé, et le commun ne porte jamais un lien mort.
 
 Relancer après chaque clôture d'un membre, ou une fois par jour. Idempotent : dix passages ne changent que `genere_le`.
 
-Le script refuse et sort en 1, sans rien effacer, quand : un membre manque d'export, un hash ne correspond plus (relancer la clôture du membre), une note porte `visibilite: prive`, ou le dossier cible n'est pas vide et ne porte pas `.cortex-genere` (ce n'est pas un commun, rien n'est touché).
+Le script refuse et sort en 1, sans rien effacer, quand : un membre manque d'export, un hash ne correspond plus (relancer la clôture du membre), une note porte `visibilite: prive`, la `version` de `federation.yaml` ou d'un `index.json` n'est pas 1, le `slug` d'un `index.json` ne nomme pas le membre que `federation.yaml` lui attribue, ou le dossier cible n'est pas vide et ne porte pas `.cortex-genere` (ce n'est pas un commun, rien n'est touché).
+
+Il signale sans refuser une note trouvée dans un export mais absente de son `index.json` : elle n'est jamais copiée, et sa présence dit que l'export du membre est périmé. Relancer la clôture chez lui.
 
 ## 3. Vérifier
 
@@ -120,6 +122,7 @@ controles:
   lint_vert_sur_commun: passe
   regeneration_identique: passe     # diff -r hors genere_le vide
   readme_et_sceau_presents: passe
+  aucune_note_hors_index: passe     # sinon, relancer la cloture du membre
 ```
 
 Un contrôle qui n'est ni `passe` ni `arbitre` avec motif laisse le maillon en `statut: en_cours`.
