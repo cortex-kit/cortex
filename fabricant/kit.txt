@@ -1,6 +1,1 @@
 stop-slop
-humanizer
-prompt-architect
-presentation
-compte-rendu
-email-auditor
