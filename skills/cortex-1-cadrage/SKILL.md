@@ -1,6 +1,6 @@
 ---
 name: cortex-1-cadrage
-description: Maillon 1 de la chaîne Cortex, le cadrage. Pose le profil (employé, dirigeant, société) en langage ordinaire, fixe le régime de donnée (pointeur ou copie), propose les dossiers à parcourir et les plafonds depuis references/profils/<profil>.md, lit _cortex/poste.json pour pré-remplir le poste et la voie mail. Produit config.yaml et 00-cadrage.md dans _cortex/. Déclencher quand la personne dit "cadre mon second cerveau", "on commence le cadrage", "maillon 1", "nouveau client Cortex", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
+description: Maillon 1 de la chaîne Cortex, le cadrage. Pose le profil (employé, dirigeant, société) en langage ordinaire, fixe le régime de donnée (pointeur ou copie), propose les dossiers à parcourir et les plafonds depuis references/profils/<profil>.md, lit _cortex/poste.json pour pré-remplir le poste et la voie mail. Produit config.yaml et 00-cadrage.md dans _cortex/. Déclencher quand la personne dit "faisons le cadrage" (phrase de la notice), "cadre mon second cerveau", "on commence le cadrage", "maillon 1", "nouveau client Cortex", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
 ---
 
 # cortex-1-cadrage — le maillon le plus cher
@@ -132,9 +132,9 @@ Les poser au cadrage, quand ils sont abstraits, coûte une phrase. Les poser au 
 
 `<ton espace>/Cortex/<slug>/_cortex/` — **chez toi, jamais dans la livraison**. Le client reçoit son vault, pas tes notes de travail, tes hypothèses écartées ni les constats te concernant sa propre organisation.
 
-Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `config.yaml`, `00-cadrage.md`. Initialiser git. Si le maillon 0 a déjà créé `_cortex/` (il y a laissé `poste.json`), s'y installer sans le recréer.
+Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `00-cadrage.md`. Initialiser git s'il ne l'est pas.
 
-`config.yaml` part de `${CLAUDE_SKILL_DIR}/../cortex-4-installation/template/config.example.yaml` et reçoit, dans l'ordre : `conduite`, `profil`, le bloc config du profil (`mode`, `commun`, `donnees.regime`, `collecte` avec les racines confirmées), `organisation`, `substrats`, `poste` depuis `poste.json`, `marque` (§2). `domaines: []` et `cycles: []` restent vides : ils sont au maillon 3. `python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/cortex_config.py" _cortex/config.yaml` doit le relire sans erreur ; `valider_installable` le refusera encore, c'est attendu tant que les domaines manquent.
+**`config.yaml` existe déjà** : le maillon 0 l'a créé dans `~/Cortex/<slug>/_cortex/` avec `version: 1` et le bloc `poste`. Ne jamais le recréer ni l'écraser : le relire avec `cortex_config.charger`, y fusionner les clés du cadrage, réécrire le fichier complet. Sans maillon 0 (parcours consultant hérité), partir de `${CLAUDE_SKILL_DIR}/../cortex-4-installation/template/config.example.yaml`. Dans les deux cas, le fichier reçoit, dans l'ordre : `conduite`, `profil`, le bloc config du profil (`mode`, `commun`, `donnees.regime`, `collecte` avec les racines confirmées), `organisation`, `substrats`, `poste` depuis `poste.json`, `marque` (§2). `domaines: []` et `cycles: []` restent vides : ils sont au maillon 3. `python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/cortex_config.py" _cortex/config.yaml` doit le relire sans erreur ; `valider_installable` le refusera encore, c'est attendu tant que les domaines manquent.
 
 Le frontmatter de `00-cadrage.md` porte les contrôles :
 

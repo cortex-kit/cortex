@@ -74,8 +74,15 @@ def forme_tilde(chemin):
 
 # ── Le rejeu ────────────────────────────────────────────────────────────────
 
-def cadrage(profil, racine, slug, nom, base_projets, poste):
+def cadrage(profil, racine, slug, nom, base_projets, poste, existant=None):
+    """Fusionne dans `existant` (le config.yaml laissé par le maillon 0) ; sinon part du gabarit."""
     conf = cortex_config.charger(INSTALLATION / "template" / "config.example.yaml")
+    if existant:
+        for k, v in existant.items():
+            if isinstance(v, dict) and isinstance(conf.get(k), dict):
+                conf[k].update(v)
+            else:
+                conf[k] = v
     for k, v in bloc_profil(profil).items():
         if isinstance(v, dict) and isinstance(conf.get(k), dict):
             conf[k].update(v)
@@ -197,7 +204,9 @@ def rejouer(profil, racine, atelier, slug="recette", nom="Organisation de recett
     atelier.mkdir(parents=True, exist_ok=True)
     poste_f = atelier / "poste.json"
     poste = json.loads(poste_f.read_text(encoding="utf-8")) if poste_f.is_file() else None
-    conf = cadrage(profil, racine, slug, nom, base_projets, poste)
+    config_f = atelier / "config.yaml"
+    existant = cortex_config.charger(config_f) if config_f.is_file() else None
+    conf = cadrage(profil, racine, slug, nom, base_projets, poste, existant)
     (atelier / "config.yaml").write_text(emettre(conf), encoding="utf-8")
     (atelier / "00-cadrage.md").write_text(md_cadrage(conf, racine), encoding="utf-8")
     (atelier / "02-ontologie.md").write_text(md_ontologie(conf, racine), encoding="utf-8")
@@ -229,6 +238,13 @@ def _autotest():
             assert onto.count("\n[?] ") == 2, onto
             assert "## Ce que l'inventaire a révélé" in onto
         assert cortex_config.charger(Path(tmp) / "societe/_cortex/config.yaml")["mode"] == "federe"
+        # Un config.yaml laissé par le maillon 0 est fusionné, jamais recréé.
+        at = Path(tmp) / "fusion"
+        at.mkdir()
+        (at / "config.yaml").write_text('version: 1\nposte:\n  os: "linux"\n  outils: [git]\n  mail_fournisseur: "gmail"\n  mail_boites: 1\n  mail_voie: "connecteur"\n', encoding="utf-8")
+        assert not rejouer("employe", racine, at)
+        conf = cortex_config.charger(at / "config.yaml")
+        assert conf["poste"]["os"] == "linux" and conf["poste"]["mail_voie"] == "connecteur" and conf["profil"] == "employe", conf["poste"]
         # Base déportée déclarée => pointeur ; aller-retour de l'émetteur.
         at = Path(tmp) / "ptr"
         assert not rejouer("dirigeant", racine, at, base_projets="https://base.exemple.test")
