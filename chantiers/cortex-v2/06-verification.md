@@ -166,6 +166,8 @@ C6. Fédération sur trois exports fictifs (§6 ; lane F) : défaut plausible : 
   [ok] une note visibilite: prive dans un export est refusée et absente du commun
 ```
 
+Le contrôle « deux générations ne diffèrent que sur `genere_le` » était vert par chance jusqu'au 2026-09-19 : `empreinte_commun` écartait les lignes horodatées par `"généré par" not in l`, alors que `federe.py` écrit « Généré par `federe.py` le … » avec une majuscule. Le README passait donc la comparaison sans être filtré, et le contrôle ne tenait que tant que les deux générations tombaient dans la même seconde — il est tombé une fois sur cinq passages. Filtre passé en minuscules, comme `federe._horodate` le fait de son côté ; quatre passages consécutifs verts après.
+
 ### C7 Manifestes plugin
 
 ```
