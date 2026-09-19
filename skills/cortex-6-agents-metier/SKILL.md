@@ -117,7 +117,7 @@ Agents métier livrés pour <organisation> : <N>.
 
 Pour toi :
 1. Explique la date de revue au client. Un agent périmé répond quand même.
-2. Lance `cortex-7-passation`.
+2. Dis « prépare la remise ».
 ```
 
 **En mode solo :**

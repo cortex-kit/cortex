@@ -169,6 +169,10 @@ collecte:
   plafond_projets: 60
   plafond_acteurs: 80
   plafond_domaines: 6
+  # max_extractions : nombre maximal de conversions markitdown par scan (maillon 2).
+  max_extractions: 40
+  # budget_secondes : durée totale du scan ; au-delà il s'arrête et déclare bornes.depassement.
+  budget_secondes: 120
 
 # ── ÉCRIT PAR LE MAILLON 0 — l'équipement du poste ──────────────────────────
 # Miroir de _cortex/poste.json, pour que les maillons suivants n'aient qu'un

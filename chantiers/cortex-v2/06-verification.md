@@ -285,7 +285,7 @@ claude plugin details cortex@cortex-kit
 
 Attendu : installation sans erreur ; `details` liste autant de skills que de dossiers dans `skills/` (9 maillons + 1 annexe = 10, compte par glob, jamais 13) ; dans une session neuve, la phrase « installe mon second cerveau » déclenche `cortex-0-poste`.
 
-Sortie :
+Sortie : 2026-09-19, ce Mac (macOS, Claude Code 2.1.263). `claude plugin marketplace add ~/Dev/cortex` → « Successfully added marketplace: cortex-kit » ; `claude plugin install cortex@cortex-kit` → « Successfully installed plugin: cortex@cortex-kit (scope: user) » ; après bump de version, `claude plugin marketplace update cortex-kit && claude plugin update cortex@cortex-kit` → « Plugin "cortex" updated from 2.0.0-dev to 2.0.0-rc.1 » ; `claude plugin details cortex@cortex-kit` → Skills (10) : cortex-0-poste … cortex-8-federation, stop-slop ; Agents 0, Hooks 0, MCP 0. Le cache `~/.claude/plugins/cache/cortex-kit/cortex/2.0.0-rc.1/skills/cortex-0-poste/scripts/poste.py` existe et la description porte « installe mon second cerveau ». Leçon : sans changement de `version` dans `plugin.json`, `plugin update` répond « already at the latest version » et ne rafraîchit pas le cache.
 
 
 ### M2 Sonde Cowork bureau
