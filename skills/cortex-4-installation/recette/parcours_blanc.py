@@ -26,7 +26,7 @@ from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
 SCRIPTS = RACINE / "scripts"
-PAQUET = RACINE.parent / "cortex-paquet"
+PAQUET = RACINE.parent.parent / "fabricant"   # fabricant/ à la racine du dépôt
 sys.path.insert(0, str(SCRIPTS))
 import cortex_config  # noqa: E402
 

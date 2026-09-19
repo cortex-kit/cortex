@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """fabrique.py — assemble le paquet distribuable Cortex. stdlib pure, zéro réseau.
 
-Lit kit.txt, copie les dossiers depuis ~/.claude/skills/ (les sept maillons et
+Lit kit.txt, copie les dossiers depuis skills/ du dépôt (les sept maillons et
 les skills annexes du manifeste), y ajoute la notice et PROVENANCE.md, et
-produit le zip. La copie n'existe QUE dans le zip : le dépôt ne porte jamais
-un double d'une skill annexe (invariant I1, pointeur jamais copie).
+produit le zip de repli. La voie principale est le plugin Claude Code ; le zip
+sert aux postes sans marketplace.
 
 Trois contrôles BLOQUANTS, dans cet ordre :
   1. Provenance — chaque entrée du manifeste couverte par PROVENANCE.md avec
@@ -18,10 +18,9 @@ Trois contrôles BLOQUANTS, dans cet ordre :
      scaffold — invisibles ici par le mécanisme même de _archive, et déposés
      au bon niveau dans le vault du client par scaffold.py.
 
-Le zip embarque aussi, dans cortex-4-installation/scripts/, les outils du
-tableau de bord (etat.py, rend_notice.py, notice.md, VERSION) : le novice
-doit pouvoir régénérer son suivi sans cortex-paquet, qui reste chez le
-fabricant. Ces copies non plus n'existent que dans le zip.
+Les outils du tableau de bord (etat.py, rend_notice.py, notice.md) vivent
+dans cortex-4-installation/scripts/ et partent avec le maillon ; fabricant/
+reste chez le fabricant, hors plugin et hors zip. Seul VERSION est ajouté.
 
 Usage (`py` sous Windows vaut `python3`) :
     python3 fabrique.py --sortie <cortex.zip> [--version 2026-08-23]
@@ -38,7 +37,7 @@ from pathlib import Path
 
 _ICI = Path(__file__).resolve().parent
 PAQUET = _ICI.parent                 # ~/.claude/skills/cortex-paquet
-SKILLS = PAQUET.parent               # ~/.claude/skills
+SKILLS = PAQUET.parent / "skills"    # <dépôt>/skills : maillons et annexes
 MAILLONS = [f"cortex-{i}-{n}" for i, n in enumerate(
     ["cadrage", "inventaire", "ontologie", "installation", "ingest",
      "agents-metier", "passation"], 1)]
@@ -60,7 +59,7 @@ def _kit():
 
 def controle_provenance(kit):
     """Chaque emprunt couvert, verdict positif. Rend la liste des défauts."""
-    provenance = (PAQUET / "PROVENANCE.md").read_text(encoding="utf-8")
+    provenance = (PAQUET.parent / "PROVENANCE.md").read_text(encoding="utf-8")
     defauts = []
     for skill in kit:
         m = re.search(rf"^\|\s*{re.escape(skill)}\s*\|(.+)\|\s*$",
@@ -126,20 +125,17 @@ def fabriquer(sortie, version=None):
         scene.mkdir()
         for nom in MAILLONS + kit:
             shutil.copytree(SKILLS / nom, scene / nom, ignore=EXCLUS)
-        shutil.copyfile(PAQUET / "PROVENANCE.md", scene / "PROVENANCE.md")
+        shutil.copyfile(PAQUET.parent / "PROVENANCE.md", scene / "PROVENANCE.md")
 
-        # Outillage du tableau de bord, embarqué à côté de cortex_config.py
-        # (les scripts se sondent : même dossier d'abord, dépôt ensuite).
+        # Outillage du tableau de bord (etat.py, rend_notice.py, notice.md) :
+        # il vit dans cortex-4-installation/scripts/ et part avec le maillon.
         outils = scene / "cortex-4-installation" / "scripts"
-        for f in ("etat.py", "rend_notice.py"):
-            shutil.copyfile(_ICI / f, outils / f)
-        shutil.copyfile(PAQUET / "modeles" / "notice.md", outils / "notice.md")
         (outils / "VERSION").write_text(version + "\n", encoding="utf-8")
 
         # La notice de déballage : le tableau de bord VIERGE — sept étapes à
         # faire — au-dessus de la notice. Générée par la même chaîne que le
         # suivi vivant, pour que l'état zéro soit lui aussi une projection.
-        sys.path.insert(0, str(_ICI))
+        sys.path.insert(0, str(SKILLS / "cortex-4-installation" / "scripts"))
         import etat as m_etat
         import rend_notice as m_rend
         atelier_vierge = Path(tmp) / "_cortex"

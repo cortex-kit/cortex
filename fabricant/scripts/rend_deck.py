@@ -20,14 +20,14 @@ import sys
 from pathlib import Path
 
 _ICI = Path(__file__).resolve().parent
-sys.path.insert(0, str(_ICI))
+_DEPOT = _ICI.parent.parent
+sys.path.insert(0, str(_DEPOT / "skills" / "cortex-4-installation" / "scripts"))
 from etat import LIBELLES  # noqa: E402
 
-# La skill presentation est un dossier frère dans ~/.claude/skills/. Sondé,
-# jamais codé en dur (discipline 2 machines).
-_PRESENTATION = _ICI.parent.parent / "presentation" / "scripts"
+# La skill presentation vit dans skills/ du dépôt. Sondée, jamais codée en dur.
+_PRESENTATION = _DEPOT / "skills" / "presentation" / "scripts"
 if not (_PRESENTATION / "bento.py").is_file():
-    sys.exit("[erreur] skill presentation introuvable a cote de cortex-paquet ; "
+    sys.exit("[erreur] skill presentation introuvable dans skills/ ; "
              "le deck se rend avec elle.")
 sys.path.insert(0, str(_PRESENTATION))
 from chartes import charte  # noqa: E402

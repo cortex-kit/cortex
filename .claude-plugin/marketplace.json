@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "cortex-kit",
+  "description": "Cortex : un second cerveau installable par un novice, en français. Le dépôt est sa propre marketplace.",
+  "owner": { "name": "cortex-kit", "url": "https://github.com/cortex-kit" },
+  "plugins": [
+    {
+      "name": "cortex",
+      "source": "./",
+      "description": "Second cerveau Obsidian installé par une chaîne de maillons guidés : poste, cadrage par profil, inventaire, ontologie, installation, peuplement, agents, passation, fédération.",
+      "category": "productivity"
+    }
+  ]
+}
