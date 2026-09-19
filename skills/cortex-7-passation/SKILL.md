@@ -1,11 +1,11 @@
 ---
 name: cortex-7-passation
-description: Septième maillon de la chaîne Cortex. Produit le pack de remise du vault au client — guide d'usage, runbook des quatre opérations, fiche de reprise à froid — passe la recette d'acceptation mécanique, dont le contrôle de white-label bloquant, date la remise (remis_le) pour que la skill bilan du vault fasse le point à J+7 et J+30, et termine en ouvrant la notice. Déclencher quand le consultant dit "maillon 7", "passation", "on remet le vault", "recette", ou quand le vault est peuplé et vérifié. Phrase d'entrée de la notice : « prépare la remise ». Ne PAS utiliser pour produire un support de formation : hors périmètre par décision.
+description: Maillon 7 de la chaîne Cortex. Produit le pack de remise du vault au client — guide d'usage, runbook des quatre opérations, fiche de reprise à froid — passe la recette d'acceptation mécanique, dont le contrôle de white-label bloquant, date la remise (remis_le) pour que la skill bilan du vault fasse le point à J+7 et J+30, et termine en ouvrant la notice. Déclencher quand le consultant dit "maillon 7", "passation", "on remet le vault", "recette", ou quand le vault est peuplé et vérifié. Phrase d'entrée de la notice : « prépare la remise ». Ne PAS utiliser pour produire un support de formation : hors périmètre par décision.
 ---
 
 # cortex-7-passation — remettre, et prouver que c'est remettable
 
-Septième maillon ; la fédération (`cortex-8`) ne suit qu'en mode `federe`. Régénérable à coût nul, et **à tout moment plus tard** : quand le vault du client aura évolué, on relance ce maillon et la documentation redevient juste.
+Huitième des neuf, le maillon 0 compris ; la fédération (`cortex-8`) ne suit qu'en mode `federe`. Régénérable à coût nul, et **à tout moment plus tard** : quand le vault du client aura évolué, on relance ce maillon et la documentation redevient juste.
 
 ## Positionnement
 
@@ -60,7 +60,12 @@ V="<racine du vault>"
 #    « auto-MATIS-ation » et « for-MATIS-me ». Un contrôle qui produit huit
 #    faux positifs à chaque exécution finit par être ignoré, et c'est ainsi
 #    qu'une vraie fuite passe.
-grep -rwiE "<config.marque.mentions_interdites, en alternance>" "$V"   # attendu : vide
+#    La liste vide est un défaut, jamais un succès : `grep -rwiE ""` rend tout
+#    le vault. Si `mentions_interdites` est vide, s'arrêter et le dire — la
+#    liste se pré-remplit au maillon 1, son absence signale un cadrage tronqué.
+M="<config.marque.mentions_interdites, en alternance>"
+test -n "$M" || { echo "mentions_interdites vide : recette arrêtée"; exit 1; }
+grep -rwiE "$M" "$V"                                                  # attendu : vide
 
 # 2. Transmissibilité
 grep -rE "/Users/|/home/|[A-Z]:\\\\" "$V" --include='*.md'            # attendu : vide

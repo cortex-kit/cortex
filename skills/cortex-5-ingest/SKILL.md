@@ -1,11 +1,11 @@
 ---
 name: cortex-5-ingest
-description: Cinquième maillon de la chaîne Cortex. Transforme le catalogue d'inventaire en notes-pointeurs dans le vault installé — projets, acteurs, ressources — avec un résumé plafonné et une écriture idempotente. Tient un registre source vers note qui rend les relances incrémentales. Déclencher quand le consultant dit "maillon 5", "on peuple le vault", "ingest de l'inventaire", ou dispose d'un vault installé et d'un 01-inventaire.json validé. Phrase d'entrée de la notice : « remplis mon second cerveau ». Ne PAS confondre avec la skill `ingest` livrée au client, qui traite une source externe à la fois en mode maintenance.
+description: Maillon 5 de la chaîne Cortex. Transforme le catalogue d'inventaire en notes-pointeurs dans le vault installé — projets, acteurs, ressources — avec un résumé plafonné et une écriture idempotente. Tient un registre source vers note qui rend les relances incrémentales. Déclencher quand le consultant dit "maillon 5", "on peuple le vault", "ingest de l'inventaire", ou dispose d'un vault installé et d'un 01-inventaire.json validé. Phrase d'entrée de la notice : « remplis mon second cerveau ». Ne PAS confondre avec la skill `ingest` livrée au client, qui traite une source externe à la fois en mode maintenance.
 ---
 
 # cortex-5-ingest — peupler sans recopier
 
-Cinquième des sept. C'est le seul maillon qui **survit à l'installation** : sa procédure devient la skill `ingest` que le client garde et lance à chaque nouvelle source.
+Sixième des neuf, le maillon 0 compris. C'est le seul maillon qui **survit à l'installation** : sa procédure devient la skill `ingest` que le client garde et lance à chaque nouvelle source.
 
 ## Positionnement
 
@@ -137,8 +137,8 @@ Pour toi :
 1. Ouvre le vault et vérifie trois notes au hasard : le pointeur mène-t-il
    au bon endroit ?
 2. Fais tourner `cloture` sur une vraie session de travail.
-3. Puis `cortex-6-agents-metier`, si le cadrage a identifié un besoin.
-4. Enfin `cortex-7-passation`.
+3. Puis dis « voyons mes assistants métier », si le cadrage a identifié un besoin.
+4. Enfin « prépare la remise ».
 
 L'étape 1 n'est pas une formalité. Un pointeur faux est indétectable par
 le lint — il vérifie la présence, pas la destination — et c'est la seule
@@ -164,7 +164,7 @@ La suite examine s'il vous faut des assistants sur mesure. Sa
 condition d'entrée : l'outil rempli et sain — c'est fait. Réponse
 honnête probable : « pas encore », et c'est une bonne réponse.
 
-On enchaîne ?
+Quand vous voulez continuer, dites « voyons mes assistants métier ».
 ```
 
 Vérifier les trois fiches avant de proposer la suite : c'est le geste qui ne se saute pas, personne d'autre ne le fera.

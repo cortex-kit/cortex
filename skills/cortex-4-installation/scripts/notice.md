@@ -13,10 +13,10 @@ seulement les en-têtes.
 
 Tout le parcours tient en trois phrases.
 
-1. **Installer.** Installez Claude Code, puis dans un terminal collez la ligne
-   d'installation du paquet, donnée dans le fichier README du paquet. Sans
-   terminal, le zip de repli se déplie dans le dossier des savoir-faire de
-   Claude Code, voir « Sans terminal » plus bas.
+1. **Installer.** Installez Claude Code, puis dans un terminal collez cette
+   ligne : `claude plugin marketplace add cortex-kit/cortex && claude plugin
+   install cortex@cortex-kit`. Sans terminal, le zip de repli se déplie dans le
+   dossier des savoir-faire de Claude Code, voir « Sans terminal » plus bas.
 2. **Démarrer.** Ouvrez Claude Code et écrivez : **« installe mon second
    cerveau »**. La première étape commence et vous guide.
 3. **Alimenter.** À la fin de chaque séance de travail, écrivez :

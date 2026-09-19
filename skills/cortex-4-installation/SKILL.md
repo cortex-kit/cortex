@@ -5,7 +5,7 @@ description: Installe un vault Cortex — un second cerveau structuré — chez 
 
 # cortex-4-installation — matérialiser le vault
 
-Quatrième maillon de la chaîne Cortex. **Zéro jugement, cent pour cent déterministe.**
+Cinquième des neuf, le maillon 0 compris. **Zéro jugement, cent pour cent déterministe.**
 
 C'est le point de reprise à coût nul de toute la chaîne : `rm -rf` puis relance est ici un geste normal, pas un incident. C'est précisément pourquoi ce maillon est isolé des maillons de jugement — le cadrage et l'ontologie coûtent le temps du client, la matérialisation coûte une seconde.
 
@@ -126,7 +126,7 @@ Le vault de <organisation> est installé.
 Pour toi :
 1. Ouvre le vault et parcours [[Centre]].
 2. Fais tourner `cloture` sur une vraie session, trois fois.
-3. Quand c'est fluide, lance `cortex-5-ingest` pour y verser l'inventaire.
+3. Quand c'est fluide, dis « remplis mon second cerveau » pour y verser l'inventaire.
 
 Ne peuple pas le vault à la main avant l'étape 3 : cortex-5 est idempotent,
 il détecterait une note écrite à la main comme un conflit à arbitrer.
@@ -148,7 +148,7 @@ l'inventaire devient une fiche qui pointe vers le vrai dossier.
 Sa condition d'entrée : l'outil installé et sain — c'est fait — et
 encore vide. N'y écrivez rien à la main avant le remplissage.
 
-On enchaîne ?
+Quand vous voulez continuer, dites « remplis mon second cerveau ».
 ```
 
 ## Interdits

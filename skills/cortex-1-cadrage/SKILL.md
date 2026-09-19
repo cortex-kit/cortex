@@ -25,7 +25,7 @@ Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `ref
 
 **Aucun maillon n'invoque le suivant.** Le consultant lance, parce qu'entre deux maillons il se passe des choses dans le monde réel : obtenir un accès, faire signer, laisser le client essayer.
 
-En mode **solo** — choisi ici même, mémorisé dans la configuration — chaque maillon **propose** le suivant et l'enchaîne après un accord explicite, jamais sans, et jamais si sa condition d'entrée manque. Ce que le solo supprime, c'est le délai entre les maillons, pas la condition d'entrée du suivant. Qualification complète : `references/doctrine.md` §3, amendement 2026-08-23.
+En mode **solo** — choisi ici même, mémorisé dans la configuration — la règle ne change pas : le maillon termine par la notice, qui affiche l'étape suivante et la phrase à prononcer, et **n'enchaîne jamais**, même sur un accord explicite. Ce que le solo raccourcit, c'est le délai entre les maillons, pas la condition d'entrée du suivant ni la décision de continuer. Arbitrage complet : `references/doctrine.md` §3, amendement 2026-09-19.
 
 ## Positionnement
 
@@ -175,7 +175,7 @@ Cadrage terminé pour <organisation>.
 
 Pour toi :
 1. Obtiens les accès aux substrats listés en §Substrats.
-2. Quand ils répondent, lance `cortex-2-inventaire`.
+2. Quand ils répondent, dis « lance l'inventaire ».
 
 Le maillon 2 vérifie que chaque substrat déclaré répond avant de commencer.
 S'il en manque un, il s'arrête : mieux vaut attendre un accès que produire
@@ -196,7 +196,7 @@ en copier — noter où les choses sont, pas ce qu'elles contiennent.
 Sa condition d'entrée : chaque endroit déclaré doit répondre — dossier
 accessible, outil qui s'ouvre, compte actif.
 
-On enchaîne ?
+Quand vous voulez continuer, dites « lance l'inventaire ».
 ```
 
 Si un accès manque (un mot de passe à retrouver, un compte à réactiver), s'arrêter et dire ce qui manque, et que l'inventaire démarrera quand ce sera réglé. Ne jamais enchaîner par-dessus une condition d'entrée non remplie.

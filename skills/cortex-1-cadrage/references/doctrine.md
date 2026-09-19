@@ -1,6 +1,6 @@
 # Doctrine Cortex — pour qui exécute la chaîne
 
-Ce fichier est destiné au **consultant**, pas au client. Il porte ce qui vaut dans les sept maillons et qui n'a donc sa place dans aucun : le vocabulaire, les invariants, et la raison de chaque garde-fou.
+Ce fichier est destiné au **consultant**, pas au client. Il porte ce qui vaut dans les neuf maillons et qui n'a donc sa place dans aucun : le vocabulaire, les invariants, et la raison de chaque garde-fou.
 
 Il ne redit pas la doctrine du vault livré. Celle-ci vit dans le gabarit — `cortex-4-installation/template/vault/90 - Meta/` : `Conventions.md` pour le contrat de données, `Architecture Mémoire.md` pour les quatre couches, `Architecture - Vue d'ensemble.md` pour l'entrée. La règle vaut pour ce fichier comme pour le reste : **pointeur jamais copie**.
 
@@ -25,13 +25,14 @@ Ces mots ont un sens précis dans la chaîne. Les employer autrement devant un c
 | **cycle** | le vocabulaire de phases d'un type de projet. Les mots du client, pas les tiens |
 | **atelier** | `_cortex/`, le dossier de travail du consultant. Ne part jamais chez le client |
 | **white-label** | l'absence, dans le livrable, de ta marque, de tes outils et **des clients que tu as déjà servis** |
-| **kit générique** | les 4 skills et 2 sous-agents livrés par le maillon 4, identiques chez tous |
+| **kit générique** | les 6 skills et 2 sous-agents livrés par le maillon 4, identiques chez tous |
 | **agent métier** | un sous-agent sur mesure, conçu au maillon 6 sur un vault déjà peuplé, avec une date de péremption |
 
 ## 3. La chaîne, et pourquoi elle est coupée là
 
 | Maillon | Nature | Coût de rejeu |
 |---|---|---|
+| 0 poste | équipement | une réinstallation d'outil |
 | 1 cadrage | collecte | le temps du client — le plus cher de la chaîne |
 | 2 inventaire | mesure | un accès et de la patience |
 | 3 ontologie | **jugement** | un arbitrage à re-litiger |
@@ -39,6 +40,7 @@ Ces mots ont un sens précis dans la chaîne. Les employer autrement devant un c
 | 5 ingest | application | des jetons, incrémental grâce au registre |
 | 6 agents métier | conception | une spec à revalider |
 | 7 passation | régénération | nul, à tout moment |
+| 8 fédération | agrégation | nul, le commun se jette et se refait |
 
 Trois coupures portent tout le reste.
 
@@ -50,7 +52,7 @@ Trois coupures portent tout le reste.
 
 **Aucun maillon n'invoque le suivant.** Entre deux maillons, il se passe des choses dans le monde réel : obtenir un accès, faire signer, laisser le client essayer. Une chaîne qui s'enchaîne toute seule traverse ces attentes sans les voir.
 
-*Amendement 2026-08-23 — cette phrase se qualifie par mode de conduite.* En mode **consultant**, elle s'applique telle quelle : ce qui attend entre deux maillons appartient à des tiers — un DSI qui ouvre un accès, un dirigeant qui signe — et rendre la main est la seule façon de voir ces attentes. En mode **solo** — la même personne conduit la chaîne et en bénéficie, choix fait au maillon 1 et mémorisé dans la configuration — la personne qui répond et la personne qu'on attendrait sont la même. Chaque maillon peut donc proposer le suivant et l'enchaîner après un accord explicite, jamais sans. Ce que le mode solo supprime, c'est le **délai** entre les maillons, pas la **condition d'entrée** du suivant : un prérequis manquant arrête l'enchaînement et se dit, en solo comme en consultant. Les attentes du monde réel n'ont pas disparu en solo — retrouver un mot de passe, réactiver un compte, finir autre chose d'abord — et une chaîne qui les traverserait sans les voir produirait un inventaire partiel dont personne ne saurait ce qui a manqué.
+*Amendement 2026-09-19, arbitrage final : il remplace celui du 2026-08-23.* La phrase s'applique telle quelle dans les deux modes de conduite. Aucun maillon n'enchaîne sur le suivant, ni en consultant, ni en solo, ni après un accord explicite. Il termine par la régénération de la notice, qui affiche l'étape suivante et la phrase à prononcer ; la personne la prononce quand elle veut. Ce que le mode solo raccourcit, c'est le délai entre deux maillons, pas la condition d'entrée du suivant ni la décision de continuer : un prérequis manquant se dit et arrête la chaîne, en solo comme en consultant. Les attentes du monde réel n'ont pas disparu en solo (retrouver un mot de passe, réactiver un compte, finir autre chose d'abord), et une chaîne qui les traverserait sans les voir produirait un inventaire partiel dont personne ne saurait ce qui a manqué.
 
 ## 4. La garde formelle
 
@@ -72,7 +74,7 @@ C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne 
 
 ## 5. Les cinq invariants
 
-Ils valent dans les sept maillons. Chacun a coûté quelque chose à quelqu'un.
+Ils valent dans les neuf maillons. Chacun a coûté quelque chose à quelqu'un.
 
 **Pointeur jamais copie.** Une copie diverge de sa source, et le jour où elles se contredisent, personne ne sait laquelle croit. La parade n'est pas une règle en prose : le schéma d'inventaire n'a pas de champ `contenu`, et le plafond de résumé est un contrôle dur. S'il n'y a pas d'endroit où mettre la copie, la copie ne se fait pas.
 

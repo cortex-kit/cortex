@@ -160,7 +160,7 @@ Ontologie arrêtée pour <organisation>.
 
 Pour toi :
 1. Fais signer 02-ontologie.md. Ne saute pas cette étape.
-2. Puis lance `cortex-4-installation`.
+2. Puis dis « construis mon second cerveau ».
 
 Le maillon 4 refuse de démarrer si 02-ontologie.md n'est pas en statut
 valide. Installer sur une ontologie non arbitrée produit un vault qu'il
@@ -185,7 +185,7 @@ La suite installe l'outil lui-même : une seconde, entièrement
 automatique, rien à décider. Sa condition d'entrée : cette carte
 confirmée — c'est fait.
 
-On enchaîne ?
+Quand vous voulez continuer, dites « construis mon second cerveau ».
 ```
 
 Si la carte n'est pas confirmée : s'arrêter et dire ce qui reste en suspens. Rien ne s'installe avant la confirmation.

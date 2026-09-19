@@ -93,8 +93,9 @@ CRITERES = [
     ("C10", "Paquet, notice hors ligne, README", "§11", "B"),
 ]
 MANUELS = [("M1", "Installation vivante du plugin (marketplace add, install, details)"),
-           ("M2", "Sonde Cowork bureau : uvx markitdown --version dans le bac à sable"),
-           ("M3", "Maillon 0 et installation du plugin sur la machine Windows")]
+           ("M2", "Sonde Cowork bureau : uvx --from \"markitdown[all]\" markitdown --version dans le bac à sable"),
+           ("M3", "Maillon 0 et installation du plugin sur la machine Windows"),
+           ("M4", "Permissions du vault en session interactive (allow, additionalDirectories, deny)")]
 
 succes, echecs = [], []
 BILAN = {}
@@ -398,7 +399,8 @@ def empreinte_commun(commun):
         if p.is_file():
             texte = p.read_text(encoding="utf-8", errors="replace")
             out[p.relative_to(commun).as_posix()] = "\n".join(
-                l for l in texte.splitlines() if "genere_le" not in l and "généré par" not in l)
+                l for l in texte.splitlines()
+                if "genere_le" not in l and "généré par" not in l.lower())
     return out
 
 
@@ -636,6 +638,14 @@ def c2_profils(tmp, configs):
     longs = [(m.parent.name, len(m.read_text(encoding="utf-8").splitlines())) for m in maillons
              if len(m.read_text(encoding="utf-8").splitlines()) >= 300]
     verifie("chaque SKILL.md maillon fait moins de 300 lignes", not longs, str(longs))
+    fautifs = []
+    for m in maillons:
+        texte = m.read_text(encoding="utf-8")
+        for motif in ("On enchaîne", "lance `cortex-"):
+            if motif in texte:
+                fautifs.append(f"{m.parent.name} : {motif}")
+    verifie("aucun maillon n'enchaîne, la section Notice seule propose la suite "
+            "(I10, arbitrage 2026-09-19)", not fautifs, str(fautifs))
 
 
 # ── C3 : inventaire outille ─────────────────────────────────────────────────

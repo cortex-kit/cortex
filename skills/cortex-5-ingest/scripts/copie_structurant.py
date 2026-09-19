@@ -120,7 +120,7 @@ def copier(vault, conf, typ, domaine, source=None, titre=None, texte=None,
         if texte is None:
             texte = texte_de(source, max_octets)
             if texte is None:
-                return 2, ("conversion impossible (uvx markitdown absent ou en echec) : "
+                return 2, ('conversion impossible (uvx --from "markitdown[all]" markitdown absent ou en echec) : '
                            "fournir --texte avec le contenu converti.")
     else:
         if typ != "fil_structurant":
