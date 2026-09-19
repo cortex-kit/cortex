@@ -60,6 +60,17 @@ Des hypothèses à confronter à l'inventaire au maillon 3, jamais des décision
 - `equ` Équipe et hiérarchie
 - `fon` Fonction, le métier lui-même : process, référentiels, fiches de poste
 
+## Le cycle de départ
+
+Même statut que les domaines : une hypothèse pour le maillon 3, jamais une décision du maillon 1.
+
+| Cycle | Phase | Progression |
+|---|---|---|
+| projet | Cadrage | 20 |
+| projet | En cours | 60 |
+| projet | Livré | 90 |
+| projet | Clos | 100 |
+
 ## Les pièges
 
 - **Confondre le périmètre du poste et celui de l'entreprise.** Un employé qui déclare « la stratégie commerciale » comme dossier porte en général une partie d'un projet qu'un autre porte. Demander : « si vous partiez demain, qui reprendrait ce dossier ? ».
@@ -85,14 +96,7 @@ collecte:
   plafond_projets: 30
   plafond_acteurs: 40
   plafond_domaines: 5
-domaines:
-  - { code: prj, nom: "Projets portés", couleur: "#1c42da" }
-  - { code: sub, nom: "Projets subis", couleur: "#c9a227" }
-  - { code: equ, nom: "Équipe et hiérarchie", couleur: "#0f8a6a" }
-  - { code: fon, nom: "Fonction", couleur: "#8a3c0f" }
-cycles:
-  - { cycle: projet, phase: "Cadrage", progression: 20 }
-  - { cycle: projet, phase: "En cours", progression: 60 }
-  - { cycle: projet, phase: "Livré", progression: 90 }
-  - { cycle: projet, phase: "Clos", progression: 100 }
 ```
+
+Ce bloc ne porte ni `domaines` ni `cycles` : ils se décident au maillon 3, sur preuve tirée de l'inventaire. `config.yaml` sort du maillon 1 avec `domaines: []` et `cycles: []`, et `valider_installable` signale alors leur absence, ce qui est attendu (`04-contrat.md` §2).
+

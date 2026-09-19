@@ -51,6 +51,10 @@ Par vault, ceux du profil de chaque rédacteur. Le commun n'a pas de plafond pro
 
 Ceux du profil de chaque rédacteur. Le commun fusionne les domaines par nom : deux rédacteurs qui appellent la même chose « Affaires » obtiennent un domaine commun, deux qui l'appellent « Affaires » et « Chantiers » en obtiennent deux. Aligner le vocabulaire au cadrage, quand il coûte une phrase, épargne une fusion manuelle au maillon 8.
 
+## Le cycle de départ
+
+Celui du profil de poste de chaque rédacteur. Le commun ne fusionne pas les cycles : chaque vault garde le sien, et le maillon 8 n'agrège que domaines, projets et acteurs.
+
 ## Les pièges
 
 - **Le vault partagé.** Le groupe demande un seul dossier « où tout le monde écrit ». C'est un produit différent, et c'est celui qui échoue : conflits sur le journal à chaque clôture, résolus par des gens qui ne sont pas développeurs. Refuser, expliquer, proposer le commun généré.
@@ -88,13 +92,7 @@ collecte:
   plafond_projets: 60
   plafond_acteurs: 80
   plafond_domaines: 6
-domaines:
-  - { code: aff, nom: "Affaires", couleur: "#1c42da" }
-  - { code: cli, nom: "Clients et marché", couleur: "#c9a227" }
-  - { code: equ, nom: "Équipe", couleur: "#0f8a6a" }
-cycles:
-  - { cycle: affaire, phase: "Devis", progression: 10 }
-  - { cycle: affaire, phase: "Signée", progression: 30 }
-  - { cycle: affaire, phase: "En cours", progression: 60 }
-  - { cycle: affaire, phase: "Réceptionnée", progression: 100 }
 ```
+
+Ce bloc ne porte ni `domaines` ni `cycles` : ils se décident au maillon 3, sur preuve tirée de l'inventaire. `config.yaml` sort du maillon 1 avec `domaines: []` et `cycles: []`, et `valider_installable` signale alors leur absence, ce qui est attendu (`04-contrat.md` §2).
+
