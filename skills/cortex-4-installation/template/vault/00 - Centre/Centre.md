@@ -21,6 +21,8 @@ Ce vault est la mémoire longue et le pilotage léger de {{ORGANISATION}}. Il po
 | voir les valeurs de cette installation | [[Configuration]] |
 | mener un chantier interne | [[Runbook - Chantiers (phase packs)]] |
 | intégrer une source externe | [[Ingest - Sources externes]] |
+| poser une question sur mon travail | dire « parle », puis la question : la réponse cite les notes |
+| savoir ce qui a bougé | dire « bilan » |
 | reprendre à froid après une absence | [[Amorçage]] |
 
 ## Les domaines

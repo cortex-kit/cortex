@@ -6,6 +6,7 @@ statut: actif
 courriel: ""
 telephone: ""
 dernier_contact: {{date:YYYY-MM-DD}}
+visibilite: ""                # prive | commun ; vide = commun.visibilite_defaut
 tags:
   - d/CODE
 ---

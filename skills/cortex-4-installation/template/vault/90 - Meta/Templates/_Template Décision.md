@@ -5,6 +5,7 @@ domaine: "[[NOM_DOMAINE]]"
 projet:
   - "[[NOM_PROJET]]"
 statut: actee
+visibilite: ""                # prive | commun ; vide = commun.visibilite_defaut
 tags:
   - d/CODE
 ---

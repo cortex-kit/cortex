@@ -1,6 +1,7 @@
 ---
 type: domaine
 statut: actif
+visibilite: ""                # prive | commun ; vide = commun.visibilite_defaut
 tags:
   - d/CODE
 ---

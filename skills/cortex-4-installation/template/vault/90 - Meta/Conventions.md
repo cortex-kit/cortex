@@ -43,7 +43,7 @@ La raison est pratique : une réorganisation de domaines — et il y en aura une
 
 | Propriété | Type | Valeurs / format | Sur quels types |
 |---|---|---|---|
-| `type` | texte | hub, meta, domaine, projet, action, acteur, ressource, decision, identite | toutes |
+| `type` | texte | hub, meta, domaine, projet, action, acteur, ressource, decision, identite, structurant | toutes |
 | `domaine` | lien | `"[[Nom du domaine]]"` | toutes sauf hub |
 | `statut` | texte | idee, actif, attente, termine, archive | projet, domaine, acteur |
 | `cycle` | texte | une clé de `config.cycles`, ou `aucun` | projet |
@@ -68,6 +68,9 @@ La raison est pratique : une réorganisation de domaines — et il y en aura une
 | `courriel` / `telephone` | texte | | acteur |
 | `dernier_contact` | date | AAAA-MM-JJ | acteur |
 | `source_url` / `source_type` | texte | | ressource |
+| `visibilite` | texte | prive, commun ; absente = `commun.visibilite_defaut` de la config | domaine, projet, acteur, decision |
+| `structurant` | texte | un type de `config.donnees.structurants` | structurant |
+| `source_path` / `hash` / `copie_le` | texte | forme `~`, sha256 de la source, AAAA-MM-JJ ; régime copie seulement | structurant |
 
 **Règle stricte de nommage : noms de propriétés en minuscules, sans accent, sans tiret.** Le tiret est interprété comme une soustraction par les moteurs de requête. Utiliser `_` si besoin.
 
