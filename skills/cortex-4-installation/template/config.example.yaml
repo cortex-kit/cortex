@@ -134,10 +134,10 @@ sante:
 # encodent des règles de gestion qui changent, et un agent périmé qui répond
 # quand même est plus dangereux qu'un agent absent.
 agents:
-  skills: [cloture, nouveau-projet, ingest, lint]
+  skills: [cloture, nouveau-projet, ingest, lint, parle, bilan]
   sousagents: [chercheur-vault, auditeur-ontologie]
   metier: []
-  hooks: []
+  hooks: [session-start, stop]
 
 # ── OPTIONNEL — axes commerciaux. Liste vide = axe non utilisé. ────────────
 # vehicule = la marque qui VEND.  payeur = qui VERSE l'argent.
