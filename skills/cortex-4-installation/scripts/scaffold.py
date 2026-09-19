@@ -39,13 +39,29 @@ import cortex_config  # noqa: E402
 RACINE_SKILL = Path(__file__).resolve().parent.parent
 GABARIT = RACINE_SKILL / "template" / "vault"
 
+# Seuls ces suffixes passent par la substitution, donc par une lecture UTF-8.
+SUFFIXES_TEXTE = (".md", ".yaml", ".json", ".txt")
+
+
+def ignorable(src):
+    """Un artefact d'execution du depot, qui n'a rien a faire chez le client.
+
+    `__pycache__` apparait des qu'un script du gabarit a ete importe une fois.
+    Le lire en UTF-8 fait sortir `--outillage-seul` en 1, et le copier tel quel
+    livrerait un `.pyc` perime dans le vault.
+    """
+    return "__pycache__" in src.parts or src.suffix in (".pyc", ".pyo")
+
 # Contrat 04 §9, amende le 2026-09-19 par le chef d'orchestre : lecture seule
-# sur les racines, et les quatre gestes de la cloture (add, commit, push, export)
-# pour qu'une cloture de novice ne demande aucune permission.
+# sur les racines, les quatre gestes de la cloture (add, commit, push, export)
+# pour qu'une cloture de novice ne demande aucune permission, et le
+# rafraichissement d'un structurant perime, qui est du meme registre : un geste
+# de routine propose par le lint, `cloture`, `parle` et `bilan`.
 ALLOW = [
     "Read", "Glob", "Grep",
     "Bash(python3 .claude/skills/lint/lint_sante.py:*)",
     "Bash(python3 .claude/skills/cloture/export.py:*)",
+    "Bash(python3 .claude/skills/ingest/copie_structurant.py:*)",
     "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
     "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
     "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)",
@@ -324,12 +340,15 @@ def outillage_seul(dest, conf, table_vide):
         return 2
     n = 0
     for src in sorted((GABARIT / ".claude").rglob("*")):
-        if not src.is_file():
+        if not src.is_file() or ignorable(src):
             continue
         cible = dest / src.relative_to(GABARIT)
         cible.parent.mkdir(parents=True, exist_ok=True)
-        cible.write_text(substituer(src.read_text(encoding="utf-8"), table_vide),
-                         encoding="utf-8")
+        if src.suffix in SUFFIXES_TEXTE:
+            cible.write_text(substituer(src.read_text(encoding="utf-8"), table_vide),
+                             encoding="utf-8")
+        else:
+            shutil.copy2(src, cible)
         n += 1
     skill_lint = dest / ".claude" / "skills" / "lint"
     skill_lint.mkdir(parents=True, exist_ok=True)
@@ -453,7 +472,9 @@ def main():
             cible.mkdir(parents=True, exist_ok=True)
             continue
         cible.parent.mkdir(parents=True, exist_ok=True)
-        if src.suffix in (".md", ".yaml", ".json", ".txt"):
+        if ignorable(src):
+            continue
+        if src.suffix in SUFFIXES_TEXTE:
             cible.write_text(substituer(src.read_text(encoding="utf-8"), table),
                              encoding="utf-8")
         else:
@@ -514,7 +535,7 @@ def main():
     # Un controle sur `\{\{[A-Z_]+\}\}` echouerait sur la deuxieme famille.
     restes = []
     for f in sorted(dest.rglob("*")):
-        if not (f.is_file() and f.suffix in (".md", ".yaml", ".json", ".txt")):
+        if not (f.is_file() and f.suffix in SUFFIXES_TEXTE):
             continue
         contenu = f.read_text(encoding="utf-8", errors="replace")
         for cle in table:
@@ -590,7 +611,23 @@ def _autotest():
         assert (out / ".claude" / "skills" / "ingest" / "copie_structurant.py").is_file()
         assert "gh repo create cortex-acme --private" in r.stdout, r.stdout
         assert "/Users/" not in (out / "90 - Meta" / "Runbook - Nouveau Projet.md").read_text(encoding="utf-8")
-    print("OK scaffold.py : forme ~, settings.json, hooks, skills parle, bilan et ingest, depot prive propose")
+        assert "Bash(python3 .claude/skills/ingest/copie_structurant.py:*)" in s["permissions"]["allow"]
+
+        # Un `__pycache__` dans le gabarit ne doit ni faire sortir en 1 ni
+        # voyager chez le client : il apparait des qu'un script du gabarit a ete
+        # importe une fois, et `--outillage-seul` le lisait en UTF-8.
+        intrus = GABARIT / ".claude" / "hooks" / "__pycache__" / "stop.cpython-99.pyc"
+        intrus.parent.mkdir(parents=True, exist_ok=True)
+        intrus.write_bytes(b"\xcb\x0d\x0d\x0a\x00\xff\xfe")
+        try:
+            r = subprocess.run([sys.executable, __file__, "--config", str(exemple),
+                                "--out", str(out), "--outillage-seul"],
+                               capture_output=True, text=True)
+            assert r.returncode == 0, r.stderr[-400:]
+            assert not (out / ".claude" / "hooks" / "__pycache__").exists(), "le .pyc a voyage"
+        finally:
+            shutil.rmtree(intrus.parent)
+    print("OK scaffold.py : forme ~, settings.json, hooks, skills parle, bilan et ingest, .pyc ignore, depot prive propose")
     return 0
 
 
