@@ -67,7 +67,7 @@ Une cinquième opération est **transversale** : la clôture. Ce n'est pas une c
    │  99 - Inbox/      captures à trier                       │
    │                                                          │
    │  config.yaml      LE seul fichier qui varie par client   │
-   │  .claude/         4 skills + 2 sous-agents               │
+   │  .claude/         6 skills + 2 sous-agents               │
    └──────────────────────────┬───────────────────────────────┘
                               │
                               │ skill `cloture`, 3 à 10 fois par jour
@@ -75,7 +75,7 @@ Une cinquième opération est **transversale** : la clôture. Ce n'est pas une c
                               │  dans le vault sans validation)
                               ▼
                      ┌────────────────────┐
-                     │  VUE — hors v1     │
+                     │  VUE               │
                      │  à construire en   │
                      │  dernier, sur      │
                      │  données propres   │
@@ -91,7 +91,7 @@ Une cinquième opération est **transversale** : la clôture. Ce n'est pas une c
 | Base de projets → vault (champs miroir) | unidirectionnel | _à renseigner_ | _à renseigner_ |
 | Espace documentaire → vault | pointeur seul | frontmatter `dossier_local` | statique |
 | Dépôts de code → vault | pointeur seul | frontmatter `repo`, `claude_md` | statique |
-| Vault → vue | unidirectionnel | hors v1 | — |
+| Vault → vue | unidirectionnel | à construire en dernier | — |
 | Vault → vault commun (mode fédéré) | unidirectionnel, **généré** | passe d'agrégation | sur demande |
 | **Vault → tout substrat, sur un champ miroir** | **INTERDIT** | — | — |
 
