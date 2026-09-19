@@ -1,6 +1,10 @@
 # 06 : Vérification (lane G)
 
-Recette v2, rejouée le 2026-09-19 sur `fix/G` (branche issue de `main` après merge des six lanes). **Verte : 111 contrôles passés, 0 en échec, sortie 0.** Aucun contrôle n'est marqué `[--]` : tout ce qui est écrit ici est mesuré. Les trois contrôles qui ne peuvent pas l'être par un script, plus le quatrième ajouté le 2026-09-19, sont les contrôles manuels M1 à M4, en fin de fichier.
+Recette v2, rejouée le 2026-09-19 sur `fix/G` (branche issue de `main` après merge des six lanes).
+
+**111 contrôles passés, 2 en échec, sortie 1.** Les deux échecs sont le même défaut réel, trouvé en rejouant la recette ce jour-là et décidé par le chef d'orchestre : `scaffold.py --outillage-seul` (lane E) casse sur un fichier binaire du gabarit. Le contrôle est posé tout de suite plutôt que laissé en note ; la reprise `fix/E` porte le correctif, et la recette redevient verte au merge de E, avant celui de G. Tout le reste est vert, y compris les neuf autres critères.
+
+Aucun contrôle n'est marqué `[--]` : tout ce qui est écrit ici est mesuré. Les trois contrôles qui ne peuvent pas l'être par un script, plus le quatrième ajouté le 2026-09-19, sont les contrôles manuels M1 à M4, en fin de fichier.
 
 À rejouer après chaque modification du dépôt, puis en Phase I sur le tag.
 
@@ -17,7 +21,7 @@ Tableau C1 à C10 (contrôles passés / total)
   C1   Neuf étapes, maillon 0, notice                     §3 §5 §10    lane B       17/17 VERT
   C2   Trois profils, régime, section Notice              §2 §10       lane C       11/11 VERT
   C3   Inventaire outillé sur les fixtures                §4           lane D       16/16 VERT
-  C4   Couche vault : permissions, hooks, skills, agents  §9           lane E       14/14 VERT
+  C4   Couche vault : permissions, hooks, skills, agents  §9           lane E       14/16 ROUGE
   C5   Régimes pointeur et copie, structurant périmé      §2           lane E        4/4  VERT
   C6   Fédération sur trois exports fictifs               §6           lane F        9/9  VERT
   C7   Manifestes plugin                                  §11          lane chef     4/4  VERT
@@ -27,11 +31,11 @@ Tableau C1 à C10 (contrôles passés / total)
   M1   Installation vivante du plugin (marketplace add, install, details) manuel, sortie collée dans 06-verification.md
   M2   Sonde Cowork bureau : uvx markitdown --version dans le bac à sable manuel, sortie collée dans 06-verification.md
   M3   Maillon 0 et installation du plugin sur la machine Windows manuel, sortie collée dans 06-verification.md
-111 contrôle(s) passé(s), 0 en échec.
-Recette verte.
+111 contrôle(s) passé(s), 2 en échec.
+EN ÉCHEC : C4 un fichier binaire sous le gabarit .claude/ ne casse pas --outillage-seul, C4 le lint embarqué est réactualisé malgré le fichier binaire
 ```
 
-Sortie de `echo $?` : `0`.
+Sortie de `echo $?` : `1`, à cause des deux contrôles C4 ci-dessus et d'eux seuls.
 
 ## Tableau C1 à C10
 
@@ -40,7 +44,7 @@ Sortie de `echo $?` : `0`.
 | C1 Neuf étapes, maillon 0, notice | §3 §5 §10 | B | `etat.py` à neuf étapes 0 à 8 avec les artefacts du contrat ; maillon 0 lu depuis `poste.json` (fait si `notice_ouverte_le`) ; étape 8 `arbitre` « vault solo » en mode solo ; pivot avec `profil`, `regime`, `phrase_suivante`, `notice_ouverte_le` ; **atelier solo complet : 8 faites et 1 arbitrée, jamais 9/9 (§5 amendé)** ; **atelier `mode: federe` complet : 9 sur 9** ; page vierge à **8 pastilles « À faire »**, la neuvième étant l'étape courante rendue en tête hors tableau ; zéro URL ; `notice.py --no-open` ; `poste.py --dry-run` une ligne par outil absent | 17/17 vert |
 | C2 Trois profils, régime, section Notice | §2 §10 | C | `fixtures.py` en moins de 10 s ; `references/profils/{employe,dirigeant,societe}.md` ; trois configs de profil installables ; `profil: autre` et `regime: mixte` refusés avec la clé nommée ; neuf SKILL.md maillons avec la section Notice ; moins de 300 lignes | 11/11 vert |
 | C3 Inventaire outillé sur les fixtures | §4 | D | `scan.py` sur employé, dirigeant, société (camille) : sortie 0 en moins de 60 s ; format `cortex/inventaire` v2 ; `bornes` en entiers ; aucun champ `contenu` ; **forme `~` exigée seulement si les fixtures vivent sous le dossier personnel, sinon l'absolu est accepté et la sortie le dit (§4 amendé)** ; `export-notion-*.csv` signalé comme base déportée sur employé | 16/16 vert |
-| C4 Couche vault : permissions, hooks, skills, agents | §9 | E | `settings.json` : `additionalDirectories` = `collecte.racines`, `deny` Write et Edit par racine, aucun allow ouvert ; **hooks vérifiés comme scripts : `settings.json` appelle `.claude/hooks/session_start.py` et `stop.py`, les deux fichiers sont livrés, `session_start.py` contient `lint_sante.py` et `--bref`, `stop.py` contient « clôture », chacun sort en 0 sur `--autotest` (§9 amendé)** ; skills `parle` et `bilan` ; sous-agents `tools: Read, Grep, Glob` ; `{{DOSSIERS_PROJETS}}` en forme `~` | 14/14 vert |
+| C4 Couche vault : permissions, hooks, skills, agents | §9 | E | `settings.json` : `additionalDirectories` = `collecte.racines`, `deny` Write et Edit par racine, aucun allow ouvert ; **hooks vérifiés comme scripts : `settings.json` appelle `.claude/hooks/session_start.py` et `stop.py`, les deux fichiers sont livrés, `session_start.py` contient `lint_sante.py` et `--bref`, `stop.py` contient « clôture », chacun sort en 0 sur `--autotest` (§9 amendé)** ; skills `parle` et `bilan` ; sous-agents `tools: Read, Grep, Glob` ; `{{DOSSIERS_PROJETS}}` en forme `~` ; **un fichier binaire déposé sous `template/vault/.claude/` ne casse pas `--outillage-seul`, et le lint embarqué est quand même réactualisé** | 14/16 rouge, voir l'écart lane E |
 | C5 Régimes pointeur et copie, structurant périmé | §2 | E | lint 0 en pointeur ; en copie, note `50 - Ressources/Structurants/<type>/` avec `source_path`, `hash`, `copie_le` : contrôle « 10 lignes » suspendu, lint 0 ; source modifiée, `structurant_perime` levé | 4/4 vert |
 | C6 Fédération sur trois exports fictifs | §6 | F | trois `_export/<slug>/` construits selon §6 depuis les noms de `fixtures.societe` ; `federation.yaml` lisible ; `federe.py` sort 0 ; deux générations identiques hors `genere_le` ; Centre, README « ne pas éditer », `.cortex-genere` ; projets préfixés du slug ; acteur commun fusionné `source_vault` multiple ; domaine fusionné ; `visibilite: prive` refusée et absente | 9/9 vert |
 | C7 Manifestes plugin | §11 | chef | `plugin.json` (name cortex, version, description) ; `marketplace.json` (name cortex-kit, un plugin, `source: ./`) ; un SKILL.md par dossier de `skills/` (10) avec `name` = dossier et `description` ; `fabricant` hors plugin | 4/4 vert |
@@ -130,6 +134,14 @@ C4. Couche vault (§9 ; lane E) : défaut plausible : un agent qui peut écrire 
   [ok] les skills de agents.skills sont livrées, parle et bilan comprises
   [ok] les sous-agents sont en lecture seule (tools : Read, Grep, Glob)
   [ok] {{DOSSIERS_PROJETS}} est substitué en forme ~ (défaut n°7 v1)
+  [XX] un fichier binaire sous le gabarit .claude/ ne casse pas --outillage-seul : code 1, ^^^
+  File "/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 788, in read_text
+    return f.read()
+           ~~~~~~^^
+  File "<frozen codecs>", line 325, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 0: invalid start byte
+
+  [XX] le lint embarqué est réactualisé malgré le fichier binaire
 ```
 
 ### C5 Régimes pointeur et copie, structurant périmé
@@ -208,7 +220,7 @@ OK — /tmp/claude-501/cortex-recette-brgkw_i3/cortex-temoin.zip : 10 dossiers (
 python3 skills/cortex-4-installation/recette/parcours_blanc.py; echo $?
 ```
 
-Sortie du 2026-09-19 : `111 contrôle(s) passé(s), 0 en échec.` puis `Recette verte.` ; `echo $?` → `0`.
+Sortie du 2026-09-19 : `111 contrôle(s) passé(s), 2 en échec.` ; `echo $?` → `1`. Les deux échecs sont les deux contrôles C4 du défaut `outillage_seul` de la lane E, décrits dans l'écart ouvert plus bas. Le zéro est atteint au merge de `fix/E`, avant celui de G : aucune autre correction n'est attendue.
 
 ### Fixtures déterministes
 
@@ -344,11 +356,11 @@ Tous les écarts relevés le 2026-09-19 avant merge ont été portés par leur l
 | `skills/cortex-4-installation/scripts/etat.py` | B | `main()` imprimait `/7` en dur | Fermé : `/{len(ETAPES)}` |
 | `fabricant/SKILL.md:72-77`, `PROVENANCE.md` | B | Marques du fabricant en clair | Fermé : la section renvoie à la liste hors dépôt, sans marque en clair |
 
-Un écart ouvert, trouvé en rejouant la recette le 2026-09-19 :
+Un écart ouvert, trouvé en rejouant la recette le 2026-09-19, et porté par deux contrôles C4 rouges jusqu'au merge de `fix/E` :
 
 | Fichier | Lane | Constat | Valeur attendue |
 |---|---|---|---|
-| `skills/cortex-4-installation/scripts/scaffold.py:331` | E | `outillage_seul()` parcourt `template/vault/.claude/` en `rglob("*")` et lit chaque fichier par `src.read_text(encoding="utf-8")`. Tout fichier non texte sous cette arborescence fait sortir `scaffold.py` en 1 sur une `UnicodeDecodeError`, sans message compréhensible. Le cas se produit tout seul : un `python3 -m py_compile` sur les hooks du gabarit dépose un `__pycache__`, et le rafraîchissement d'outillage d'un vault déjà livré casse. Reproduction : installer un vault, `python3 -m py_compile skills/cortex-4-installation/template/vault/.claude/hooks/stop.py`, puis `scaffold.py --config <cfg> --out <vault> --outillage-seul` → `UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 10`. | Le même fichier a déjà la bonne forme à l'installation (`:438`) : il y filtre par suffixe (`.md`, `.yaml`, `.json`, `.txt`) et copie le reste tel quel. Reprendre ce filtre dans `outillage_seul()`. Le contrôle de recette à ajouter une fois la lane E patchée : planter un `.pyc` sous `template/vault/.claude/`, lancer `--outillage-seul`, exiger la sortie 0 et le lint embarqué réactualisé. |
+| `skills/cortex-4-installation/scripts/scaffold.py:331` | E | `outillage_seul()` parcourt `template/vault/.claude/` en `rglob("*")` et lit chaque fichier par `src.read_text(encoding="utf-8")`. Tout fichier non texte sous cette arborescence fait sortir `scaffold.py` en 1 sur une `UnicodeDecodeError`, sans message compréhensible. Le cas se produit tout seul : un `python3 -m py_compile` sur les hooks du gabarit dépose un `__pycache__`, et le rafraîchissement d'outillage d'un vault déjà livré casse. Reproduction : installer un vault, `python3 -m py_compile skills/cortex-4-installation/template/vault/.claude/hooks/stop.py`, puis `scaffold.py --config <cfg> --out <vault> --outillage-seul` → `UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 10`. | Le même fichier a déjà la bonne forme à l'installation (`:438`) : il y filtre par suffixe (`.md`, `.yaml`, `.json`, `.txt`) et copie le reste tel quel. Reprendre ce filtre dans `outillage_seul()`. **Décision du chef d'orchestre du 2026-09-19 : le contrôle est posé dans la recette sans attendre (C4, deux assertions), la reprise `fix/E` porte le correctif, la recette repasse à 0 au merge de E, avant celui de G.** Le contrôle plante lui-même un fichier binaire sous `template/vault/.claude/hooks/__pycache__/`, lance `--outillage-seul`, exige la sortie 0 et le lint embarqué réactualisé, puis retire le fichier planté dans un `finally` : le gabarit du dépôt ressort propre même quand la recette échoue. |
 
 Une observation, sans conséquence sur la recette :
 

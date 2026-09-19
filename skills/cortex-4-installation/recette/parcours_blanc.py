@@ -46,6 +46,7 @@ SOUS_HOME = FIXTURES.is_relative_to(Path.home())
 POSTE = SKILLS / "cortex-0-poste" / "scripts" / "poste.py"
 SCAN = SKILLS / "cortex-2-inventaire" / "scripts" / "scan.py"
 FEDERE = SKILLS / "cortex-8-federation" / "scripts" / "federe.py"
+GABARIT = RACINE / "template" / "vault"
 
 sys.path.insert(0, str(SCRIPTS))
 import cortex_config  # noqa: E402
@@ -758,6 +759,26 @@ def c4_couche_vault(tmp, configs):
     texte = runbook.read_text(encoding="utf-8") if runbook.is_file() else ""
     verifie("{{DOSSIERS_PROJETS}} est substitué en forme ~ (défaut n°7 v1)",
             "~/Documents/Affaires" in texte and "/Users/" not in texte)
+
+    # Defaut REEL paye le 2026-09-19 : `outillage_seul()` lit chaque fichier du
+    # gabarit `.claude/` en UTF-8. Un `python3 -m py_compile` sur les hooks du
+    # gabarit depose un `__pycache__`, et le rafraichissement d'outillage d'un
+    # vault deja livre sort en 1 sur une UnicodeDecodeError illisible. Le mode
+    # installation, lui, filtre deja par suffixe : c'est la forme a reprendre.
+    pycache = GABARIT / ".claude" / "hooks" / "__pycache__"
+    temoin = pycache / "stop.cpython-000.pyc"
+    embarque = vault / ".claude" / "skills" / "lint" / "lint_sante.py"
+    try:
+        pycache.mkdir(parents=True, exist_ok=True)
+        temoin.write_bytes(b"\xae\x0d\x0d\x0a\x00binaire, pas de l'UTF-8\x00\xff")
+        embarque.write_text("# version perimee\n", encoding="utf-8")
+        r = scaffold("--config", str(cfg), "--out", str(vault), "--outillage-seul")
+        verifie("un fichier binaire sous le gabarit .claude/ ne casse pas --outillage-seul",
+                r.returncode == 0, f"code {r.returncode}, {r.stderr[-300:]}")
+        verifie("le lint embarqué est réactualisé malgré le fichier binaire",
+                embarque.read_text(encoding="utf-8") == (SCRIPTS / "lint_sante.py").read_text(encoding="utf-8"))
+    finally:
+        shutil.rmtree(pycache, ignore_errors=True)
     return vault
 
 
