@@ -19,6 +19,8 @@ Il **ne rapatrie aucun document**. Il crée des notes qui pointent.
 2. `_cortex/01-inventaire.json` et `02-ontologie.md` en `statut: valide`.
 3. **Le vault est vide de contenu** — hors doctrine et templates. Si des notes ont été écrites à la main entre-temps, le signaler : elles seront traitées comme des conflits à arbitrer, pas écrasées.
 
+**Lire la clé `donnees.regime` du `config.yaml`** : `pointeur` (une base déportée porte le canon, rien n'est copié, comportement v1 à l'identique) ou `copie` (aucune base déportée : les documents structurants validés un par un sont copiés, §2 bis). Le régime a été fixé au maillon 1 ; ce maillon ne le change pas.
+
 **Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, le fond ne change pas : trier, pointer, ne jamais recopier. Changent l'adresse des arbitrages — ce qui déborde les plafonds se présente à la personne elle-même, dans ses mots : « voilà ce que je propose d'écarter, et pourquoi » — et le message de clôture, qui propose la suite au lieu de rendre la main.
 
 ## 1. Trier avant d'écrire
@@ -50,6 +52,29 @@ Depuis les templates du vault. Chaque note porte :
 Une note sans lien sortant est orpheline, donc introuvable, donc inutile — le lint la refuse.
 
 Le plafond de résumé est un contrôle dur. La source reste à son adresse : la recopier crée une version qui divergera, et un vault qu'on ne peut plus parcourir.
+
+## 2 bis. Régime copie : les structurants, par lots de quatre
+
+En régime `copie`, le vault garde une copie markdown des documents **structurants** : ceux qui décrivent comment l'organisation tourne, et que personne ne retrouvera s'ils restent dans un dossier parmi mille. Les types éligibles sont ceux de `donnees.structurants` : `organigramme`, `process`, `fiche_de_poste`, `contrat`, `projet`, `acteur`, `tenants_aboutissants`, `fil_structurant`. Rien d'autre.
+
+**Candidats.** Les `signal_ontologique.structurant_candidat` de `01-inventaire.json`, plus ce que le cadrage a nommé. Les classer par type, puis par importance déclarée.
+
+**Validation par lots de quatre.** Une question par lot (AskUserQuestion, choix multiple) : « Ces quatre documents décrivent-ils comment vous travaillez ? Cochez ceux qu'on garde. » Chaque proposition nomme le fichier, son type, le domaine de rattachement proposé. Lot suivant seulement après réponse. Aucune copie sans un « oui » explicite sur le document lui-même.
+
+**Plafond.** `sante.max_structurants`, quarante par défaut. Atteint, on s'arrête et on le dit : au-delà, le vault devient un second disque, et un second disque ne se consulte pas plus que le premier. Ce qui reste se déclare écarté, avec son motif.
+
+**La copie**, par le script, jamais à la main :
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/copie_structurant.py" --vault <vault> \
+    --source "~/Documents/.../PROCESS-affaire.md" --type process --domaine "Ops"
+```
+
+Il convertit le document (`uvx markitdown` pour les formats bureautiques, lecture directe pour le texte), écrit `50 - Ressources/Structurants/<type>/<nom>.md` avec le frontmatter du contrat (`type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` sha256 de la source, `copie_le`) et un marqueur de provenance. Rejoué, il ne duplique pas : même hash, rien ; source changée, copie rafraîchie ; note écrite à la main, refus. Le lint suspend le plafond de lignes sur ce dossier et lève `structurant_perime` dès que la source diverge de la copie.
+
+**Les fils de messagerie** (`fil_structurant`) n'entrent **jamais en corps de mail**. Un fil validé se copie en **résumé anonymisé** : objet, période, nombre de messages, participants réduits à leur rôle ou à leur domaine (« le cabinet comptable », « un fournisseur »), dix lignes de substance. Le résumé passe par `--texte <fichier>` sans `--source`. Le même fil s'inscrit dans `mail.fils_structurants` de `01-inventaire.json` : `{fil_id, objet, participants_anonymises, periode, messages, resume}`.
+
+**En régime `pointeur`**, cette section ne s'applique pas : le dossier `Structurants/` reste vide, et une demande de copie se refuse en nommant le régime.
 
 ## 3. Écriture idempotente — le diagnostic en trois branches
 
@@ -91,6 +116,8 @@ controles:
   tous_pointeurs_canoniques: passe
   resumes_sous_plafond: passe
   ecartes_declares: passe        # ou `arbitre` avec motif
+  structurants_valides_un_par_un: passe   # regime copie ; `arbitre` motif « regime pointeur » sinon
+  aucun_corps_de_mail_copie: passe
 ```
 
 ## Message de clôture
@@ -99,6 +126,7 @@ controles:
 Vault peuplé pour <organisation>.
 
 - <N> projets, <M> acteurs, <K> ressources
+- structurants copiés : <N> sur <plafond> (régime copie), ou « aucun, régime pointeur »
 - écartés : <N> entrées, motifs dans 04-ingest.md
 - lint : vert
 - conflits arbitrés : <N ou aucun>
@@ -146,6 +174,8 @@ Sur accord, lancer `cortex-6-agents-metier` — après les trois fiches vérifi�
 - **Jamais écraser une note sans marqueur de provenance.**
 - **Jamais tronquer en silence.** Ce qui est écarté se déclare avec son motif.
 - **Jamais de personne physique** dans `40 - Acteurs`.
+- **Jamais une copie en régime pointeur**, jamais un type hors `donnees.structurants`, jamais au-delà de `sante.max_structurants`.
+- **Jamais un corps de mail** dans le vault, quel que soit le régime. Un fil structurant entre en résumé anonymisé, ou n'entre pas.
 - **Jamais annoncer une écriture réussie sans l'avoir vérifiée.** Si une écriture échoue, le dire — un rapport de succès non vérifié empêche de savoir qu'il y a quelque chose à rattraper.
 
 ## Notice

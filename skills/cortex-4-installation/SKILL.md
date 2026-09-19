@@ -1,6 +1,6 @@
 ---
 name: cortex-4-installation
-description: Installe un vault Cortex — un second cerveau structuré — chez une organisation, à partir d'un fichier de configuration. Crée l'arborescence, la doctrine paramétrée, les templates, et la couche d'agents (4 skills de maintenance, 2 sous-agents). Déterministe et rejouable : détruire et relancer est un geste normal. Déclencher quand l'utilisateur dit "installe le vault", "instancie Cortex", "crée le second cerveau de X", "maillon 4", ou dispose d'un config.yaml prêt. Ne PAS utiliser pour cadrer (cortex-1), inventorier (cortex-2), décider de l'ontologie (cortex-3) ni pour peupler le vault (cortex-5).
+description: Installe un vault Cortex — un second cerveau structuré — chez une organisation, à partir d'un fichier de configuration. Crée l'arborescence, la doctrine paramétrée, les templates, la couche d'agents (6 skills, 2 sous-agents, 2 hooks), les permissions en lecture seule sur les dossiers de travail, et propose un dépôt git privé sans l'imposer. Déterministe et rejouable : détruire et relancer est un geste normal. Déclencher quand l'utilisateur dit "installe le vault", "instancie Cortex", "crée le second cerveau de X", "maillon 4", ou dispose d'un config.yaml prêt. Ne PAS utiliser pour cadrer (cortex-1), inventorier (cortex-2), décider de l'ontologie (cortex-3) ni pour peupler le vault (cortex-5).
 ---
 
 # cortex-4-installation — matérialiser le vault
@@ -48,7 +48,27 @@ Ce qui relève d'un autre maillon : le choix des domaines (`cortex-3`), la colle
 python3 scripts/scaffold.py --config <config.yaml> --out "<racine du vault client>"
 ```
 
-Il crée l'arborescence, substitue les moustaches, **instancie une note par domaine dans `10 - Domaines/`**, génère `graph.json` depuis les domaines, écrit le miroir `90 - Meta/Configuration.md`, copie les scripts de maintenance dans `.claude/skills/lint/`, initialise git, et **échoue si une moustache subsiste** ou si la config est incomplète.
+Il crée l'arborescence, substitue les moustaches, **instancie une note par domaine dans `10 - Domaines/`**, génère `graph.json` depuis les domaines, écrit le miroir `90 - Meta/Configuration.md`, copie les scripts de maintenance dans `.claude/skills/lint/`, génère `.claude/settings.json`, initialise git, propose le dépôt privé, et **échoue si une moustache subsiste** ou si la config est incomplète. Tout chemin du dossier personnel ressort en forme `~`.
+
+### Les permissions : lire les dossiers de travail, n'y écrire jamais
+
+`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et deux règles `deny`, `Write(<racine>/**)` et `Edit(<racine>/**)`. La liste `allow` ne porte que de la lecture : `Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
+
+Une config v1 sans `collecte.racines` retombe sur `chemins.dossiers_projets`, la seule racine qu'elle connaît.
+
+### Les hooks
+
+Deux, dans le même `settings.json`, en scripts Python du vault (`.claude/hooks/`) : `SessionStart` lance le lint en bref et rappelle la clôture si la dernière date de plus de `sante.jours_sans_cloture_alerte` jours, puis propose `bilan` à J+7 et J+30 de la remise ; `Stop` rappelle la clôture quand `git status` n'est pas vide. Un rappel, jamais un blocage.
+
+### Le dépôt privé, proposé, jamais imposé
+
+Après `git init`, le script affiche la commande et s'arrête là :
+
+```bash
+cd "<vault>" && gh repo create <slug> --private --source . --push
+```
+
+Poser la question à la personne (AskUserQuestion) : « Voulez-vous une sauvegarde privée de votre second cerveau sur votre compte GitHub ? » Options : oui ; non, je reste sur mon poste. Sur oui seulement, lancer la commande ci-dessus, ou relancer le scaffold avec `--depot-prive`. Un refus est une réponse complète : le vault versionné localement garde déjà l'annulation et l'historique. Prérequis d'un oui : `gh auth login` fait au maillon 0.
 
 Deux choses qu'il ne fait pas, et c'est délibéré : il ne comble aucune valeur manquante, et il **ne copie pas `marque.mentions_interdites` dans le vault du client**. Cette liste porte les autres clients du consultant ; la copier ferait du fichier censé les interdire celui qui les transporte. Elle reste dans l'atelier, où la recette du maillon 7 la lit.
 
@@ -68,7 +88,7 @@ Il réécrit `.claude/` (skills, sous-agents, scripts de lint) et ne touche à r
 
 - **La doctrine** — `Conventions`, `Architecture Mémoire`, `Architecture - Vue d'ensemble`, les runbooks, l'ingest, l'amorçage. Paramétrée depuis la config, sans aucun enum en dur.
 - **Sept templates** de notes et de CLAUDE.md.
-- **Le kit d'agents** : les skills `cloture`, `nouveau-projet`, `ingest`, `lint` ; les sous-agents `chercheur-vault` et `auditeur-ontologie`.
+- **Le kit d'agents** : les skills `cloture` (avec l'export vers le commun), `nouveau-projet`, `ingest`, `lint`, `parle`, `bilan` ; les sous-agents `chercheur-vault` et `auditeur-ontologie` ; les hooks `SessionStart` et `Stop` ; `settings.json` en lecture seule sur les racines.
 - **Dix contrats de dossier**, un `_README` par dossier numéroté.
 - **Zéro plugin requis.** Les requêtes Dataview existent, regroupées dans une note optionnelle qu'aucune autre ne référence : si le client l'installe elles marchent, sinon rien ne casse.
 
@@ -83,7 +103,10 @@ Ce maillon ne mérite pas de validation fine : régénérer coûte une seconde. 
 ```bash
 grep -r "{{" "<vault>" --include='*.md' | grep -v 'Templates/'      # attendu : vide
 python3 "<vault>/.claude/skills/lint/lint_sante.py" --vault "<vault>"  # attendu : exit 0
+grep -c '"deny"' "<vault>/.claude/settings.json"                       # attendu : 1
 ```
+
+Le contrôle vivant des permissions, depuis le vault : `claude -p "compte les fichiers de <racine>" --output-format json` rend `permission_denials` vide ; `claude -p "écris un fichier x dans <racine>/y" --output-format json` rend un refus. Le premier prouve la lecture, le second prouve le refus d'écriture.
 
 Le second contrôle doit être lancé **depuis le vault du client**, pas depuis ce skill : c'est ce qui prouve qu'il est autonome et ne dépend de rien sur la machine du consultant.
 
@@ -92,9 +115,11 @@ Le second contrôle doit être lancé **depuis le vault du client**, pas depuis 
 ```
 Le vault de <organisation> est installé.
 
-- <N> notes, <M> domaines, mode <solo|federe>
+- <N> notes, <M> domaines, mode <solo|federe>, régime <pointeur|copie>
 - lint : vert
-- couche d'agents : 4 skills, 2 sous-agents, 0 hook
+- couche d'agents : 6 skills, 2 sous-agents, 2 hooks
+- <K> dossier(s) de travail en lecture seule
+- dépôt privé : <créé | refusé, le vault reste local>
 
 Pour toi :
 1. Ouvre le vault et parcours [[Centre]].
@@ -113,6 +138,8 @@ Votre second cerveau est installé.
 - <N> notes de départ, <M> familles, contrôle de santé : vert
 - rien de ce que vous avez déclaré n'y a été copié : l'outil pointe
   vers vos affaires, il ne les stocke pas
+- vos dossiers de travail sont lus, jamais modifiés : c'est verrouillé
+- sauvegarde privée en ligne : <faite | non, vous restez sur ce poste>
 
 La suite le remplit : chaque projet, chaque interlocuteur repéré à
 l'inventaire devient une fiche qui pointe vers le vrai dossier.
@@ -129,6 +156,8 @@ Sur accord, lancer `cortex-5-ingest`.
 - **Ne jamais modifier le gabarit pour un client.** Ce qui varie va dans `config.yaml`. Un gabarit forké par client cesse d'être un produit au deuxième client.
 - **Ne jamais installer sur une ontologie non validée.**
 - **Ne jamais laisser une moustache** non substituée : le client lirait `{{ORGANISATION}}` dans sa propre doctrine.
+- **Ne jamais imposer le dépôt distant**, ni lancer `gh repo create` sans un oui explicite.
+- **Ne jamais assouplir `settings.json`** pour un client : une racine en écriture est une racine que l'agent peut abîmer.
 - **Ne jamais copier `scaffold.py` chez le client.** C'est un outil d'installation ; le client n'a aucune raison de réinstancier son vault, et lui en donner le moyen l'expose à l'écraser.
 
 ## Notice
