@@ -292,19 +292,44 @@ def valider_installable(conf):
     Renvoie une liste de messages ; vide = installable.
     """
     erreurs = []
+
+    def mapping(cle):
+        """Le bloc `cle` en dict, ou {} et un message qui NOMME la clé.
+
+        Un `config.yaml` parseable mais mal formé (`donnees: copie`, `substrats: x`)
+        ne doit pas sortir un traceback : le destinataire n'a pas de compétence
+        technique, et il ne peut corriger que ce qu'on lui nomme.
+        """
+        v = conf.get(cle)
+        if v is None or isinstance(v, dict):
+            return v or {}
+        erreurs.append(
+            f"{cle}: attendu un bloc de clés indentées, lu {v!r}. "
+            f"Écrire `{cle}:` seul sur sa ligne, puis les clés en dessous, "
+            "décalées de deux espaces.")
+        return {}
+
     domaines = conf.get("domaines") or []
-    plafond = (conf.get("collecte") or {}).get("plafond_domaines", 6)
+    if not isinstance(domaines, list) or any(not isinstance(d, dict) for d in domaines):
+        erreurs.append(
+            f"domaines: attendu une liste de `- {{ code: …, nom: … }}`, lu {domaines!r}. "
+            "Une ligne par domaine, chacune commençant par un tiret.")
+        domaines = []
+    # Les trois blocs sont relus ici, une fois : un `substrats` mal formé se
+    # signale même quand le régime ne le fait pas lire.
+    plafond = mapping("collecte").get("plafond_domaines", 6)
+    donnees, substrats = mapping("donnees"), mapping("substrats")
 
     if not domaines:
         erreurs.append(
-            "domaines: aucun domaine declare. Ils se decident au maillon 3, sur "
-            "preuve chiffree tiree de l'inventaire. Installer sans eux produit un "
-            "vault ou rien ne se classe.")
+            "domaines: aucun domaine déclaré. Ils se décident au maillon 3, sur "
+            "preuve chiffrée tirée de l'inventaire. Installer sans eux produit un "
+            "vault où rien ne se classe.")
     elif len(domaines) > plafond:
         erreurs.append(
-            f"domaines: {len(domaines)} declares, plafond {plafond}. Au-dela, chaque "
-            "note hesite entre deux rattachements. C'est un constat de "
-            "sous-segmentation a remonter au client, pas une case a ajouter.")
+            f"domaines: {len(domaines)} déclarés, plafond {plafond}. Au-delà, chaque "
+            "note hésite entre deux rattachements. C'est un constat de "
+            "sous-segmentation à remonter au client, pas une case à ajouter.")
 
     codes = []
     for i, d in enumerate(domaines):
@@ -314,51 +339,50 @@ def valider_installable(conf):
             continue
         if not code.islower() or not code.isalpha() or not 2 <= len(code) <= 4:
             erreurs.append(
-                f"domaines[{i}].code = {code!r} : 2 a 4 lettres minuscules. Il pilote "
-                "le tag #d/ et le prefixe de fiche, il ne se corrige plus apres coup.")
+                f"domaines[{i}].code = {code!r} : 2 à 4 lettres minuscules. Il pilote "
+                "le tag #d/ et le préfixe de fiche, il ne se corrige plus après coup.")
         codes.append(code)
     if len(codes) != len(set(codes)):
-        erreurs.append("domaines: deux domaines partagent le meme `code`.")
+        erreurs.append("domaines: deux domaines partagent le même `code`.")
 
     if not conf.get("cycles"):
         erreurs.append(
-            "cycles: aucun cycle declare. `phase` n'aurait alors aucun vocabulaire "
-            "ferme, et le controle qui la verifie ne pourrait plus rien refuser.")
+            "cycles: aucun cycle déclaré. `phase` n'aurait alors aucun vocabulaire "
+            "fermé, et le contrôle qui la vérifie ne pourrait plus rien refuser.")
 
     if conduite(conf) not in ("solo", "consultant"):
         erreurs.append(
             f"conduite: {conf.get('conduite')!r} n'est ni 'solo' ni 'consultant'. "
-            "Absente, la cle vaut 'consultant'. Ne pas confondre avec `mode`, "
-            "qui porte la federation du vault (solo/federe).")
+            "Absente, la clé vaut 'consultant'. Ne pas confondre avec `mode`, "
+            "qui porte la fédération du vault (solo/federe).")
 
     communs = set(conf.get("vehicules") or []) & set(conf.get("payeurs") or [])
     if communs:
         erreurs.append(f"vehicules et payeurs partagent : {sorted(communs)}. "
-                       "Qui vend et qui encaisse sont deux axes, jamais la meme valeur.")
+                       "Qui vend et qui encaisse sont deux axes, jamais la même valeur.")
 
-    # Cles v2 (contrat cortex-v2 §2). Absentes, elles sont tolerees : une config
-    # anterieure a la v2 n'en porte aucune. Presentes, elles sont fermees.
+    # Clés v2 (contrat cortex-v2 §2). Absentes, elles sont tolérées : une config
+    # antérieure à la v2 n'en porte aucune. Présentes, elles sont fermées.
     profil = conf.get("profil")
     if profil is not None and profil not in PROFILS:
         erreurs.append(
             f"profil: {profil!r} n'est pas dans {sorted(PROFILS)}. Il se pose au "
             "maillon 1 par une question en langage ordinaire et pilote racines, "
-            "plafonds et domaines de depart.")
+            "plafonds et domaines de départ.")
     elif profil == "societe" and conf.get("mode") != "federe":
         erreurs.append(
             f"profil: 'societe' impose mode: federe (lu : {conf.get('mode')!r}). "
-            "Chaque redacteur suit la chaine seul, et un commun est genere.")
+            "Chaque rédacteur suit la chaîne seul, et un commun est généré.")
 
-    donnees = conf.get("donnees") or {}
     regime = donnees.get("regime")
     if regime is not None and regime not in REGIMES:
         erreurs.append(
             f"donnees.regime: {regime!r} n'est pas dans {sorted(REGIMES)}. "
-            "pointeur des qu'une base deportee existe, copie sinon ; jamais les deux.")
-    elif regime == "copie" and (conf.get("substrats") or {}).get("base_projets"):
+            "pointeur dès qu'une base déportée existe, copie sinon ; jamais les deux.")
+    elif regime == "copie" and substrats.get("base_projets"):
         erreurs.append(
-            "donnees.regime: 'copie' alors que substrats.base_projets est renseigne. "
-            "Une base deportee impose le regime pointeur.")
+            "donnees.regime: 'copie' alors que substrats.base_projets est renseigné. "
+            "Une base déportée impose le régime pointeur.")
     return erreurs
 
 
@@ -441,6 +465,15 @@ def _autotest():
         assert any(x.startswith(cle + ":") for x in e), (cle, e)
     assert not valider_installable(dict(conf, profil="societe", mode="federe"))
 
+    # Un bloc mal formé nomme sa clé au lieu de sortir un traceback : le
+    # destinataire ne peut corriger que ce qu'on lui nomme.
+    for cle, mauvais in (("donnees", dict(conf, donnees="copie")),
+                         ("substrats", dict(conf, substrats="x")),
+                         ("collecte", dict(conf, collecte="3")),
+                         ("domaines", dict(conf, domaines="aff"))):
+        e = valider_installable(mauvais)
+        assert any(x.startswith(cle + ":") for x in e), (cle, e)
+
     # Le refus explicite du mapping à 2 niveaux fait partie du contrat.
     try:
         charger_texte("a:\n  b:\n    c: 1\n")
@@ -457,13 +490,26 @@ def _autotest():
     return 0
 
 
+USAGE = """cortex_config.py — chargeur de config.yaml pour Cortex.
+
+    python3 cortex_config.py <chemin/config.yaml>   charge et imprime les clés lues
+    python3 cortex_config.py --autotest             rejoue le gabarit config.example.yaml
+    python3 cortex_config.py --help                 ce message
+
+Sans argument : --autotest."""
+
+
 def main():
-    if len(sys.argv) > 1:
-        conf = charger(sys.argv[1])
-        for cle in sorted(conf):
-            print(f"{cle}: {conf[cle]!r}")
+    args = sys.argv[1:]
+    if args and args[0] in ("-h", "--help"):
+        print(USAGE)
         return 0
-    return _autotest()
+    if not args or args[0] == "--autotest":
+        return _autotest()
+    conf = charger(args[0])
+    for cle in sorted(conf):
+        print(f"{cle}: {conf[cle]!r}")
+    return 0
 
 
 if __name__ == "__main__":

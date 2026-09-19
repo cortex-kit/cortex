@@ -7,7 +7,7 @@ description: Maillon 1 de la chaîne Cortex, le cadrage. Pose le profil (employ�
 
 Maillon 1, après l'équipement du poste. Il consomme le temps du client, qui est la ressource la plus rare de toute la chaîne. Tout ce qui est mal cadré ici se paie six fois plus loin, quand le vault est déjà installé et peuplé.
 
-Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `references/secteurs.md`. Profils : `references/profils/{employe,dirigeant,societe}.md`. Rejeu sans personne, pour la recette : `scripts/rejeu_profil.py --profil <profil> --racine <dossier> --atelier <_cortex/>` (écrit config.yaml, 00-cadrage.md et la section « Ce que l'inventaire a révélé » de 02-ontologie.md depuis un ECARTS.json).
+Doctrine et vocabulaire : `references/doctrine.md`. Familles sectorielles : `references/secteurs.md`. Profils : `references/profils/{employe,dirigeant,societe}.md`. Rejeu sans personne : `cortex-4-installation/recette/rejeu_profil.py --profil <profil> --racine <dossier> --atelier <_cortex/>`, outil de recette, hors des maillons livrés (écrit config.yaml, 00-cadrage.md et la section « Ce que l'inventaire a révélé » de 02-ontologie.md depuis un ECARTS.json ; le cadrage rejoué sort en `statut: brouillon`, les contrôles qui demandent une personne restent à `arbitre`).
 
 ## La chaîne complète
 
@@ -41,7 +41,7 @@ Rien n'est requis. C'est le point d'entrée. Si un compte rendu de rendez-vous o
 
 > « Installez-vous cet outil pour vous-même, ou pour quelqu'un d'autre ? »
 
-En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant` — tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo` — la personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les maillons suivants.
+En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant`, tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo`. La personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les maillons suivants.
 
 **Le profil se pose juste après, une seule fois.** Si `config.yaml` porte déjà `profil`, ne pas la reposer. Sinon, par AskUserQuestion, options fermées plus « autre », sans jamais prononcer « profil » ni les trois noms de l'enum :
 
@@ -199,7 +199,7 @@ accessible, outil qui s'ouvre, compte actif.
 On enchaîne ?
 ```
 
-Sur accord, lancer `cortex-2-inventaire`. Si un accès manque — un mot de passe à retrouver, un compte à réactiver — s'arrêter et dire ce qui manque, et que l'inventaire démarrera quand ce sera réglé. Ne jamais enchaîner par-dessus une condition d'entrée non remplie.
+Si un accès manque (un mot de passe à retrouver, un compte à réactiver), s'arrêter et dire ce qui manque, et que l'inventaire démarrera quand ce sera réglé. Ne jamais enchaîner par-dessus une condition d'entrée non remplie.
 
 ## Interdits
 

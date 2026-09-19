@@ -61,6 +61,17 @@ Des hypothèses à confronter à l'inventaire au maillon 3, jamais des décision
 
 Une menuiserie d'agencement fictive, sur laquelle la recette rejoue ce profil, montre le cas typique : les affaires captent tous les projets datés, tandis que le bureau d'études, les achats et l'atelier portent des acteurs, des ressources et des décisions sans porter un seul projet. Compter en notes, pas en projets (`secteurs.md` §Seuils).
 
+## Le cycle de départ
+
+Même statut que les domaines : une hypothèse pour le maillon 3, jamais une décision du maillon 1.
+
+| Cycle | Phase | Progression |
+|---|---|---|
+| affaire | Devis | 10 |
+| affaire | Signée | 30 |
+| affaire | En cours | 60 |
+| affaire | Réceptionnée | 100 |
+
 ## Les pièges
 
 - **Le découpage par organigramme.** Le dirigeant propose « commercial, production, administratif » parce que c'est sa carte mentale. Un chantier traverse les trois. Suivre la nature du travail.
@@ -87,14 +98,7 @@ collecte:
   plafond_projets: 60
   plafond_acteurs: 80
   plafond_domaines: 6
-domaines:
-  - { code: aff, nom: "Affaires", couleur: "#1c42da" }
-  - { code: cli, nom: "Clients et marché", couleur: "#c9a227" }
-  - { code: fou, nom: "Fournisseurs et partenaires", couleur: "#0f8a6a" }
-  - { code: adm, nom: "Administration et finance", couleur: "#8a3c0f" }
-cycles:
-  - { cycle: affaire, phase: "Devis", progression: 10 }
-  - { cycle: affaire, phase: "Signée", progression: 30 }
-  - { cycle: affaire, phase: "En cours", progression: 60 }
-  - { cycle: affaire, phase: "Réceptionnée", progression: 100 }
 ```
+
+Ce bloc ne porte ni `domaines` ni `cycles` : ils se décident au maillon 3, sur preuve tirée de l'inventaire. `config.yaml` sort du maillon 1 avec `domaines: []` et `cycles: []`, et `valider_installable` signale alors leur absence, ce qui est attendu (`04-contrat.md` §2).
+

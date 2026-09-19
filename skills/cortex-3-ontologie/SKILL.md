@@ -5,7 +5,7 @@ description: Maillon 3 de la chaîne Cortex, et le seul qui juge. Mène d'abord 
 
 # cortex-3-ontologie — le seul maillon qui juge
 
-Troisième des neuf. Tous les autres exécutent ; celui-ci arbitre. C'est aussi le seul dont la sortie se fait **signer** avant de passer à la suite.
+Quatrième des neuf, le maillon 0 compris. Tous les autres exécutent ; celui-ci arbitre. C'est aussi le seul dont la sortie se fait **signer** avant de passer à la suite.
 
 Doctrine du découpage et pièges par famille : `cortex-1-cadrage/references/secteurs.md`.
 
@@ -188,7 +188,7 @@ confirmée — c'est fait.
 On enchaîne ?
 ```
 
-Sur accord, lancer `cortex-4-installation`. Si la carte n'est pas confirmée : s'arrêter et dire ce qui reste en suspens — rien ne s'installe avant la confirmation.
+Si la carte n'est pas confirmée : s'arrêter et dire ce qui reste en suspens. Rien ne s'installe avant la confirmation.
 
 ## Interdits
 
