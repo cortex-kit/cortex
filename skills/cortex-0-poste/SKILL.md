@@ -33,7 +33,7 @@ Le dossier d'atelier n'existe pas encore. Poser une seule question, en langage o
 
 > « Quel nom court voulez-vous donner à votre second cerveau ? Un mot, sans espace : votre prénom, votre société, ce que vous voulez. »
 
-La réponse, en minuscules, devient `<slug>`. L'atelier vit dans `~/Cortex/<slug>/_cortex/`, hors de tout dossier synchronisé. Le maillon 1 y trouvera `config.yaml` avec le bloc `poste` déjà écrit.
+La réponse, en minuscules, devient `<slug>`. L'atelier vit dans `~/Cortex/<slug>/_cortex/`, hors de tout dossier synchronisé. Le slug est `organisation.code` : `poste.py` l'écrit dans `config.yaml` et dans `poste.json`, et c'est lui que reprendront `_export/<slug>/`, le dépôt `cortex-<slug>` et `federation.yaml`. Le maillon 1 y trouvera `config.yaml` avec le bloc `poste` déjà écrit.
 
 ## 1. Détecter
 
@@ -95,9 +95,11 @@ Une personne sans adresse de travail répond « aucune » : `--fournisseur autre
 
 ## 4. Écrire l'atelier et ouvrir la notice
 
-    python3 "${CLAUDE_SKILL_DIR}/scripts/poste.py" --ecrire --atelier ~/Cortex/<slug>/_cortex --mail <adresse> [--fournisseur X] [--boites N] [--admin] [--imap] [--options wispr-flow,noota]
+    python3 "${CLAUDE_SKILL_DIR}/scripts/poste.py" --ecrire --atelier ~/Cortex/<slug>/_cortex --slug <slug> --mail <adresse> [--fournisseur X] [--boites N] [--admin] [--imap] [--options wispr-flow,noota]
 
-Le script mesure une dernière fois les outils, écrit `_cortex/poste.json` (schéma du contrat : `os`, `outils` avec `present`, `version`, `installe_par_cortex`, `connecte` pour `gh`, `options_proposees`, `mail`, `notice_ouverte_le`), écrit ou remplace le bloc `poste` de `_cortex/config.yaml` (créé s'il manque), puis régénère et ouvre la notice. `notice_ouverte_le` est posé à ce moment : c'est lui qui marque l'étape 0 faite.
+Le script mesure une dernière fois les outils, écrit `_cortex/poste.json` (schéma du contrat : `os`, `organisation.code`, `outils` avec `present`, `version`, `installe_par_cortex`, `connecte` pour `gh`, `options_proposees`, `mail`, `notice_ouverte_le`), fusionne les blocs `organisation` et `poste` dans `_cortex/config.yaml` (créé s'il manque, les clés filles déjà posées sont conservées), puis régénère et ouvre la notice. `notice_ouverte_le` est posé à ce moment : c'est lui qui marque l'étape 0 faite. `--slug` omis, le script le déduit du chemin de l'atelier.
+
+Ce que le script a installé lui-même reste tracé d'une écriture à l'autre : relancer `--ecrire` après un second lot ne perd pas le premier.
 
 Dire à la personne, en une phrase, ce qui est en place, ce qui a été refusé, et la phrase suivante que la notice affiche : « faisons le cadrage ».
 
@@ -105,14 +107,17 @@ Dire à la personne, en une phrase, ce qui est en place, ce qui a été refusé,
 
 Forme `~` pour tout chemin, jamais un chemin absolu. Le bloc `poste` est le miroir de `poste.json` :
 
+    organisation:
+      code: acme
+
     poste:
       os: macos
-      outils: [obsidian, uv, markitdown, git, gh]
+      outils: [obsidian, uv, markitdown, git, gh, github-desktop, buzz]
       mail_fournisseur: gmail
       mail_boites: 1
       mail_voie: connecteur
 
-`outils` liste les outils présents à la fin du maillon, installés par Cortex ou déjà là.
+`outils` liste le kit entier, dans l'ordre du contrat. Qui est présent, dans quelle version, et installé par Cortex ou déjà là : `poste.json` le dit outil par outil, c'est la seule source.
 
 ## Interdits
 
