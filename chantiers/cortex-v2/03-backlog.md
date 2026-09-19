@@ -29,3 +29,10 @@ Chaque lane vit dans `~/Dev/cortex--<lane>`, branche `lane/<lane>`, ne touche qu
 - Sonde Cowork web : `uv 0.8.17` et `markitdown 0.1.7` disponibles, mais conteneur distant sans accès au disque. La recette Cowork de G vise l'app bureau ; le web est écarté pour un vault local.
 - Org GitHub `cortex-kit` créée, dépôt public poussé, fork `cortex-kit/mcp-email` disponible : c'est lui que `OUTILS.md` cite.
 - Une machine Windows est disponible chez la personne ; à nommer au lancement de la recette G.
+
+## Décisions prises après les audits à froid (chef d'orchestre, 2026-09-19)
+
+- Les six lanes sont mergées sur `main` (`520cfdf`) après simulation sans conflit ; les défauts relevés par les audits se corrigent en sessions de reprise Opus (`fix/<lane>`, worktrees `~/Dev/cortex--<lane>2`), une par lane, chacune sur ses fichiers possédés, puis un audit à froid unique de l'arbre final.
+- Critère C2 (lane C) réécrit : les trois `config.yaml` rejoués par `rejeu_profil.py` se rechargent sans erreur par `cortex_config.charger`, et `valider_installable` ne signale que l'absence de domaines (les domaines de départ restent en prose dans `00-cadrage.md` jusqu'au maillon 3).
+- Cause réelle du rouge de la recette v1 entre `2e0ee29` et le merge de G : le retrait de la skill `presentation` que `rend_deck.py` importait, pas le passage à neuf étapes ; corrigé par le retrait du deck (lane B) et la recette v2 (lane G).
+- Le dossier `skills/presentation/` réapparu après merge n'était qu'un reliquat non suivi (`__pycache__`) : supprimé.
