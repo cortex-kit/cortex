@@ -22,6 +22,7 @@ repo: ""
 claude_md: ""
 dernier_journal:              # ISO date, patche par la skill cloture
 blocages_actifs: 0            # patche par la skill cloture
+visibilite: ""                # prive | commun ; vide = commun.visibilite_defaut
 tags:
   - d/CODE
 ---

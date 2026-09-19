@@ -12,12 +12,16 @@ Ce qu'il fait :
   3. génère .obsidian/graph.json depuis les domaines (Graph View est un plugin
      CORE : coloration sans aucune installation communautaire)
   4. génère 90 - Meta/Configuration.md, miroir LECTURE SEULE de la config
-  5. git init + premier commit si git est demandé
-  6. ÉCHOUE si une moustache subsiste
+  5. génère .claude/settings.json : lecture seule sur les racines de collecte,
+     refus d'écriture hors vault, hooks SessionStart et Stop
+  6. git init + premier commit ; propose un dépôt privé (jamais imposé)
+  7. ÉCHOUE si une moustache subsiste
 
 Usage :
   python3 scaffold.py --config <config.yaml> --out <dossier vault>
   python3 scaffold.py --config <config.yaml> --out <dossier> --force
+  python3 scaffold.py --config <config.yaml> --out <dossier> --depot-prive
+  python3 scaffold.py --autotest
 """
 
 import argparse
@@ -34,6 +38,74 @@ import cortex_config  # noqa: E402
 
 RACINE_SKILL = Path(__file__).resolve().parent.parent
 GABARIT = RACINE_SKILL / "template" / "vault"
+
+# Contrat 04 §9, amende le 2026-09-19 par le chef d'orchestre : lecture seule
+# sur les racines, et les quatre gestes de la cloture (add, commit, push, export)
+# pour qu'une cloture de novice ne demande aucune permission.
+ALLOW = [
+    "Read", "Glob", "Grep",
+    "Bash(python3 .claude/skills/lint/lint_sante.py:*)",
+    "Bash(python3 .claude/skills/cloture/export.py:*)",
+    "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
+    "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
+    "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)",
+    "Bash(file:*)", "Bash(du:*)",
+]
+HOOKS = {
+    "SessionStart": [{"hooks": [{"type": "command",
+                                 "command": "python3 .claude/hooks/session_start.py"}]}],
+    "Stop": [{"hooks": [{"type": "command",
+                         "command": "python3 .claude/hooks/stop.py"}]}],
+}
+
+
+def forme_tilde(chemin):
+    """Ramène un chemin du dossier personnel à la forme `~`.
+
+    Défaut n°7 de la v1 : un `dossiers_projets` saisi en absolu traversait la
+    substitution tel quel et le lint refusait le vault pour chemin absolu.
+    Corrigé à la source, le lint reste inchangé.
+    """
+    s = str(chemin or "").strip().replace("\\", "/")
+    if not s or s.startswith("~"):
+        return s
+    home = str(Path.home()).replace("\\", "/")
+    if s == home or s.startswith(home + "/"):
+        return "~" + s[len(home):]
+    return s
+
+
+def racines_collecte(conf):
+    """`collecte.racines` en forme `~`. Une config v1 sans cette clé retombe
+    sur `chemins.dossiers_projets` : c'est la seule racine qu'elle connaît."""
+    rac = (conf.get("collecte") or {}).get("racines") or []
+    if isinstance(rac, str):
+        rac = [rac]
+    if not rac:
+        dp = (conf.get("chemins") or {}).get("dossiers_projets", "")
+        rac = [dp] if dp else []
+    return [forme_tilde(r) for r in rac if r]
+
+
+def settings_json(conf):
+    """Une règle deny Write et Edit par racine, les racines en lecture."""
+    racines = racines_collecte(conf)
+    deny = []
+    for r in racines:
+        deny += [f"Write({r}/**)", f"Edit({r}/**)"]
+    return {
+        "permissions": {"allow": list(ALLOW), "deny": deny,
+                        "additionalDirectories": racines},
+        "hooks": HOOKS,
+    }
+
+
+def ecrire_settings(dest, conf):
+    cible = dest / ".claude" / "settings.json"
+    cible.parent.mkdir(parents=True, exist_ok=True)
+    cible.write_text(json.dumps(settings_json(conf), indent=2, ensure_ascii=False) + "\n",
+                     encoding="utf-8")
+    return cible
 
 
 def blocs_generes(conf):
@@ -75,7 +147,7 @@ def substitutions(conf):
         "{{REDACTEUR}}": org.get("redacteur", ""),
         "{{COURRIEL}}": org.get("courriel", ""),
         "{{PRODUIT}}": (conf.get("marque") or {}).get("produit_nom", "Cortex"),
-        "{{DOSSIERS_PROJETS}}": (conf.get("chemins") or {}).get("dossiers_projets", ""),
+        "{{DOSSIERS_PROJETS}}": forme_tilde((conf.get("chemins") or {}).get("dossiers_projets", "")),
         "{{MODE}}": conf.get("mode", "solo"),
         "{{DATE}}": date.today().isoformat(),
         "{{DOMAINES_LISTE}}": liste,
@@ -137,6 +209,9 @@ Sens unique : éditer ce fichier n'a aucun effet. Le canon est le YAML.
 | code | `{org.get('code', '')}` |
 | rédacteur | {org.get('redacteur', '')} |
 | mode | `{conf.get('mode', 'solo')}` |
+| profil | `{conf.get('profil', '')}` |
+| régime de la donnée | `{(conf.get('donnees') or {}).get('regime', 'pointeur')}` |
+| racines lues, jamais écrites | {', '.join(f'`{r}`' for r in racines_collecte(conf)) or '_aucune_'} |
 
 Un vault, un rédacteur. Toujours. Plusieurs personnes se traitent par plusieurs
 vaults et un commun généré, jamais par plusieurs mains dans le même vault.
@@ -237,7 +312,7 @@ def notes_du_client(dest, conf):
     )
 
 
-def outillage_seul(dest, table_vide):
+def outillage_seul(dest, conf, table_vide):
     """Rafraichit la couche d'agents sans toucher au contenu.
 
     Sans ce mode, corriger le lint n'atteignait aucun vault deja livre : les
@@ -261,21 +336,49 @@ def outillage_seul(dest, table_vide):
     for nom in ("cortex_config.py", "lint_sante.py"):
         shutil.copy2(Path(__file__).resolve().parent / nom, skill_lint / nom)
         n += 1
+    ecrire_settings(dest, conf)
+    n += 1
     print(f"✓ Outillage rafraichi : {n} fichier(s) sous .claude/. Contenu intact.")
     return 0
 
 
+def depot_prive(dest, slug, executer):
+    """Propose `gh repo create`, ne l'exécute que sur demande explicite.
+
+    La personne peut refuser et rester locale : un vault versionné localement
+    a déjà l'annulation et l'historique, le dépôt distant n'ajoute que la
+    sauvegarde hors poste.
+    """
+    cmd = ["gh", "repo", "create", slug, "--private", "--source", ".", "--push"]
+    if not executer:
+        print(f"→ Dépôt privé (sur accord, jamais imposé) : cd \"{dest}\" && {' '.join(cmd)}")
+        return
+    try:
+        subprocess.run(cmd, cwd=dest, check=True)
+        print(f"✓ Dépôt privé créé et poussé : {slug}")
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"[i] Dépôt privé non créé ({e}). Le vault reste local, rien n'est perdu.")
+
+
 def main():
     p = argparse.ArgumentParser(description="Instancie un vault Cortex.")
-    p.add_argument("--config", required=True)
-    p.add_argument("--out", required=True)
+    p.add_argument("--config")
+    p.add_argument("--out")
     p.add_argument("--force", action="store_true", help="ecrase la destination")
     p.add_argument("--ecraser-vault-peuple", action="store_true",
                    help="autorise --force a detruire un vault qui contient des notes")
     p.add_argument("--outillage-seul", action="store_true",
                    help="rafraichit .claude/ (skills, agents, scripts de lint) "
                         "sans toucher au contenu du vault")
+    p.add_argument("--depot-prive", action="store_true",
+                   help="cree et pousse un depot GitHub prive (gh repo create), "
+                        "sur accord de la personne seulement")
+    p.add_argument("--autotest", action="store_true")
     a = p.parse_args()
+    if a.autotest:
+        return _autotest()
+    if not a.config or not a.out:
+        p.error("--config et --out sont requis")
 
     chemin_config = Path(a.config).expanduser().resolve()
     dest = Path(a.out).expanduser().resolve()
@@ -297,7 +400,7 @@ def main():
         return 2
 
     if a.outillage_seul:
-        return outillage_seul(dest, table_vide=substitutions(conf))
+        return outillage_seul(dest, conf, table_vide=substitutions(conf))
 
     if dest.exists():
         if not a.force:
@@ -361,6 +464,10 @@ def main():
     for nom in ("cortex_config.py", "lint_sante.py"):
         shutil.copy2(Path(__file__).resolve().parent / nom, skill_lint / nom)
 
+    # Les permissions : les racines de collecte en lecture, jamais en écriture.
+    # Générées et non copiées : elles dépendent de `collecte.racines`.
+    ecrire_settings(dest, conf)
+
     # Les notes de domaine, une par entree de config. Sans elles, `Centre.md`
     # listait les domaines en wikilinks vers des notes inexistantes : le point
     # d'entree du vault, celui que la doctrine annonce comme le plus connecte,
@@ -409,14 +516,58 @@ def main():
             ["git", "-c", "user.name=Cortex", "-c", "user.email=cortex@localhost",
              "commit", "-q", "-m", "Vault initial (scaffold Cortex)"],
             cwd=dest, check=True)
+        git_ok = True
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        print(f"[i] git non initialise ({e}) — le vault reste utilisable.")
+        git_ok = False
+        print(f"[i] git non initialise ({e}), le vault reste utilisable.")
 
     print(f"✓ Vault instancie : {dest}")
     print(f"✎ {ecrits} fichier(s) du gabarit + config.yaml + graph.json + Configuration.md")
     print(f"✎ {len(cortex_config.codes_domaines(conf))} domaine(s), "
           f"mode {conf.get('mode')}, 0 moustache residuelle")
+    racines = racines_collecte(conf)
+    print(f"✎ settings.json : {len(racines)} racine(s) en lecture seule, "
+          f"{2 * len(racines)} regle(s) deny, 2 hooks")
+    if git_ok:
+        depot_prive(dest, "cortex-" + (conf.get("organisation") or {}).get("code", "vault"), a.depot_prive)
     print(f"→ Suite : python3 lint_sante.py --vault \"{dest}\"")
+    return 0
+
+
+def _autotest():
+    import tempfile
+    home = str(Path.home())
+    assert forme_tilde(home + "/Documents/X") == "~/Documents/X"
+    assert forme_tilde("~/Documents") == "~/Documents"
+    assert forme_tilde("/srv/partage") == "/srv/partage"
+    assert forme_tilde("") == ""
+
+    conf = {"collecte": {"racines": [home + "/Documents", "~/Desktop/Travail"]}}
+    s = settings_json(conf)
+    assert s["permissions"]["additionalDirectories"] == ["~/Documents", "~/Desktop/Travail"], s
+    assert s["permissions"]["deny"] == ["Write(~/Documents/**)", "Edit(~/Documents/**)",
+                                        "Write(~/Desktop/Travail/**)", "Edit(~/Desktop/Travail/**)"]
+    assert s["permissions"]["allow"] == ALLOW
+    assert set(s["hooks"]) == {"SessionStart", "Stop"}
+    # Config v1 : sans `collecte.racines`, la racine est `chemins.dossiers_projets`.
+    assert racines_collecte({"chemins": {"dossiers_projets": home + "/Affaires"}}) == ["~/Affaires"]
+    assert racines_collecte({}) == []
+
+    # Un scaffold réel depuis l'exemple, dans un dossier temporaire.
+    exemple = RACINE_SKILL / "template" / "config.example.yaml"
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "vault"
+        r = subprocess.run([sys.executable, __file__, "--config", str(exemple), "--out", str(out)],
+                           capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+        s = json.loads((out / ".claude" / "settings.json").read_text(encoding="utf-8"))
+        assert s["permissions"]["deny"], s
+        assert (out / ".claude" / "hooks" / "session_start.py").is_file()
+        assert (out / ".claude" / "skills" / "parle" / "SKILL.md").is_file()
+        assert (out / ".claude" / "skills" / "bilan" / "SKILL.md").is_file()
+        assert "gh repo create cortex-acme --private" in r.stdout, r.stdout
+        assert "/Users/" not in (out / "90 - Meta" / "Runbook - Nouveau Projet.md").read_text(encoding="utf-8")
+    print("OK scaffold.py : forme ~, settings.json, hooks, skills parle et bilan, depot prive propose")
     return 0
 
 

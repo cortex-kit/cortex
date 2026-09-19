@@ -77,12 +77,18 @@ Le point 5 compte plus qu'il n'y paraît : une valeur devinée par un agent est 
 | `nouveau-projet` | création d'un projet : fiche, dossier, CLAUDE.md |
 | `ingest` | une source externe à intégrer |
 | `lint` | audit de santé, avant toute reprise à froid |
+| `parle` | une question sur le travail : le vault répond en citant, n'écrit rien |
+| `bilan` | ce que le vault a vécu sur une période ; proposé à J+7 et J+30 de la remise |
 
 ## Les sous-agents
 
 `chercheur-vault` pour « qu'est-ce qu'on sait sur X » — il lit beaucoup, rend court. `auditeur-ontologie` pour les constats de conformité.
 
 **Aucun sous-agent n'écrit.** Toute écriture reste dans le fil principal, là où {{REDACTEUR}} valide.
+
+## Les permissions et les hooks
+
+`.claude/settings.json` est généré à l'installation : lecture seule sur les dossiers de travail déclarés (`collecte.racines`), refus d'écriture sur chacun d'eux, aucune écriture hors du vault. Deux hooks : `SessionStart` lance le lint en bref et rappelle la clôture si la dernière est trop ancienne ; `Stop` rappelle la clôture quand des fichiers ont changé. Un rappel, jamais un blocage.
 
 ## Statut
 

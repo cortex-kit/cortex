@@ -1,11 +1,11 @@
 ---
 name: cortex-7-passation
-description: Dernier maillon de la chaîne Cortex. Produit le pack de remise du vault au client — guide d'usage, runbook des quatre opérations, fiche de reprise à froid — et passe la recette d'acceptation mécanique, dont le contrôle de white-label bloquant. Déclencher quand le consultant dit "maillon 7", "passation", "on remet le vault", "recette", ou quand le vault est peuplé et vérifié. Ne PAS utiliser pour produire un support de formation ni un protocole de suivi : hors périmètre par décision.
+description: Septième maillon de la chaîne Cortex. Produit le pack de remise du vault au client — guide d'usage, runbook des quatre opérations, fiche de reprise à froid — passe la recette d'acceptation mécanique, dont le contrôle de white-label bloquant, date la remise (remis_le) pour que la skill bilan du vault fasse le point à J+7 et J+30, et termine en ouvrant la notice. Déclencher quand le consultant dit "maillon 7", "passation", "on remet le vault", "recette", ou quand le vault est peuplé et vérifié. Phrase d'entrée de la notice : « prépare la remise ». Ne PAS utiliser pour produire un support de formation : hors périmètre par décision.
 ---
 
 # cortex-7-passation — remettre, et prouver que c'est remettable
 
-Dernier des sept. Régénérable à coût nul, et **à tout moment plus tard** : quand le vault du client aura évolué, on relance ce maillon et la documentation redevient juste.
+Septième maillon ; la fédération (`cortex-8`) ne suit qu'en mode `federe`. Régénérable à coût nul, et **à tout moment plus tard** : quand le vault du client aura évolué, on relance ce maillon et la documentation redevient juste.
 
 ## Positionnement
 
@@ -31,7 +31,7 @@ Il répond à quatre questions, dans cet ordre :
 
 C'est le seul geste qui compte, et c'est celui sur lequel tout repose. Un vault sans clôture se remplit une fois, à l'installation, puis meurt — personne ne retourne écrire ce qui s'est décidé. Le dire ainsi, sans l'enrober.
 
-**« Qu'est-ce que je fais de temps en temps ? »** — `nouveau-projet` quand un projet démarre, `ingest` quand une source vaut d'être gardée, `lint` une fois par mois et avant toute reprise après absence.
+**« Qu'est-ce que je fais de temps en temps ? »** — `nouveau-projet` quand un projet démarre, `ingest` quand une source vaut d'être gardée, `lint` une fois par mois et avant toute reprise après absence, `parle` pour poser une question et obtenir une réponse qui cite, `bilan` quand le hook le propose (J+7, J+30) ou à la demande.
 
 **« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault.
 
@@ -95,6 +95,7 @@ test ! -f "$V/.obsidian/community-plugins.json"
 maillon: 7
 produit_par: cortex-7-passation
 statut: valide
+remis_le: AAAA-MM-JJ           # la date que le hook SessionStart et la skill bilan lisent
 controles:
   white_label_zero_occurrence: passe
   zero_chemin_absolu: passe
@@ -104,6 +105,18 @@ controles:
   trois_pointeurs_verifies_main: passe
 ```
 
+`remis_le` est la date du jour de la remise confirmée. Sans elle, le suivi n'a pas de point de départ.
+
+## 6. Le suivi après remise : J+7 et J+30, par `bilan`
+
+Le suivi n'est pas un protocole ni une prestation : c'est une skill du vault, `bilan`, et un hook qui la propose. À **J+7** et à **J+30** de `remis_le`, le hook `SessionStart` du vault affiche une ligne : « Bilan J+7 de la remise : dites « bilan ». » La skill lit `60 - Journal`, `git log`, le lint et `_cortex/etat.json`, et rend une page : clôtures faites, notes touchées, orphelins, structurants périmés, prochaine étape.
+
+Ces deux dates sont les deux moments où l'usage se décide. À J+7, on sait si la clôture est devenue un réflexe ; zéro clôture en sept jours est le signal à ne pas manquer. À J+30, on sait si le vault est encore consulté. En mode `consultant`, prévoir de demander ces deux bilans au client ; en mode `solo`, le hook suffit.
+
+Le hook lit `remis_le` dans `_cortex/06-passation.md` **quand l'atelier vit dans le vault** (mode `solo`). En mode `consultant`, l'atelier ne part pas chez le client : copier la seule ligne `remis_le` dans un `_cortex/06-passation.md` réduit à son frontmatter, sans inventaire ni constats.
+
+**La remise ouvre la notice.** Le dernier geste du maillon est la commande de la section Notice ci-dessous : le tableau de bord montre les étapes faites et la phrase suivante, qui est désormais « clôture ». La personne voit l'installation finie et le seul geste qui reste.
+
 ## Message de clôture
 
 ```
@@ -111,12 +124,15 @@ Vault remis à <organisation>.
 
 Recette : <N>/6 contrôles passés<, arbitrages : …>
 Livré : guide d'usage, fiche de reprise, runbook des 4 opérations
-        <N> notes, <M> domaines, kit de 4 skills et <K> sous-agents
+        <N> notes, <M> domaines, kit de 6 skills, <K> sous-agents, 2 hooks
+Remise datée du <remis_le> : bilan proposé à J+7 et J+30.
 
 Pour toi :
 1. Fais la remise en montrant UN geste : `cloture` sur une vraie session.
    Pas une visite guidée du vault.
-2. Archive _cortex/ de ton côté. Il ne part pas chez le client.
+2. Archive _cortex/ de ton côté. Il ne part pas chez le client, sauf la
+   ligne remis_le (§6).
+3. À J+7 et J+30, demande le `bilan`.
 
 Ce maillon se relance quand tu veux : si le vault évolue, la documentation
 se régénère. C'est pour ça qu'elle n'est pas écrite à la main.
@@ -139,19 +155,24 @@ bloc de travail, dites « clôture ». Moins de trente secondes, trois à
 dix fois par jour. Un second cerveau sans clôture se remplit une fois,
 puis meurt.
 
-La chaîne s'arrête ici — il n'y a pas de maillon suivant. Celui-ci se
-relance quand vous voulez : si l'outil évolue, sa documentation se
-régénère.
+Dans une semaine, puis dans un mois, l'outil vous proposera un bilan à
+l'ouverture : dites « bilan », il vous dira ce qui a vécu.
+
+La chaîne s'arrête ici pour un cerveau seul. Celui-ci se relance quand
+vous voulez : si l'outil évolue, sa documentation se régénère.
 
 Faites une première clôture maintenant, sur cette installation même :
 dites « clôture ».
 ```
 
+Puis la notice (section ci-dessous) : c'est elle qui montre l'installation finie.
+
 ## Interdits
 
 - **Jamais remettre avec le contrôle de white-label en échec.**
 - **Jamais livrer `_cortex/`.** L'atelier contient l'inventaire brut, les hypothèses écartées et les constats sur l'organisation du client. Il reste chez le consultant.
-- **Jamais produire un support de formation** ni un protocole de suivi ici : hors périmètre par décision.
+- **Jamais produire un support de formation** : hors périmètre par décision. Le suivi, lui, existe et tient en une skill, `bilan`, à J+7 et J+30 ; pas un protocole de plus.
+- **Jamais remettre sans `remis_le`** : sans date, aucun bilan ne sera proposé.
 - **Jamais déclarer un contrôle passé sans l'avoir lancé.** C'est le seul mensonge de toute la chaîne qui arrive jusqu'au client.
 - **Jamais faire la remise en visite guidée.** Montrer un geste réel vaut mieux qu'un tour du propriétaire : ce qu'on veut, c'est que le client lance `cloture` le lendemain, pas qu'il ait vu tous les dossiers.
 
