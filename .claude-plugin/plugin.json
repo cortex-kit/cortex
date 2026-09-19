@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.2",
   "description": "Installe un second cerveau, un vault Obsidian en markdown, chez une personne ou une organisation : équipement du poste, inventaire par profil, ontologie signée, installation, peuplement, agents métier, passation, fédération. Pour commencer, écrivez : installe mon second cerveau.",
   "author": {
     "name": "cortex-kit",
