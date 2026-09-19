@@ -52,10 +52,6 @@ sys.path.insert(0, str(RECETTE))
 import fixtures as m_fixtures  # noqa: E402
 sys.path.insert(0, str(PAQUET / "scripts"))
 import fabrique as m_fabrique  # noqa: E402
-try:
-    import rend_deck as m_deck  # noqa: E402
-except SystemExit:
-    m_deck = None  # la skill presentation est sortie du kit le 2026-09-19
 
 MARQUES = ["Cabinet-Exemple", "ClientAnterieurA", "ClientAnterieurB"]
 # Marques interdites (01-cadrage.md §Marques interdites) : sha256 tronque de la
@@ -66,7 +62,7 @@ MARQUES = ["Cabinet-Exemple", "ClientAnterieurA", "ClientAnterieurB"]
 MARQUES_EMPREINTES = {
     "2d697f1957a17471", "1e194652dcdd105b", "4025a3e9f03aa9b1", "6cd31a74b6e31ff0",
     "f597568fba670b35", "06349320320a2272", "be428d22548ae2ea", "e3dfc76ed288d592",
-    "4cbe19716b1aa73a", "35f85825b9016fcc",
+    "4cbe19716b1aa73a", "35f85825b9016fcc", "93a8567601604723", "2be94190c1fc7991",
 }
 PERIMETRE_WHITE_LABEL = [SKILLS, DEPOT / "notice", DEPOT / "outils", DEPOT / "README.md"]
 BINAIRES = {".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".docx", ".xlsx", ".pyc", ".woff", ".woff2", ".ttf"}
@@ -90,7 +86,7 @@ MANUELS = [("M1", "Installation vivante du plugin (marketplace add, install, det
            ("M2", "Sonde Cowork bureau : uvx markitdown --version dans le bac à sable"),
            ("M3", "Maillon 0 et installation du plugin sur la machine Windows")]
 
-succes, echecs, ignores = [], [], []
+succes, echecs = [], []
 BILAN = {}
 CRITERE = "v1"
 
@@ -99,11 +95,6 @@ def verifie(nom, condition, detail=""):
     (succes if condition else echecs).append(f"{CRITERE} {nom}")
     BILAN.setdefault(CRITERE, [0, 0])[0 if condition else 1] += 1
     print(f"  [{'ok' if condition else 'XX'}] {nom}" + (f" : {detail}" if detail and not condition else ""))
-
-
-def ignore(nom, raison):
-    ignores.append(nom)
-    print(f"  [--] {nom} : {raison}")
 
 
 def section(critere, titre):
@@ -572,26 +563,13 @@ def c1_neuf_etapes(tmp, cfg):
     if POSTE.is_file():
         r = lancer(POSTE, "--dry-run")
         lignes = [l for l in r.stdout.splitlines() if l.strip()]
+        # La commande est libre : `uvx --from "markitdown[all]" markitdown` comme `brew install x` passent.
         motif = re.compile(r"^\S.*? : absent → .+$")
         verifie("poste.py --dry-run sort en 0 et n'imprime qu'une ligne par outil absent, avec sa commande",
                 r.returncode == 0 and all(motif.match(l) for l in lignes),
                 (r.stderr[:200] or str([l for l in lignes if not motif.match(l)][:3])))
     else:
         verifie("poste.py présent", False, "attendu au merge de la lane B")
-
-    if m_deck is None:
-        ignore("le deck porte les mêmes étapes que le tableau de bord",
-               "skill presentation retirée du kit le 2026-09-19, rend_deck.py sans rendu")
-    else:
-        deck = tmp / "deck.bento.html"
-        m_deck.rendre(pivot, deck)
-        doc = json.loads(re.search(r'<script type="application/bento\+json" id="bento-doc"[^>]*>(.*?)</script>',
-                                   deck.read_text(encoding="utf-8"), re.S).group(1).replace("\\u003c", "<"))
-        attendu = [{"numero": e["numero"], "nom": e["nom"], "etat": e["etat"],
-                    "libelle": m_etat.LIBELLES.get(e["etat"], e["etat"])} for e in pivot["etapes"]]
-        corps = " ".join(el.get("html", "") for s in doc["slides"] for el in s["elements"])
-        verifie("le deck porte les mêmes étapes et les mêmes statuts que le tableau de bord",
-                doc["meta"]["cortex_etapes"] == attendu and all(e["nom"] in corps for e in pivot["etapes"]))
 
 
 # ── C2 : trois profils ──────────────────────────────────────────────────────
@@ -993,7 +971,7 @@ def main():
         shutil.rmtree(ATELIER_RECETTE, ignore_errors=True)
 
     tableau()
-    print(f"\n{len(succes)} contrôle(s) passé(s), {len(echecs)} en échec, {len(ignores)} ignoré(s).")
+    print(f"\n{len(succes)} contrôle(s) passé(s), {len(echecs)} en échec.")
     if echecs:
         print("EN ÉCHEC : " + ", ".join(echecs))
         return 1

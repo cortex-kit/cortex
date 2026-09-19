@@ -171,6 +171,7 @@ def employe(racine, alea):
         "# Parties prenantes déclarées\n\n- N+1 : Hélène Vasseur, directrice générale\n"
         "- Équipe : Sami Benali, Inès Roche\n- Client interne : direction commerciale\n"
         "- Prestataire : Alto Conseil\n", encoding="utf-8")
+    a._date_fixe(racine / "Projets/PARTIES-PRENANTES.md", None)
     (racine / "Projets/PROJETS.md").write_text(
         "# Projets que je porte\n\n- Refonte intranet\n- Migration CRM\n- Onboarding 2026\n", encoding="utf-8")
     a._date_fixe(racine / "Projets/PROJETS.md", None)
@@ -234,7 +235,7 @@ def employe(racine, alea):
          "question": "Suivez-vous vos projets dans un outil ? Si oui, il devient la base déportée et le régime passe à pointeur."},
     ]
     (racine / "ECARTS.json").write_text(json.dumps(ecarts, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    a.fichiers.append(racine / "ECARTS.json")
+    a._date_fixe(racine / "ECARTS.json", None)
     return len(a.fichiers)
 
 

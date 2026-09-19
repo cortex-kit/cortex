@@ -26,7 +26,7 @@ Tableau C1 à C10 (contrôles passés / total)
   M2   Sonde Cowork bureau : uvx markitdown --version dans le bac à sable manuel, sortie collée dans 06-verification.md
   M3   Maillon 0 et installation du plugin sur la machine Windows manuel, sortie collée dans 06-verification.md
 
-51 contrôle(s) passé(s), 31 en échec, 1 ignoré(s).
+51 contrôle(s) passé(s), 31 en échec.
 EN ÉCHEC : C1 etat.py porte neuf étapes numérotées 0 à 8, C1 les artefacts des neuf étapes sont ceux du contrat §5, C1 le pivot porte les neuf étapes, C1 le maillon 0 est lu depuis poste.json : fait quand notice_ouverte_le est renseigné, C1 l'étape 8 vaut arbitre avec la raison « vault solo » en mode solo, C1 le pivot porte profil, regime, phrase_suivante et notice_ouverte_le, C1 la phrase suivante est en langage ordinaire, jamais un nom de maillon, C1 le compteur annonce 9/9 quand les neuf lignes sont faites, C1 le tableau de bord vierge affiche neuf lignes à faire, C1 poste.py présent, C2 cortex-1-cadrage/references/profils/employe.md existe, C2 cortex-1-cadrage/references/profils/dirigeant.md existe, C2 cortex-1-cadrage/references/profils/societe.md existe, C2 profil: autre est refusé et le message nomme la clé, C2 regime: mixte est refusé et le message nomme la clé, C2 neuf SKILL.md maillons, chacun avec la section Notice et l'appel de notice.py (I10), C3 scan.py présent, C4 additionalDirectories reprend collecte.racines, C4 une règle deny Write et Edit par racine, C4 hooks SessionStart et Stop présents dans settings.json, C4 SessionStart lance le lint bref, Stop rappelle la clôture, C4 les skills de agents.skills sont livrées, parle et bilan comprises, C4 les sous-agents sont en lecture seule (tools : Read, Grep, Glob), C5 lint 0 en régime copie : le contrôle « 10 lignes » est suspendu sur Structurants/, C5 un structurant modifié à la source lève structurant_perime, C6 federe.py présent, C8 aucune marque interdite dans skills/ notice/ outils/ README.md, C9 aucun chemin absolu (/Users/, /home/, lettre de lecteur) dans skills/ notice/ outils/ README.md, C10 LISEZ-MOI.html du zip : neuf étapes à faire, zéro URL distante, C10 notice/LISEZ-MOI.html présente, hors ligne (zéro URL), C10 outils/OUTILS.md présent avec une ligne par outil du maillon 0
 ```
 
@@ -67,7 +67,6 @@ Neuf étapes, maillon 0, notice (§3 §5 §10 ; lane B) : défaut plausible : un
   [ok] aucune URL distante dans la notice
   [ok] notice.py --no-open régénère etat.json et notice.html et sort en 0
   [XX] poste.py présent : attendu au merge de la lane B
-  [--] le deck porte les mêmes étapes que le tableau de bord : skill presentation retirée du kit le 2026-09-19, rend_deck.py sans rendu
 ```
 
 ### C2 Trois profils, régime, section Notice
@@ -162,7 +161,7 @@ Zéro chemin absolu (I2, §11) : défaut plausible : un chemin de la machine du 
 
 ```
 Paquet, notice hors ligne, README (§11 ; lane B) : défaut plausible : un kit muet, une fuite de licence, une notice qui renvoie en ligne
-OK — /tmp/claude-501/cortex-recette-65_mhmz7/cortex-temoin.zip : 8 dossiers (7 maillons + 1 annexes), LISEZ-MOI.html, PROVENANCE.md, version recette
+OK — /tmp/claude-501/cortex-recette-obm57ntv/cortex-temoin.zip : 8 dossiers (7 maillons + 1 annexes), LISEZ-MOI.html, PROVENANCE.md, version recette
   [ok] la fabrication sort en 0
   [ok] le zip compte les maillons présents par glob (7) plus le kit (1) et deux fichiers à la racine
   [ok] un SKILL.md à la bonne profondeur par dossier
@@ -263,7 +262,7 @@ Sortie :
 
 | Fichier | Lane | Constat | Valeur attendue |
 |---|---|---|---|
-| `fabricant/scripts/rend_deck.py`, `fabricant/modeles/bento-runtime.html` | B | Le deck dépend de la skill `presentation`, retirée du kit le 2026-09-19 ; `import rend_deck` faisait sortir la recette v1 en 1 avant tout contrôle | Retirer les deux fichiers et la mention du deck dans `fabricant/SKILL.md`, ou garder un rendu optionnel ; la recette ignore le contrôle tant que la skill est absente |
+| `fabricant/scripts/rend_deck.py`, `fabricant/modeles/bento-runtime.html` | B | Le deck dépend de la skill `presentation`, retirée du kit le 2026-09-19 ; `import rend_deck` faisait sortir la recette v1 en 1 avant tout contrôle | Décision 2026-09-19 : retiré par la lane B ; le contrôle deck est retiré de la recette |
 | `skills/stop-slop/SKILL.md:8` | chef (annexe) | Prénom du fabricant dans la phrase de déclenchement | Terme générique (« l'utilisateur ») |
 | `skills/cortex-4-installation/scripts/notice.md:51,53` | B | `C:\Users\VOTRE_NOM\...` : lettre de lecteur, C9 rouge | `%USERPROFILE%\.claude\skills\`, ou décision d'exempter les segments en majuscules |
 | `skills/cortex-4-installation/template/vault/.claude/agents/auditeur-ontologie.md` | E | `tools: Read, Grep, Glob, Bash` | `tools: Read, Grep, Glob` (§9) |
