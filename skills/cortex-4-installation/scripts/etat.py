@@ -138,7 +138,10 @@ def _etape(numero, maillon, nom, artefact, atelier, conf):
             e["modifie_le"] = date.fromtimestamp(chemin.stat().st_mtime).isoformat()
             e["etat"] = "faite" if poste.get("notice_ouverte_le") else "en_cours"
         return e
-    if numero == 8 and conf and conf.get("mode", "solo") == "solo":
+    # `profil` est posé au maillon 1 : avant lui, `mode` vaut son défaut et
+    # n'arbitre rien. Sans cette garde, un futur `societe` voit « sans objet »
+    # dès le maillon 0, puis le voit repasser « À faire ».
+    if numero == 8 and conf and conf.get("profil") and conf.get("mode", "solo") == "solo":
         e["etat"], e["raison"] = "arbitre", RAISON_SOLO
         return e
     if not chemin.is_file():
@@ -229,6 +232,9 @@ def _autotest():
         p = generer(atelier)
         assert p["etapes"][0]["etat"] == "faite" and p["notice_ouverte_le"]
         assert p["etape_suivante"] == 1 and p["phrase_suivante"] == PHRASES[1]
+        # Défaut 6 : sans profil, l'étape 8 reste « À faire », elle ne s'arbitre pas.
+        (atelier / "config.yaml").write_text("conduite: solo\nmode: solo\n", encoding="utf-8")
+        assert generer(atelier)["etapes"][8]["etat"] == "a_faire"
         (atelier / "config.yaml").write_text(
             "conduite: solo\nprofil: employe\nmode: solo\ndonnees:\n  regime: copie\n",
             encoding="utf-8")

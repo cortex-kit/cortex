@@ -38,19 +38,30 @@ from datetime import date
 from pathlib import Path
 
 _ICI = Path(__file__).resolve().parent
-PAQUET = _ICI.parent                 # ~/.claude/skills/cortex-paquet
+PAQUET = _ICI.parent                 # <dépôt>/fabricant
 SKILLS = PAQUET.parent / "skills"    # <dépôt>/skills : maillons et annexes
+
+
+def _rang(nom):
+    """Le numéro du maillon, ou l'infini : un dossier `cortex-<mot>` se range en
+    fin de liste au lieu de faire lever le tri (`cortex-paquet`, un essai local…)."""
+    morceau = nom.split("-")[1] if "-" in nom else ""
+    return (int(morceau), nom) if morceau.isdigit() else (float("inf"), nom)
 
 
 def maillons():
     """Les maillons présents dans skills/, par glob, dans l'ordre de leur numéro."""
-    return sorted((p.name for p in SKILLS.glob("cortex-*") if p.is_dir()),
-                  key=lambda n: int(n.split("-")[1]))
+    return sorted((p.name for p in SKILLS.glob("cortex-*") if p.is_dir()), key=_rang)
 
 
-EXCLUS = shutil.ignore_patterns("__pycache__", ".DS_Store", ".git")
+# `recette` : harnais de vérification, il reste au dépôt (amendement §3).
+EXCLUS = shutil.ignore_patterns("__pycache__", ".DS_Store", ".git", "recette")
 # Chargement de scaffold : SKILL.md volontairement profonds, hors contrôle.
 EXEMPTION_PROFONDEUR = "cortex-4-installation/template/"
+
+
+def _pluriel(n, mot):
+    return f"{n} {mot}" + ("s" if n > 1 else "")
 
 
 def _erreur(msg):
@@ -166,9 +177,9 @@ def fabriquer(sortie, version=None):
                 z.write(p, p.relative_to(scene))
 
     dossiers = len(MAILLONS) + len(kit)
-    print(f"OK — {sortie} : {dossiers} dossiers ({len(MAILLONS)} maillons + "
-          f"{len(kit)} annexes), LISEZ-MOI.html, PROVENANCE.md, "
-          f"version {version}")
+    print(f"OK — {sortie} : {_pluriel(dossiers, 'dossier')} "
+          f"({_pluriel(len(MAILLONS), 'maillon')} + {_pluriel(len(kit), 'annexe')}), "
+          f"LISEZ-MOI.html, PROVENANCE.md, version {version}")
     return 0
 
 
@@ -182,6 +193,13 @@ def _autotest():
         assert dossiers == set(maillons()) | set(_kit()), dossiers
         assert {n for n in noms if "/" not in n} == {"LISEZ-MOI.html", "PROVENANCE.md"}
         assert "cortex-4-installation/scripts/VERSION" in noms
+        # Défaut 11 : la recette reste au dépôt, elle ne part pas dans le zip.
+        assert not [n for n in noms if "/recette/" in n], "recette embarquée"
+    # Défaut 10 : un dossier `cortex-<mot>` se range, il ne fait pas lever le tri.
+    assert _rang("cortex-4-installation") < _rang("cortex-paquet")
+    assert _rang("cortex-paquet")[0] == float("inf")
+    # Défaut 8 : singulier quand il n'y en a qu'un.
+    assert _pluriel(1, "annexe") == "1 annexe" and _pluriel(2, "annexe") == "2 annexes"
     print("fabrique.py : auto-test OK")
     return 0
 

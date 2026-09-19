@@ -193,7 +193,8 @@ def _courante(pivot):
     sur = "Étape en cours" if en_cours else "Prochaine étape"
     consigne = ("Cette étape a commencé. Pour la reprendre, dites à Claude Code :"
                 if en_cours else "Pour la lancer, dites à Claude Code :")
-    return (f'<section class="courante"><p class="sur">{sur} · {n} sur {len(pivot["etapes"]) - 1}</p>'
+    # Rang affiché, pas numéro d'étape : le novice lit « 1 sur 9 », jamais « 0 sur 8 ».
+    return (f'<section class="courante"><p class="sur">{sur} · {n + 1} sur {len(pivot["etapes"])}</p>'
             f"<h2>{html.escape(e['nom'])}</h2>"
             f"<p>{html.escape(RESUMES.get(n, ''))}</p>"
             f'<p class="phrase">{consigne} <strong>« {phrase} »</strong></p>'
@@ -291,12 +292,14 @@ def _autotest():
     with tempfile.TemporaryDirectory() as tmp:
         page = rendre(etat.generer(tmp), notice_md="# Titre\n\nUn `code` **gras**.\n- a\n- b\n")
         assert PHRASES[0] in page and "Prochaine étape" in page
+        assert "1 sur 9" in page and "0 sur 8" not in page   # défaut 5
         assert page.count("À faire") == 8, page.count("À faire")   # neuf moins la courante
         assert not re.search(r"https?://", page)
         assert "<strong>gras</strong>" in page and "<ul><li>a</li><li>b</li></ul>" in page
         (Path(tmp) / "poste.json").write_text('{"notice_ouverte_le": "x"}', encoding="utf-8")
         page = rendre(etat.generer(tmp), notice_md="")
         assert PHRASES[1] in page and "1 étape(s) faite(s)" in page
+        assert "2 sur 9" in page
     print("rend_notice.py : auto-test OK")
     return 0
 

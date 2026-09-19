@@ -5,7 +5,8 @@ Quatre gestes, tous explicites :
   --dry-run                    une ligne par outil du kit absent, avec la commande de l'OS courant
   --installer a,b              installe CES outils, et seulement ceux-là (l'accord a été donné avant)
   --mail adresse [...]         reconnaît le fournisseur (MX) et propose la voie de branchement
-  --ecrire --atelier <_cortex> écrit _cortex/poste.json et le bloc `poste` de config.yaml, puis
+  --ecrire --atelier <_cortex> écrit _cortex/poste.json, le bloc `poste` et organisation.code
+                               (le slug, --slug ou déduit du chemin) de config.yaml, puis
                                régénère et ouvre la notice. notice_ouverte_le est posé ici : la
                                notice est présentée, --no-open n'évite que l'ouvreur (recette)
   --autotest                   auto-test hors ligne
@@ -202,28 +203,35 @@ def bloc_mail(a):
 
 # ── Écriture ────────────────────────────────────────────────────────────────
 
-def bloc_poste_yaml(poste):
-    presents = [n for n in KIT if poste["outils"][n]["present"]]
-    return ("poste:\n"
-            f"  os: {poste['os']}\n"
-            f"  outils: [{', '.join(presents)}]\n"
-            f"  mail_fournisseur: {poste['mail']['fournisseur'] or '\"\"'}\n"
-            f"  mail_boites: {poste['mail']['boites']}\n"
-            f"  mail_voie: {poste['mail']['voie']}\n")
+def paires_poste(poste):
+    """Le bloc `poste` de config.yaml, miroir de poste.json. `outils` liste TOUT le
+    kit (04-contrat.md §2), présent ou non : poste.json porte le présent/absent."""
+    return {"os": poste["os"],
+            "outils": "[" + ", ".join(KIT) + "]",
+            "mail_fournisseur": poste["mail"]["fournisseur"] or '""',
+            "mail_boites": poste["mail"]["boites"],
+            "mail_voie": poste["mail"]["voie"]}
 
 
-def ecrire_bloc_poste(config, bloc):
-    """Remplace ou ajoute le bloc `poste` de config.yaml. Crée le fichier s'il manque."""
+def fusionner_bloc(config, cle, paires):
+    """Fusionne `paires` dans le bloc `cle:` de config.yaml. Les clés filles déjà
+    présentes et non fournies sont conservées, le reste du fichier ne bouge pas.
+    Crée le fichier s'il manque."""
     texte = config.read_text(encoding="utf-8") if config.is_file() else "version: 1\n"
-    lignes, garde, dans_poste = texte.splitlines(), [], False
-    for l in lignes:
-        if re.match(r"^poste:\s*(#.*)?$", l):
-            dans_poste = True
+    garde, dedans, filles = [], False, {}
+    for l in texte.splitlines():
+        if re.match(r"^" + re.escape(cle) + r":\s*(#.*)?$", l):
+            dedans = True
             continue
-        if dans_poste and l.strip() and not l.startswith((" ", "\t")):
-            dans_poste = False
-        if not dans_poste:
+        if dedans and l.strip() and not l.startswith((" ", "\t")):
+            dedans = False
+        if not dedans:
             garde.append(l)
+        elif ":" in l:
+            k, v = l.split(":", 1)
+            filles[k.strip()] = v.strip()
+    filles.update({k: str(v) for k, v in paires.items()})
+    bloc = cle + ":\n" + "".join("  {}: {}\n".format(k, v) for k, v in filles.items())
     texte = "\n".join(garde).rstrip("\n") + "\n\n" + bloc
     config.write_text(texte, encoding="utf-8")
     return texte
@@ -236,22 +244,44 @@ def _cortex4():
     return None
 
 
+def slug_de(a, atelier):
+    """Le slug (`organisation.code`) : donné par --slug, sinon lu dans le chemin
+    de l'atelier (`~/Cortex/<slug>/_cortex`), sinon vide."""
+    if a.slug:
+        return a.slug.strip().lower()
+    return atelier.parent.name.lower() if atelier.name == "_cortex" else ""
+
+
+def deja_par_cortex(ancien):
+    """Ce que Cortex avait déjà installé, relu des DEUX traces : la clé racine
+    laissée par `--installer` seul, et le drapeau par outil de l'écriture
+    précédente. Sans la seconde, deux `--ecrire` successifs perdaient le lot 1."""
+    vus = set(ancien.get("installe_par_cortex", []))
+    return vus | {n for n, o in (ancien.get("outils") or {}).items()
+                  if isinstance(o, dict) and o.get("installe_par_cortex")}
+
+
 def ecrire(a, systeme, etat):
     atelier = Path(a.atelier).expanduser()
     atelier.mkdir(parents=True, exist_ok=True)
     chemin = atelier / "poste.json"
     ancien = json.loads(chemin.read_text(encoding="utf-8")) if chemin.is_file() else {}
-    par_cortex = set(ancien.get("installe_par_cortex", [])) | set(a.installes)
+    par_cortex = deja_par_cortex(ancien) | set(a.installes)
     outils = {n: {"present": e["present"], "version": e["version"], "installe_par_cortex": n in par_cortex}
               for n, e in etat.items()}
     if etat["gh"]["present"]:
         outils["gh"]["connecte"] = gh_connecte()
     maintenant = datetime.now().isoformat(timespec="seconds")
+    slug = slug_de(a, atelier) or (ancien.get("organisation") or {}).get("code", "")
     poste = {"format": "cortex/poste", "version": 1, "genere_le": maintenant, "os": systeme,
+             "organisation": {"code": slug},
              "outils": outils, "options_proposees": a.options.split(",") if a.options else OPTIONS,
              "mail": bloc_mail(a), "notice_ouverte_le": maintenant}
     chemin.write_text(json.dumps(poste, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    ecrire_bloc_poste(atelier / "config.yaml", bloc_poste_yaml(poste))
+    config = atelier / "config.yaml"
+    if slug:
+        fusionner_bloc(config, "organisation", {"code": slug})
+    fusionner_bloc(config, "poste", paires_poste(poste))
     print(f"OK — {chemin} et bloc poste de config.yaml écrits ; voie mail : {poste['mail']['voie']}")
     if poste["mail"]["voie"] in ("softeria", "mcp-email") and not etat["node"]["present"]:
         print(f"node : absent → {OUTILS['node']['install'][systeme]} (requis par la voie {poste['mail']['voie']})")
@@ -290,13 +320,38 @@ def _autotest():
                           encoding="utf-8")
         poste = {"os": "macos", "outils": {n: {"present": n in ("git", "uv")} for n in KIT},
                  "mail": {"fournisseur": "gmail", "boites": 1, "voie": "connecteur"}}
-        texte = ecrire_bloc_poste(config, bloc_poste_yaml(poste))
+        texte = fusionner_bloc(config, "poste", paires_poste(poste))
         assert texte.count("poste:") == 1 and "os: macos" in texte and "mode: solo" in texte
+        # Défaut 14 : le slug arrive dans organisation.code, et la fusion garde `nom`.
+        fusionner_bloc(config, "organisation", {"nom": '"Acme"'})
+        texte = fusionner_bloc(config, "organisation", {"code": "acme"})
+        assert texte.count("organisation:") == 1 and "nom:" in texte and "code: acme" in texte
         sys.path.insert(0, str(_ICI.parent.parent / "cortex-4-installation" / "scripts"))
         import cortex_config
         conf = cortex_config.charger(config)
-        assert conf["poste"]["outils"] == ["uv", "git"] and conf["poste"]["mail_voie"] == "connecteur"
-        assert conf["profil"] == "employe"
+        # Défaut 13 : le bloc liste TOUT le kit, pas les seuls présents.
+        assert conf["poste"]["outils"] == KIT, conf["poste"]["outils"]
+        assert conf["poste"]["mail_voie"] == "connecteur" and conf["profil"] == "employe"
+        assert conf["organisation"]["code"] == "acme" and conf["organisation"]["nom"] == "Acme"
+
+    # Défaut 2 : deux --ecrire successifs conservent installe_par_cortex du lot 1.
+    with tempfile.TemporaryDirectory() as tmp:
+        atelier = Path(tmp) / "Cortex" / "acme" / "_cortex"
+        faux = {n: {"present": n in ("git", "gh"), "version": ""} for n in OUTILS}
+        faux["gh"]["present"] = False            # pas d'appel réseau à `gh auth status`
+        def args(installes):
+            return argparse.Namespace(atelier=str(atelier), installes=installes, options="",
+                                      mail="jane@exemple.test", boites=1, admin=False, imap=False,
+                                      fournisseur="gmail", no_open=True, slug="")
+        assert ecrire(args(["git"]), "macos", faux) == 0
+        assert ecrire(args(["uv"]), "macos", faux) == 0
+        poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+        par_cortex = sorted(n for n, o in poste["outils"].items() if o["installe_par_cortex"])
+        assert par_cortex == ["git", "uv"], par_cortex
+        assert poste["organisation"]["code"] == "acme"        # slug déduit du chemin
+        assert poste["notice_ouverte_le"]
+        conf = cortex_config.charger(atelier / "config.yaml")
+        assert conf["organisation"]["code"] == "acme" and conf["poste"]["outils"] == KIT
     print("poste.py : auto-test OK")
     return 0
 
@@ -314,6 +369,8 @@ def main():
     p.add_argument("--options", default="", help="options proposées, séparées par des virgules")
     p.add_argument("--ecrire", action="store_true", help="écrire poste.json et le bloc poste, ouvrir la notice")
     p.add_argument("--atelier", default="", help="chemin du dossier _cortex/")
+    p.add_argument("--slug", default="", help="nom court du second cerveau (organisation.code) ; "
+                                              "déduit du chemin de l'atelier s'il manque")
     p.add_argument("--no-open", action="store_true", help="ne pas ouvrir la notice (recette)")
     p.add_argument("--autotest", action="store_true")
     a = p.parse_args()
