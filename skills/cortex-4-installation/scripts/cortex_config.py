@@ -270,6 +270,10 @@ def conduite(conf):
     return conf.get("conduite", "consultant")
 
 
+PROFILS = ("employe", "dirigeant", "societe")
+REGIMES = ("pointeur", "copie")
+
+
 def valider_installable(conf):
     """Complétude du contrat : la config est-elle prête à produire un vault ?
 
@@ -331,6 +335,30 @@ def valider_installable(conf):
     if communs:
         erreurs.append(f"vehicules et payeurs partagent : {sorted(communs)}. "
                        "Qui vend et qui encaisse sont deux axes, jamais la meme valeur.")
+
+    # Cles v2 (contrat cortex-v2 §2). Absentes, elles sont tolerees : une config
+    # anterieure a la v2 n'en porte aucune. Presentes, elles sont fermees.
+    profil = conf.get("profil")
+    if profil is not None and profil not in PROFILS:
+        erreurs.append(
+            f"profil: {profil!r} n'est pas dans {sorted(PROFILS)}. Il se pose au "
+            "maillon 1 par une question en langage ordinaire et pilote racines, "
+            "plafonds et domaines de depart.")
+    elif profil == "societe" and conf.get("mode") != "federe":
+        erreurs.append(
+            f"profil: 'societe' impose mode: federe (lu : {conf.get('mode')!r}). "
+            "Chaque redacteur suit la chaine seul, et un commun est genere.")
+
+    donnees = conf.get("donnees") or {}
+    regime = donnees.get("regime")
+    if regime is not None and regime not in REGIMES:
+        erreurs.append(
+            f"donnees.regime: {regime!r} n'est pas dans {sorted(REGIMES)}. "
+            "pointeur des qu'une base deportee existe, copie sinon ; jamais les deux.")
+    elif regime == "copie" and (conf.get("substrats") or {}).get("base_projets"):
+        erreurs.append(
+            "donnees.regime: 'copie' alors que substrats.base_projets est renseigne. "
+            "Une base deportee impose le regime pointeur.")
     return erreurs
 
 
@@ -396,6 +424,22 @@ def _autotest():
     assert not any("conduite" in e for e in valider_installable(dict(conf, conduite="consultant")))
     assert any(e.startswith("conduite") for e in valider_installable(dict(conf, conduite="duo"))), \
         "une valeur de conduite inconnue doit être refusée"
+
+    # Clés v2 `profil` et `donnees.regime` : enums fermés, message qui nomme la
+    # clé ; absentes, tolérées (configs antérieures à la v2).
+    assert conf["profil"] in PROFILS and conf["donnees"]["regime"] in REGIMES
+    assert not valider_installable(conf), valider_installable(conf)
+    sans = {k: v for k, v in conf.items() if k not in ("profil", "donnees")}
+    assert not valider_installable(sans), "profil et donnees absents doivent passer"
+    for mauvais, cle in ((dict(conf, profil="autre"), "profil"),
+                         (dict(conf, donnees={"regime": "mixte"}), "donnees.regime"),
+                         (dict(conf, profil="societe"), "profil"),
+                         (dict(conf, donnees={"regime": "copie"},
+                               substrats={"base_projets": "https://base.exemple.test"}),
+                          "donnees.regime")):
+        e = valider_installable(mauvais)
+        assert any(x.startswith(cle + ":") for x in e), (cle, e)
+    assert not valider_installable(dict(conf, profil="societe", mode="federe"))
 
     # Le refus explicite du mapping à 2 niveaux fait partie du contrat.
     try:
