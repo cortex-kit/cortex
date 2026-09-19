@@ -70,9 +70,11 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/copie_structurant.py" --vault <vault> \
     --source "~/Documents/.../PROCESS-affaire.md" --type process --domaine "Ops"
 ```
 
-Il convertit le document (`uvx markitdown` pour les formats bureautiques, lecture directe pour le texte), écrit `50 - Ressources/Structurants/<type>/<nom>.md` avec le frontmatter du contrat (`type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` sha256 de la source, `copie_le`) et un marqueur de provenance. Rejoué, il ne duplique pas : même hash, rien ; source changée, copie rafraîchie ; note écrite à la main, refus. Le lint suspend le plafond de lignes sur ce dossier et lève `structurant_perime` dès que la source diverge de la copie.
+Il convertit le document (`uvx --from "markitdown[all]" markitdown` pour les formats bureautiques, depuis un dossier temporaire ; lecture directe pour le texte), écrit `50 - Ressources/Structurants/<type>/<nom>.md` avec le frontmatter du contrat (`type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` sha256 de la source, `copie_le`) et un marqueur de provenance. Rejoué, il ne duplique pas : même hash, rien ; source changée, copie rafraîchie ; note écrite à la main, refus. Le lint suspend le plafond de lignes sur ce dossier et lève `structurant_perime` dès que la source diverge de la copie.
 
 **Les fils de messagerie** (`fil_structurant`) n'entrent **jamais en corps de mail**. Un fil validé se copie en **résumé anonymisé** : objet, période, nombre de messages, participants réduits à leur rôle ou à leur domaine (« le cabinet comptable », « un fournisseur »), dix lignes de substance. Le résumé passe par `--texte <fichier>` sans `--source`. Le même fil s'inscrit dans `mail.fils_structurants` de `01-inventaire.json` : `{fil_id, objet, participants_anonymises, periode, messages, resume}`.
+
+**Après la remise**, le même script vit dans le vault, déposé par `scaffold.py` en `.claude/skills/ingest/copie_structurant.py`. C'est lui que la personne rejoue pour rafraîchir une copie périmée, plugin installé ou non : la skill `ingest` du vault porte le mode d'emploi.
 
 **En régime `pointeur`**, cette section ne s'applique pas : le dossier `Structurants/` reste vide, et une demande de copie se refuse en nommant le régime.
 
@@ -165,7 +167,7 @@ honnête probable : « pas encore », et c'est une bonne réponse.
 On enchaîne ?
 ```
 
-Sur accord, lancer `cortex-6-agents-metier` — après les trois fiches vérifiées : c'est le geste qui ne se saute pas, personne d'autre ne le fera.
+Vérifier les trois fiches avant de proposer la suite : c'est le geste qui ne se saute pas, personne d'autre ne le fera.
 
 ## Interdits
 

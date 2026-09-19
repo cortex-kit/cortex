@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """export.py : ce qui part au commun, écrit par la clôture. stdlib pure.
 
-Contrat 04 §6. En mode `federe`, vide puis réécrit `<vault>/<commun.export>/<slug>/` :
+Contrat 04 §6. Le `<slug>` est `organisation.code` du `config.yaml`, la seule
+clé qui le porte : `~/Cortex/<slug>/`, `_export/<slug>/`, le dépôt `cortex-<slug>`
+et l'entrée du membre dans `federation.yaml` en dérivent tous.
+
+En mode `federe`, vide puis réécrit `<vault>/<commun.export>/<slug>/` :
   index.json      {"format": "cortex/export", "version": 1, "slug", "exporte_le", "notes": [{chemin, hash}]}
   10 - Domaines/, 20 - Projets/, 40 - Acteurs/, 60 - Journal/
                   copie des notes dont `visibilite` vaut `commun`, frontmatter enrichi
@@ -27,8 +31,12 @@ from pathlib import Path
 # gabarit du dépôt, dans scripts/ de la skill d'installation (auto-test).
 _ICI = Path(__file__).resolve()
 sys.path.insert(0, str(_ICI.parent.parent / "lint"))
-if len(_ICI.parents) > 5:
-    sys.path.append(str(_ICI.parents[5] / "scripts"))
+# Le second chemin ne vaut que dans le gabarit, et il se reconnait a ce qu'il
+# contient, jamais a une profondeur : dans un vault installe sous
+# `~/Cortex/<slug>/`, `parents[5]` designe un dossier hors du vault.
+_scripts = _ICI.parents[5] / "scripts" if len(_ICI.parents) > 5 else None
+if _scripts is not None and (_scripts / "cortex_config.py").is_file():
+    sys.path.append(str(_scripts))
 import cortex_config  # noqa: E402
 import lint_sante  # noqa: E402
 

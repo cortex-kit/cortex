@@ -336,10 +336,28 @@ def outillage_seul(dest, conf, table_vide):
     for nom in ("cortex_config.py", "lint_sante.py"):
         shutil.copy2(Path(__file__).resolve().parent / nom, skill_lint / nom)
         n += 1
+    copier_ingest(dest)
+    n += 1
     ecrire_settings(dest, conf)
     n += 1
     print(f"✓ Outillage rafraichi : {n} fichier(s) sous .claude/. Contenu intact.")
     return 0
+
+
+def copier_ingest(dest):
+    """Depose `copie_structurant.py` dans `<vault>/.claude/skills/ingest/`.
+
+    En regime copie, `cloture`, `parle` et `bilan` proposent de rafraichir un
+    structurant perime. Sans ce script dans le vault, la promesse ne tient
+    qu'en mode solo, la ou le plugin est installe : en mode consultant, le
+    client n'a que son vault. Le script y trouve `cortex_config.py` dans le
+    dossier voisin `lint/`.
+    """
+    cible = dest / ".claude" / "skills" / "ingest"
+    cible.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(RACINE_SKILL.parent / "cortex-5-ingest" / "scripts" / "copie_structurant.py",
+                 cible / "copie_structurant.py")
+    return cible / "copie_structurant.py"
 
 
 def depot_prive(dest, slug, executer):
@@ -464,6 +482,8 @@ def main():
     for nom in ("cortex_config.py", "lint_sante.py"):
         shutil.copy2(Path(__file__).resolve().parent / nom, skill_lint / nom)
 
+    copier_ingest(dest)
+
     # Les permissions : les racines de collecte en lecture, jamais en écriture.
     # Générées et non copiées : elles dépendent de `collecte.racines`.
     ecrire_settings(dest, conf)
@@ -565,9 +585,12 @@ def _autotest():
         assert (out / ".claude" / "hooks" / "session_start.py").is_file()
         assert (out / ".claude" / "skills" / "parle" / "SKILL.md").is_file()
         assert (out / ".claude" / "skills" / "bilan" / "SKILL.md").is_file()
+        # Le rafraichissement d'un structurant perime doit etre executable
+        # depuis le seul vault, plugin absent (mode consultant).
+        assert (out / ".claude" / "skills" / "ingest" / "copie_structurant.py").is_file()
         assert "gh repo create cortex-acme --private" in r.stdout, r.stdout
         assert "/Users/" not in (out / "90 - Meta" / "Runbook - Nouveau Projet.md").read_text(encoding="utf-8")
-    print("OK scaffold.py : forme ~, settings.json, hooks, skills parle et bilan, depot prive propose")
+    print("OK scaffold.py : forme ~, settings.json, hooks, skills parle, bilan et ingest, depot prive propose")
     return 0
 
 

@@ -11,7 +11,7 @@ description: Audite la santé du vault contre son contrat de données. À lancer
 python3 .claude/skills/lint/lint_sante.py --vault .
 ```
 
-Sortie JSON pour un traitement automatisé : ajouter `--json`.
+Sortie JSON pour un traitement automatisé : ajouter `--json`. Sortie d'une ligne pour le hook de démarrage de session : ajouter `--bref`, qui rend le compte des contrôles durs, celui de la dette et le rappel de clôture quand elle est trop ancienne.
 
 Code retour : **0** = sain, **1** = au moins un contrôle dur en échec, **2** = erreur d'appel.
 
@@ -33,8 +33,23 @@ Deux registres, et ne jamais les confondre dans un compte rendu.
 | `chemins_absolus` | chemin lié à une machine : le vault cesse d'être transmissible |
 | `commun_edite_main` | note du vault commun modifiée à la main, en mode fédéré |
 | `progression_absente` | projet actif sans progression |
+| `visibilite_hors_enum` | `visibilite` autre que `prive` ou `commun` : l'export ne saurait pas quoi en faire |
 
-**`[i]` — dette.** À surveiller, sans bloquer : journal long, `dernier_journal` périmé, agent métier à revoir, note sans frontmatter.
+**`[i]`, la dette.** À surveiller, sans bloquer : journal long, `dernier_journal` périmé, agent métier à revoir, note sans frontmatter, structurant périmé, clôture ancienne.
+
+## Les quatre contrôles du régime copie et de la fédération
+
+Ils sont venus avec le régime `copie` et l'export vers un vault commun. Ce que le lint fait avec eux dépend de `config.yaml`.
+
+**Le régime, d'abord.** Le lint lit `donnees.regime` et le rappelle dans ses statistiques. En `pointeur`, les deux premiers contrôles ci-dessous ne trouvent rien, faute de copies.
+
+**`structurant_perime`, dette.** Pour chaque note de `50 - Ressources/Structurants/`, le lint recalcule le sha256 de `source_path` et le compare au `hash` du frontmatter. Trois raisons possibles : `source modifiee depuis la copie`, `source absente`, `frontmatter incomplet`. C'est une dette voulue : une source qui bouge n'est pas une faute, c'est un rafraîchissement à décider. Le geste est dans la skill `ingest`, section « Rafraîchir un structurant périmé ». Le code de retour reste 0.
+
+**Le plafond de lignes, suspendu sur les structurants.** `journal_entree_obese` ne s'applique pas dans `50 - Ressources/Structurants/`. Une copie de process fait la longueur de son process ; lui imposer dix lignes reviendrait à interdire le régime copie au moment même où on l'a choisi.
+
+**`visibilite`, contrôle dur.** Une note porte `visibilite: prive` ou `visibilite: commun`, ou rien du tout, auquel cas `commun.visibilite_defaut` tranche. Toute autre valeur bloque, parce que l'export du mode fédéré décide sur cette clé : une valeur hors enum enverrait dans le commun une note que personne n'a voulu y mettre, ou retiendrait une note attendue.
+
+**La dernière clôture, dette.** Le lint lit la date du dernier commit (`git log -1`) et la compare à `sante.jours_sans_cloture_alerte`, sept jours par défaut. Au-delà, il le dit. Sans dépôt git, il se tait plutôt que d'inventer. C'est ce même constat que le hook `SessionStart` reprend à l'ouverture.
 
 ## Pourquoi certains contrôles bloquent
 
