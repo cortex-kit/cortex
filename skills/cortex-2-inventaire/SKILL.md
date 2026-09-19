@@ -1,6 +1,6 @@
 ---
 name: cortex-2-inventaire
-description: Deuxième maillon de la chaîne Cortex. Mesure le disque par scan.py (dossiers, extensions, dates, dépôts git, signaux de base déportée, bornes en entiers), remplit le bloc mail par le connecteur retenu au maillon 0 (en-têtes seuls, agrégats), relève les bases déportées et dérive les écarts candidats pour l'entretien du maillon 3. Produit 01-inventaire.json et son rapport lisible, sans jamais copier de contenu. Déclencher quand la personne dit "maillon 2", "inventaire", "on scanne l'existant", "regarde ce que j'ai", ou dispose d'un cadrage validé. Ne PAS confondre avec cortex-5-ingest, qui transforme ce catalogue en notes dans le vault.
+description: Deuxième maillon de la chaîne Cortex. Mesure le disque par scan.py (dossiers, extensions, dates, dépôts git, signaux de base déportée, bornes en entiers), remplit le bloc mail par le connecteur retenu au maillon 0 (en-têtes seuls, agrégats), relève les bases déportées et dérive les écarts candidats pour l'entretien du maillon 3. Produit 01-inventaire.json et son rapport lisible, sans jamais copier de contenu. Déclencher quand la personne dit "lance l'inventaire" (phrase canonique de la notice), "maillon 2", "inventaire", "on scanne l'existant", "regarde ce que j'ai", ou dispose d'un cadrage validé. Ne PAS confondre avec cortex-5-ingest, qui transforme ce catalogue en notes dans le vault.
 ---
 
 # cortex-2-inventaire : cataloguer sans copier
