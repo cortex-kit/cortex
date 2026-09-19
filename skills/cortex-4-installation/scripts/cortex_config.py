@@ -391,7 +391,7 @@ def _autotest():
 
     # Clé `conduite` (phase 5) : absente ⇒ consultant ; valeur inconnue ⇒
     # erreur qui nomme la clé ; les deux valeurs attendues passent.
-    assert conduite(conf) == "consultant", "l'exemple ne porte pas la clé, le défaut doit être consultant"
+    assert conduite(conf) == "consultant", "l'exemple porte conduite: consultant, et le défaut sans clé vaut consultant"
     assert not any("conduite" in e for e in valider_installable(dict(conf, conduite="solo")))
     assert not any("conduite" in e for e in valider_installable(dict(conf, conduite="consultant")))
     assert any(e.startswith("conduite") for e in valider_installable(dict(conf, conduite="duo"))), \

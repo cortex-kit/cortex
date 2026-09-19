@@ -154,3 +154,11 @@ dites « clôture ».
 - **Jamais produire un support de formation** ni un protocole de suivi ici : hors périmètre par décision.
 - **Jamais déclarer un contrôle passé sans l'avoir lancé.** C'est le seul mensonge de toute la chaîne qui arrive jusqu'au client.
 - **Jamais faire la remise en visite guidée.** Montrer un geste réel vaut mieux qu'un tour du propriétaire : ce qu'on veut, c'est que le client lance `cloture` le lendemain, pas qu'il ait vu tous les dossiers.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

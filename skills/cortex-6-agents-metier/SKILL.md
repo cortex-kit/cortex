@@ -148,3 +148,11 @@ Sur accord, lancer `cortex-7-passation`. S'il manque un jalon — un fichier d'a
 - **Jamais un agent qui écrit.**
 - **Jamais un agent livré sans test sur du réel.**
 - **Jamais forcer une création** parce que le client en attend une. Zéro agent métier avec le kit générique vaut mieux qu'un agent qui répondra faux dans six mois.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

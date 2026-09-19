@@ -147,3 +147,11 @@ Sur accord, lancer `cortex-6-agents-metier` — après les trois fiches vérifi�
 - **Jamais tronquer en silence.** Ce qui est écarté se déclare avec son motif.
 - **Jamais de personne physique** dans `40 - Acteurs`.
 - **Jamais annoncer une écriture réussie sans l'avoir vérifiée.** Si une écriture échoue, le dire — un rapport de succès non vérifié empêche de savoir qu'il y a quelque chose à rattraper.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

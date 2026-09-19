@@ -178,3 +178,11 @@ Sur accord, lancer `cortex-2-inventaire`. Si un accès manque — un mot de pass
 - **Ne jamais ouvrir la messagerie sans accord tracé.**
 - **Ne jamais accepter un rédacteur collectif.** Un vault, une personne. « L'équipe » comme réponse est le début d'un produit différent.
 - **En solo, ne jamais demander « quel mode »** ni prononcer « solo » ou « consultant » devant la personne. La question d'ouverture en langage ordinaire suffit, la réponse s'écrit, et elle ne se repose jamais.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

@@ -159,3 +159,11 @@ Sur accord, lancer `cortex-4-installation`. Si la carte n'est pas confirmée : s
 - **Jamais dépasser 6 domaines** pour faire plaisir.
 - **Jamais combler un trou de l'inventaire par une supposition.** `Non observé` est une réponse.
 - **Jamais matérialiser ici.** Aucun fichier créé dans le vault : c'est le maillon 4, et le garder mécanique est ce qui le rend rejouable à coût nul.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

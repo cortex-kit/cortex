@@ -12,6 +12,16 @@
 
 version: 1
 
+# ── OBLIGATOIRE — qui conduit la chaîne, et pour qui ────────────────────────
+# conduite : solo (la personne installe pour elle-même) | consultant (un tiers
+# conduit). Fixée au maillon 1 par une question en langage ordinaire, jamais
+# reposée. Absente, elle vaut consultant.
+# profil : employe | dirigeant | societe. Pilote les questions du cadrage, les
+# racines proposées, les plafonds et les domaines de départ (cortex-1,
+# references/profils/<profil>.md). `societe` = plusieurs vaults + un commun.
+conduite: consultant
+profil: dirigeant
+
 # ── OBLIGATOIRE — qui porte ce vault ───────────────────────────────────────
 # `redacteur` est au singulier et le reste : un vault, un rédacteur. Toujours.
 # Plusieurs personnes = plusieurs vaults + un commun généré (voir `mode`).
@@ -25,7 +35,9 @@ organisation:
 # federe : ce vault alimente un vault commun GÉNÉRÉ, jamais édité à la main.
 mode: solo
 commun:
-  racine: ""                       # chemin du vault commun ; "" si mode solo
+  racine: ""                       # chemin du vault commun (forme ~) ; "" si mode solo
+  export: "_export"                # dossier, dans CE vault, où cloture dépose ce qui part au commun
+  visibilite_defaut: prive         # prive | commun : sort d'une note sans clé `visibilite`
 
 # ── OBLIGATOIRE — où vivent les dossiers de travail ────────────────────────
 # Le vault ne contient AUCUN autre chemin. C'est ce qui le rend transmissible :
@@ -34,6 +46,21 @@ commun:
 # `dossier_local` d'une fiche projet est RELATIF à cette racine.
 chemins:
   dossiers_projets: "~/Documents/Clients"
+
+# ── OBLIGATOIRE — régime de la donnée ───────────────────────────────────────
+# pointeur : le vault indexe et résume (≤ max_lignes_entree_journal), il ne
+#            copie rien. Régime imposé dès qu'une base déportée existe ou est
+#            choisie (substrats.base_projets non vide).
+# copie    : aucune base déportée. Les documents STRUCTURANTS validés un par un
+#            au maillon 5 sont copiés en markdown dans
+#            50 - Ressources/Structurants/ avec source_path, hash, copie_le.
+#            Le contrôle « 10 lignes » ne s'applique pas à ce dossier ; le
+#            contrôle structurant_perime compare le hash à la source.
+# structurants : les types de documents éligibles à la copie, dans les mots du
+#            maillon 5. Jamais un corps de mail hors `fil_structurant`.
+donnees:
+  regime: pointeur
+  structurants: [organigramme, process, fiche_de_poste, contrat, projet, acteur, tenants_aboutissants, fil_structurant]
 
 # ── OBLIGATOIRE — dé-personnalisation ──────────────────────────────────────
 # `mentions_interdites` est la liste que le grep de recette fait échouer, et le
@@ -97,6 +124,9 @@ sante:
   pointeur_canonique_obligatoire: true
   interdire_orphelins: true
   agent_metier_revue_mois: 6
+  max_notes_parle: 12              # notes chargées par `parle` avant de déléguer à chercheur-vault
+  max_structurants: 40             # plafond de documents copiés en régime copie (lots de 4)
+  jours_sans_cloture_alerte: 7     # au-delà, le hook SessionStart rappelle la clôture
 
 # ── OBLIGATOIRE — la couche agent livrée ───────────────────────────────────
 # `metier` est rempli au maillon 6 depuis _cortex/05-agents-metier.md. Chaque
@@ -129,6 +159,9 @@ substrats:
 # Jamais dépassées sans arbitrage écrit. Les plafonds ne sont pas de la
 # prudence technique : au-delà, on livre un annuaire que personne n'ouvre.
 collecte:
+  # racines : les dossiers que le maillon 2 parcourt, forme ~ obligatoire.
+  # Pas de commentaire en fin de ligne sur une liste inline : le parseur la lirait comme une chaîne.
+  racines: ["~/Documents/Clients"]
   profondeur_arbre: 3
   max_dossiers: 200
   mail_mois: 12
@@ -136,3 +169,19 @@ collecte:
   plafond_projets: 60
   plafond_acteurs: 80
   plafond_domaines: 6
+
+# ── ÉCRIT PAR LE MAILLON 0 — l'équipement du poste ──────────────────────────
+# Miroir de _cortex/poste.json, pour que les maillons suivants n'aient qu'un
+# fichier à lire. Vide tant que le maillon 0 n'a pas tourné.
+# outils : ce que poste.py a trouvé ou installé (obsidian, uv, markitdown, git,
+#          gh, github-desktop, buzz, node, wispr-flow, superwhisper, graphify).
+# mail_fournisseur : gmail | m365 | outlook_perso | autre | ""
+# mail_voie : connecteur | mcp-email | softeria | aucune
+#   règle : 1 boîte Google → connecteur ; ≥ 2 → mcp-email ;
+#           Outlook perso ou M365 sans admin → softeria.
+poste:
+  os: ""                           # macos | windows | linux
+  outils: []
+  mail_fournisseur: ""
+  mail_boites: 0
+  mail_voie: ""

@@ -148,3 +148,11 @@ Sur accord, lancer `cortex-3-ontologie`. Si un endroit déclaré n'a pas pu êtr
 - **Jamais d'inventaire partiel présenté comme complet.**
 - **Jamais de troncature silencieuse.** Ce qui est laissé de côté se déclare.
 - **Jamais de jugement ici.** « Ce dossier a l'air important » n'est pas un relevé. Compter, localiser, relever — le maillon 3 interprète.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

@@ -130,3 +130,11 @@ Sur accord, lancer `cortex-5-ingest`.
 - **Ne jamais installer sur une ontologie non validée.**
 - **Ne jamais laisser une moustache** non substituée : le client lirait `{{ORGANISATION}}` dans sa propre doctrine.
 - **Ne jamais copier `scaffold.py` chez le client.** C'est un outil d'installation ; le client n'a aucune raison de réinstancier son vault, et lui en donner le moyen l'expose à l'écraser.
+
+## Notice
+
+En fin de maillon, régénérer le tableau de bord et l'ouvrir, sans rien lancer d'autre :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier <chemin de _cortex/>
+
+La notice montre l'état des étapes et propose la phrase à prononcer pour la suivante. Elle ne l'exécute jamais : la personne décide d'enchaîner.

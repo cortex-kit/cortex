@@ -38,7 +38,7 @@ GABARIT = RACINE_SKILL / "template" / "vault"
 
 def blocs_generes(conf):
     """Les fragments Markdown dérivés de la config. Ils remplacent ce qui, chez
-    Cosmos, était écrit en dur : les 4 domaines nommés apparaissaient dans 6
+    le système d'origine, était écrit en dur : les 4 domaines nommés apparaissaient dans 6
     notes et 3 templates, dont un dictionnaire JavaScript."""
     domaines = conf.get("domaines", [])
     cycles = cortex_config.cycles_par_nom(conf)
