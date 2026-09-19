@@ -29,6 +29,7 @@ import json
 import re
 import shutil
 import subprocess
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -106,12 +107,21 @@ def racines_collecte(conf):
 def settings_json(conf):
     """Une règle deny Write et Edit par racine, les racines en lecture."""
     racines = racines_collecte(conf)
-    deny = []
+    # Une racine qui passe par un lien symbolique (macOS : /var -> /private/var)
+    # n'est pas reconnue par la règle écrite sous sa forme donnée : on écrit aussi
+    # la forme réelle quand elle diffère (constat M4 du 2026-09-19).
+    formes = []
     for r in racines:
+        formes.append(r)
+        reel = os.path.realpath(os.path.expanduser(r))
+        if reel != os.path.abspath(os.path.expanduser(r)):
+            formes.append(forme_tilde(reel))
+    deny = []
+    for r in formes:
         deny += [f"Write({r}/**)", f"Edit({r}/**)"]
     return {
         "permissions": {"allow": list(ALLOW), "deny": deny,
-                        "additionalDirectories": racines},
+                        "additionalDirectories": formes},
         "hooks": HOOKS,
     }
 
@@ -593,6 +603,11 @@ def _autotest():
     # Config v1 : sans `collecte.racines`, la racine est `chemins.dossiers_projets`.
     assert racines_collecte({"chemins": {"dossiers_projets": home + "/Affaires"}}) == ["~/Affaires"]
     assert racines_collecte({}) == []
+    # Racine par lien symbolique : la forme réelle est écrite en plus (constat M4).
+    _d = Path(tempfile.mkdtemp()); (_d / "reel").mkdir(); (_d / "lien").symlink_to(_d / "reel")
+    _s = settings_json({"collecte": {"racines": [str(_d / "lien")]}})
+    assert len(_s["permissions"]["additionalDirectories"]) == 2 and any(
+        "reel" in x for x in _s["permissions"]["deny"]), _s
 
     # Un scaffold réel depuis l'exemple, dans un dossier temporaire.
     exemple = RACINE_SKILL / "template" / "config.example.yaml"

@@ -340,30 +340,4 @@ puis, dans la session :
 
 Attendu : les quatre gestes se comportent comme ci-dessus, et la session n'affiche pas « workspace has not been trusted ».
 
-Sortie :
-
-
-## Écarts constatés hors lane G
-
-Tous les écarts relevés le 2026-09-19 avant merge ont été portés par leur lane propriétaire et sont vérifiés fermés par la recette verte :
-
-| Fichier | Lane | Constat du 2026-09-19 matin | État sur `fix/G` |
-|---|---|---|---|
-| `fabricant/scripts/rend_deck.py`, `fabricant/modeles/bento-runtime.html` | B | Le deck dépendait de la skill `presentation`, retirée du kit | Fermé : fichiers retirés, plus d'`import rend_deck` dans la recette |
-| `skills/stop-slop/SKILL.md:8` | chef (annexe) | Prénom du fabricant dans la phrase de déclenchement | Fermé : C8 vert, zéro ligne |
-| `skills/cortex-4-installation/scripts/notice.md:51,53` | B | `C:\Users\VOTRE_NOM\...`, lettre de lecteur | Fermé : C9 vert, zéro ligne |
-| `skills/cortex-4-installation/template/vault/.claude/agents/auditeur-ontologie.md` | E | `tools: Read, Grep, Glob, Bash` | Fermé : `tools: Read, Grep, Glob` |
-| `skills/cortex-4-installation/scripts/etat.py` | B | `main()` imprimait `/7` en dur | Fermé : `/{len(ETAPES)}` |
-| `fabricant/SKILL.md:72-77`, `PROVENANCE.md` | B | Marques du fabricant en clair | Fermé : la section renvoie à la liste hors dépôt, sans marque en clair |
-
-Un écart ouvert, trouvé en rejouant la recette le 2026-09-19, et porté par deux contrôles C4 rouges jusqu'au merge de `fix/E` :
-
-| Fichier | Lane | Constat | Valeur attendue |
-|---|---|---|---|
-| `skills/cortex-4-installation/scripts/scaffold.py:331` | E | `outillage_seul()` parcourt `template/vault/.claude/` en `rglob("*")` et lit chaque fichier par `src.read_text(encoding="utf-8")`. Tout fichier non texte sous cette arborescence fait sortir `scaffold.py` en 1 sur une `UnicodeDecodeError`, sans message compréhensible. Le cas se produit tout seul : un `python3 -m py_compile` sur les hooks du gabarit dépose un `__pycache__`, et le rafraîchissement d'outillage d'un vault déjà livré casse. Reproduction : installer un vault, `python3 -m py_compile skills/cortex-4-installation/template/vault/.claude/hooks/stop.py`, puis `scaffold.py --config <cfg> --out <vault> --outillage-seul` → `UnicodeDecodeError: 'utf-8' codec can't decode byte 0xae in position 10`. | Le même fichier a déjà la bonne forme à l'installation (`:438`) : il y filtre par suffixe (`.md`, `.yaml`, `.json`, `.txt`) et copie le reste tel quel. Reprendre ce filtre dans `outillage_seul()`. **Décision du chef d'orchestre du 2026-09-19 : le contrôle est posé dans la recette sans attendre (C4, deux assertions), la reprise `fix/E` porte le correctif, la recette repasse à 0 au merge de E, avant celui de G.** Le contrôle plante lui-même un fichier binaire sous `template/vault/.claude/hooks/__pycache__/`, lance `--outillage-seul`, exige la sortie 0 et le lint embarqué réactualisé, puis retire le fichier planté dans un `finally` : le gabarit du dépôt ressort propre même quand la recette échoue. |
-
-Une observation, sans conséquence sur la recette :
-
-| Fichier | Lane | Observation | Valeur suggérée |
-|---|---|---|---|
-| `skills/cortex-4-installation/scripts/etat.py`, `main()` | B | La ligne imprimée d'un atelier solo complet dit `8/9 étape(s) faite(s)` : exact, mais elle ne nomme pas l'étape arbitrée, là où §5 amendé parle de « 8 faites et 1 arbitrée ». Le pivot, lui, porte bien l'état `arbitre` et la raison, et c'est ce que la recette mesure. | `8/9 étape(s) faite(s), 1 arbitrée (vault solo)` |
+Sortie : 2026-09-19, deux sessions interactives (Sonnet, mode normal, dossier approuvé) dans un vault scaffoldé `~/Cortex-test-m4`. Run 1, racine `$TMPDIR/m4-racine` (sous `/var/folders`, lien symbolique vers `/private/var`) : `ls` sans prompt, **Write accepté** (« File created successfully »), la règle `deny` écrite sous la forme donnée ne matche pas le chemin réel. Run 2, racine `~/Cortex-test-m4-racine` : `ls` sans prompt (« 1 fichier »), **Write refusé** : « File is in a directory that is denied by your permission settings », aucun fichier créé. Le hook Stop a rendu « 1 fichier(s) modifié(s) sans clôture » dans les deux runs : c'était `.claude/skills/lint/__pycache__/` laissé par le hook SessionStart. Correctifs du chef d'orchestre : `scaffold.py` écrit aussi la forme réelle d'une racine symbolique dans `deny` et `additionalDirectories` ; le gabarit livre un `.gitignore` (`__pycache__/`, `*.pyc`, `.DS_Store`, `:memory:.ses`).
