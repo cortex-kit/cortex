@@ -22,7 +22,6 @@ cortex/
 │   ├── cortex-7-passation/             E
 │   ├── cortex-8-federation/            F  SKILL.md, scripts/federe.py
 │   └── stop-slop, humanizer, prompt-architect, presentation, compte-rendu, email-auditor   (kit.txt)
-├── fabricant/                          B  fabrique.py (zip de repli), rend_deck.py, kit.txt, modeles/
 ├── outils/OUTILS.md                    B  chaque outil : rôle, install mac et Windows, licence, URL, verdict
 ├── notice/LISEZ-MOI.html               B  guide hors ligne, régénéré depuis etat.json
 ├── chantiers/cortex-v2/                chef d'orchestre
