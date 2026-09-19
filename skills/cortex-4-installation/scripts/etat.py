@@ -219,6 +219,18 @@ def faites(pivot):
     return sum(1 for e in pivot["etapes"] if e["etat"].startswith("faite"))
 
 
+def compte(pivot):
+    """Le compteur en clair. §5 amendé : une étape arbitrée n'est pas une étape
+    faite, et « 9/9 » serait un mensonge en solo. Les deux comptes se nomment
+    séparément. `etat.py` et `notice.py` passent tous deux par ici : deux
+    formulations pour un même compte finiraient par diverger."""
+    arbitrees = sum(1 for e in pivot["etapes"] if e["etat"] == "arbitre")
+    texte = f"{faites(pivot)} faite(s)"
+    if arbitrees:
+        texte += f" et {arbitrees} arbitrée(s)"
+    return texte + f" sur {len(pivot['etapes'])}"
+
+
 def _autotest():
     with tempfile.TemporaryDirectory() as tmp:
         atelier = Path(tmp)
@@ -270,14 +282,7 @@ def main():
         print(f"[erreur] atelier introuvable : {a.atelier}", file=sys.stderr)
         return 2
     sortie, pivot = ecrire(Path(a.atelier).expanduser(), a.sortie)
-    # §5 amendé : une étape arbitrée n'est pas une étape faite, et 9/9 serait
-    # un mensonge en solo. On nomme les deux comptes séparément.
-    arbitrees = sum(1 for e in pivot["etapes"] if e["etat"] == "arbitre")
-    compte = f"{faites(pivot)} faite(s)"
-    if arbitrees:
-        compte += f" et {arbitrees} arbitrée(s)"
-    compte += f" sur {len(ETAPES)}"
-    print(f"OK — {sortie} : {compte}, "
+    print(f"OK — {sortie} : {compte(pivot)}, "
           f"conduite {pivot['conduite'] or 'non fixée'}, "
           f"suivante : « {pivot['phrase_suivante']} »")
     return 0

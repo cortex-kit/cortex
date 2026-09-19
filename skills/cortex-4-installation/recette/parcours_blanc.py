@@ -399,7 +399,8 @@ def empreinte_commun(commun):
         if p.is_file():
             texte = p.read_text(encoding="utf-8", errors="replace")
             out[p.relative_to(commun).as_posix()] = "\n".join(
-                l for l in texte.splitlines() if "genere_le" not in l and "généré par" not in l)
+                l for l in texte.splitlines()
+                if "genere_le" not in l and "généré par" not in l.lower())
     return out
 
 

@@ -92,8 +92,7 @@ def main():
     except Exception as exc:  # noqa: BLE001 — la notice ne bloque jamais la chaîne
         print(f"[notice] régénération impossible : {exc}")
         return 0
-    n = len(pivot["etapes"])
-    print(f"OK — {html} : {etat.faites(pivot)}/{n} étape(s) faite(s)")
+    print(f"OK — {html} : {etat.compte(pivot)} étape(s)")
     print(f"Prochaine phrase à dire : « {pivot['phrase_suivante']} »")
     if not a.no_open and not rend_notice.ouvrir(html):
         print("[notice] aucun ouvreur disponible : ouvrez le fichier ci-dessus à la main")
