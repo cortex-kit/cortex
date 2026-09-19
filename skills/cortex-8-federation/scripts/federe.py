@@ -191,9 +191,9 @@ def generer(conf, commun, quand):
         if dossier in par_type:
             par_type[dossier].append(n)
 
-    # Projets : un fichier par (membre, note), préfixé par le slug.
+    # Projets et journal : un fichier par (membre, note), préfixé par le slug.
     renommage = {}
-    for n in par_type["20 - Projets"]:
+    for n in par_type["20 - Projets"] + par_type["60 - Journal"]:
         stem = Path(n["chemin"]).stem
         n["stem"] = f"{n['slug'].upper()} - {stem}"
         renommage.setdefault(n["slug"], {})[stem] = n["stem"]
@@ -247,18 +247,20 @@ def generer(conf, commun, quand):
                       int(n["fm"].get("progression") or 0))
                      for n in par_type["20 - Projets"] if n["fm"].get("phase")})
 
-    presents = {"Centre"} | set(domaines) | set(acteurs) | {n["stem"] for n in par_type["20 - Projets"]}
+    presents = ({"Centre"} | set(domaines) | set(acteurs)
+                | {n["stem"] for n in par_type["20 - Projets"] + par_type["60 - Journal"]})
     neutralises, renommes = [], []
 
     # Tout est lu et vérifié : on peut vider.
     vider(commun)
-    for dossier in ("00 - Centre", "10 - Domaines", "20 - Projets", "40 - Acteurs"):
+    for dossier in ("00 - Centre", "10 - Domaines", "20 - Projets", "40 - Acteurs", "60 - Journal"):
         (commun / dossier).mkdir()
 
-    for n in par_type["20 - Projets"]:
-        fm, corps = separer(n["texte"])
-        corps = relier(corps, renommage.get(n["slug"], {}), presents, neutralises, renommes)
-        (commun / "20 - Projets" / f"{n['stem']}.md").write_text(assembler(fm, corps, n["slug"]), encoding="utf-8")
+    for dossier in ("20 - Projets", "60 - Journal"):
+        for n in par_type[dossier]:
+            fm, corps = separer(n["texte"])
+            corps = relier(corps, renommage.get(n["slug"], {}), presents, neutralises, renommes)
+            (commun / dossier / f"{n['stem']}.md").write_text(assembler(fm, corps, n["slug"]), encoding="utf-8")
 
     fusionnes = 0
     for nom_a, groupe in sorted(acteurs.items()):
@@ -297,6 +299,7 @@ def generer(conf, commun, quand):
         centre += [f"### {slug}", ""]
         centre += [f"- [[{n['stem']}]]" for n in sorted(par_type["20 - Projets"], key=lambda n: n["stem"]) if n["slug"] == slug]
         centre += [f"- [[{a}]]" for a, g in sorted(acteurs.items()) if any(n["slug"] == slug for n in g)]
+        centre += [f"- [[{n['stem']}]]" for n in sorted(par_type["60 - Journal"], key=lambda n: n["stem"]) if n["slug"] == slug]
         centre.append("")
     centre += ["## Par domaine", ""]
     for nom_d, d in sorted(domaines.items()):
@@ -317,7 +320,7 @@ def generer(conf, commun, quand):
     sceau = empreinte(commun)
     (commun / ".cortex-genere").write_text(sceau + "\n", encoding="utf-8")
     return {"membres": [str(m["slug"]) for m in membres], "notes": len(notes),
-            "journal_hors_commun": len(par_type["60 - Journal"]), "domaines": len(domaines),
+            "journal": len(par_type["60 - Journal"]), "domaines": len(domaines),
             "projets": len(par_type["20 - Projets"]), "acteurs": len(acteurs), "fusionnes": fusionnes,
             "liens_renommes": len(renommes), "liens_neutralises": sorted(set(neutralises)),
             "empreinte": sceau}
@@ -410,7 +413,7 @@ def _autotest():
         assert s1 == s2, "deux générations divergent hors genere_le"
         assert b1["empreinte"] == b2["empreinte"] == (commun / ".cortex-genere").read_text().strip()
         assert (commun / "README.md").is_file() and "ne pas éditer" in (commun / "README.md").read_text()
-        assert not (commun / "60 - Journal").exists() and b2["journal_hors_commun"] == 3
+        assert b2["journal"] == 3 and (commun / "60 - Journal" / "MARC - 2026-09-01 - Choix du commun.md").is_file()
         assert b2["projets"] == 14 and b2["acteurs"] == 11 and b2["fusionnes"] == 2 and b2["liens_renommes"] == 3, b2
         fm = lint_sante.parse_frontmatter((commun / "40 - Acteurs" / "Malbrun.md").read_text(encoding="utf-8"))
         assert fm["source_vault"] == ["camille", "marc", "yasmine"], fm["source_vault"]
@@ -476,7 +479,7 @@ def main():
         return 1
     print(f"Commun régénéré : {cfg.parent}\n"
           f"  membres   : {', '.join(bilan['membres'])}\n"
-          f"  notes lues: {bilan['notes']} (journal hors commun : {bilan['journal_hors_commun']})\n"
+          f"  notes lues: {bilan['notes']} (dont {bilan['journal']} de journal)\n"
           f"  domaines  : {bilan['domaines']}   projets : {bilan['projets']}   "
           f"acteurs : {bilan['acteurs']} (dont {bilan['fusionnes']} fusionnés)\n"
           f"  liens     : {bilan['liens_renommes']} renommés, {len(bilan['liens_neutralises'])} neutralisés"

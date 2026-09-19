@@ -1,6 +1,6 @@
 ---
 name: cortex-8-federation
-description: Huitième maillon de la chaîne Cortex, réservé au profil société. Relie plusieurs vaults (un par rédacteur) à un vault commun généré par federe.py depuis leurs exports _export/<slug>/, jamais édité à la main, régénéré à l'identique à chaque passage. Déclencher quand la personne dit "maillon 8", "fédération", "relie nos cerveaux", "le commun", "regénère le commun", ou quand au moins deux vaults membres ont fait une clôture. Ne PAS utiliser pour un vault solo (l'étape vaut alors « arbitrée »), ni pour écrire dans un vault membre.
+description: Huitième maillon de la chaîne Cortex, réservé au profil société : il relie les cerveaux. Relie plusieurs vaults (un par rédacteur) à un vault commun généré par federe.py depuis leurs exports _export/<slug>/, jamais édité à la main, régénéré à l'identique à chaque passage. Déclencher quand la personne dit "maillon 8", "fédération", "relie les cerveaux", "relie nos cerveaux", "le commun", "regénère le commun", ou quand au moins deux vaults membres ont fait une clôture. Ne PAS utiliser pour un vault solo (l'étape vaut alors « arbitrée »), ni pour écrire dans un vault membre.
 ---
 
 # cortex-8-federation : plusieurs cerveaux, un commun
@@ -40,7 +40,7 @@ membres:
 
 Règles :
 
-- `slug` est le code du rédacteur, identique au nom de son dossier d'export. Il devient le préfixe des projets dans le commun : `20 - Projets/<SLUG> - <titre>.md`.
+- `slug` est le code du rédacteur, identique au nom de son dossier d'export. Il devient le préfixe des projets et des notes de journal dans le commun : `20 - Projets/<SLUG> - <titre>.md`, `60 - Journal/<SLUG> - <titre>.md`.
 - `export` pointe le dossier `_export/<slug>/` du membre, en forme `~`. Un chemin relatif se lit depuis le dossier du commun.
 - Un membre s'ajoute par une ligne, une fois sa première clôture faite. Un membre se retire par la suppression de sa ligne : ses notes disparaissent du commun au passage suivant.
 - Le fichier se lit avec le même parseur que `config.yaml` : une ligne par membre, dict inline, pas de commentaire en fin de ligne.
@@ -61,13 +61,12 @@ Le script lit chaque `index.json`, vérifie le hash de chaque note exportée, re
 | `10 - Domaines/<nom>.md` | domaines fusionnés par nom, avec `source_vault: [a, b]`, la liste des projets et des acteurs rattachés |
 | `20 - Projets/<SLUG> - <titre>.md` | la note du membre telle quelle, `source_vault: <slug>` ; jamais fusionnée, deux rédacteurs qui suivent la même affaire donnent deux notes |
 | `40 - Acteurs/<nom>.md` | un acteur présent chez deux rédacteurs donne une note unique, `source_vault: [a, b]`, chaque vue sous un titre « Vu par <slug> » |
+| `60 - Journal/<SLUG> - <titre>.md` | les décisions partagées, telles quelles, `source_vault: <slug>` ; dossier ignoré par le lint |
 | `config.yaml` | dérivé des exports (domaines, cycles), pour que `lint_sante.py` puisse lire le commun |
 | `README.md` | « généré par federe.py, ne pas éditer », avec `genere_le` |
 | `.cortex-genere` | sha256 de l'ensemble hors `genere_le` : deux générations identiques donnent la même empreinte |
 
-Ce que le script fait aux liens : un lien vers un projet du même rédacteur suit le renommage ; un lien vers une note qui n'est pas dans le commun (note privée, note de journal, note de méthode) devient du texte simple. Le titre d'une note privée ne voyage pas dans un dossier partagé, et le commun ne porte jamais un lien mort.
-
-Ce que le script ne reprend pas : `60 - Journal/`. Les décisions structurantes restent dans le vault de qui les a prises.
+Ce que le script fait aux liens : un lien vers un projet ou une note de journal du même rédacteur suit le renommage ; un lien vers une note qui n'est pas dans le commun (note privée, note de méthode) devient du texte simple. Le titre d'une note privée ne voyage pas dans un dossier partagé, et le commun ne porte jamais un lien mort.
 
 Relancer après chaque clôture d'un membre, ou une fois par jour. Idempotent : dix passages ne changent que `genere_le`.
 
@@ -125,13 +124,13 @@ controles:
 
 Un contrôle qui n'est ni `passe` ni `arbitre` avec motif laisse le maillon en `statut: en_cours`.
 
-Sous le frontmatter, trois lignes suffisent : le nombre de projets, d'acteurs (dont fusionnés) et de domaines rendus par le script, et les liens neutralisés s'il y en a, pour que chaque rédacteur sache quelle note il pourrait passer en `visibilite: commun`.
+Sous le frontmatter, trois lignes suffisent : le nombre de projets, d'acteurs (dont fusionnés), de domaines et de notes de journal rendus par le script, et les liens neutralisés s'il y en a, pour que chaque rédacteur sache quelle note il pourrait passer en `visibilite: commun`.
 
 ## Message de clôture
 
 ```
 Commun régénéré pour <nom> : <M> membres, <P> projets, <A> acteurs
-(dont <F> fusionnés), <D> domaines. Lint vert, empreinte <8 premiers
+(dont <F> fusionnés), <D> domaines, <J> décisions partagées. Lint vert, empreinte <8 premiers
 caractères>.
 
 Le commun se lit, ne s'édite pas. Pour changer un fait : le vault qui
