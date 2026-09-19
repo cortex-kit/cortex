@@ -27,7 +27,7 @@ Cortex v2 fait d'un second cerveau v1 (sept maillons, vault pointeur, zip) un pr
 - Chaque lane vit dans un worktree : `git -C ~/Dev/cortex worktree add ~/Dev/cortex--<lane> -b lane/<lane>`, créé par le chef d'orchestre avant d'ouvrir la session.
 - Une lane ne touche que les fichiers qu'elle possède (`04-contrat.md` §1). Un besoin ailleurs se signale, il ne s'exécute pas.
 - Ordre de merge : B, C, D, E, F, puis G. Chaque merge est précédé d'un audit à froid (`06-prompt-review.md`) en session neuve.
-- Modèle exécutant : Fable 5, effort `high`. Modèle auditeur : Fable 5, effort `high`.
+- Modèle exécutant des lanes B à G : Fable 5.1, effort `high` (lancées le 2026-09-19). Décision du 2026-09-19 : les sessions suivantes (audits à froid, relances de G, phases H et I) tournent en Opus 5, effort `high` ; les lanes Fable sont fermées dès leur rapport final.
 - Le chef d'orchestre relaie, ne recopie pas, et ne franchit aucun point d'arrêt à la place de la personne.
 
 ## Version
