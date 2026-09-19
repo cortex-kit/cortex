@@ -17,8 +17,8 @@ Cortex v2 fait d'un second cerveau v1 (sept maillons, vault pointeur, zip) un pr
 |---|---|---|
 | A1 Repo | faite | 2026-09-19 |
 | A2 Contrat | faite | 2026-09-19 |
-| B, C, D, E, F | à lancer | |
-| G Recette | à lancer, préparatoire dès A2 | |
+| B, C, D, E, F | lancées en onglets cmux (`surface:148` à `152`), bypass total, worktrees `~/Dev/cortex--<lane>` | 2026-09-19 |
+| G Recette | lancée en préparatoire (`surface:153`) | 2026-09-19 |
 | H Parcours réel | après G | |
 | I Remise | après H | |
 

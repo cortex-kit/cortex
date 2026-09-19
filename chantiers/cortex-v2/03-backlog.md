@@ -21,3 +21,11 @@ Chaque lane vit dans `~/Dev/cortex--<lane>`, branche `lane/<lane>`, ne touche qu
 - Sonde Cowork (une commande `uvx markitdown --version` dans le bac à sable) avant la Phase G.
 - Décision sur les quatre annexes internes qui portent des marques : traiter ou retirer du kit.
 - Nom de la machine Windows pour la Phase G.
+
+## Décisions prises après A2 (chef d'orchestre, 2026-09-19)
+
+- Kit d'annexes réduit à `stop-slop` ; humanizer, prompt-architect, presentation, compte-rendu et email-auditor retirées de `skills/` (commit `2e0ee29`). La skill `cloture` du gabarit porte la substance du rituel, dé-brandée (lane E).
+- Lanes en bypass total (`--dangerously-skip-permissions`), confinées par worktree et par prompt ; chaque lane a reçu `consignes-<lane>.md` sur sa branche.
+- Sonde Cowork web : `uv 0.8.17` et `markitdown 0.1.7` disponibles, mais conteneur distant sans accès au disque. La recette Cowork de G vise l'app bureau ; le web est écarté pour un vault local.
+- Org GitHub `cortex-kit` créée, dépôt public poussé, fork `cortex-kit/mcp-email` disponible : c'est lui que `OUTILS.md` cite.
+- Une machine Windows est disponible chez la personne ; à nommer au lancement de la recette G.
