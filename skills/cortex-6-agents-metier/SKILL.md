@@ -139,7 +139,7 @@ Sa condition d'entrée : tous les jalons précédents au vert —
 On enchaîne ?
 ```
 
-Sur accord, lancer `cortex-7-passation`. S'il manque un jalon — un fichier d'atelier ni valide ni arbitré — s'arrêter et dire lequel : le maillon 7 le refuserait de toute façon en étape 0.
+S'il manque un jalon, c'est-à-dire un fichier d'atelier ni validé ni arbitré, s'arrêter et dire lequel : le maillon 7 le refuserait de toute façon en étape 0.
 
 ## Interdits
 

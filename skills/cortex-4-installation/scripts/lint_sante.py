@@ -334,7 +334,10 @@ def lint(vault, conf):
                     f["moustaches_residuelles"].append(
                         {"file": str(rel), "cle": m.group(0)})
                     break
-        for m in re.finditer(r"(/Users/[\w.-]+|/home/[\w.-]+|[A-Z]:\\\\)", text):
+        # Une lettre de lecteur s'ecrit avec UN antislash dans le texte lu. La v1
+        # en exigeait deux (`\\\\` en chaine brute) et ne voyait donc aucun
+        # chemin Windows. L'auto-test en porte le temoin.
+        for m in re.finditer(r"(/Users/[\w.-]+|/home/[\w.-]+|[A-Za-z]:\\)", text):
             f["chemins_absolus"].append({"file": str(rel), "extrait": m.group(1)})
             break
 
@@ -473,6 +476,24 @@ LIBELLES = {
 }
 
 
+def ligne_constat(it):
+    """Un constat en une ligne lisible : le fichier, puis la raison.
+
+    Les constats sont des dicts. Rendus en JSON brut, ils donnaient
+    `{"file": "...", "source_path": "...", "raison": "..."}` a quelqu'un qui
+    veut savoir quel fichier reprendre et pourquoi.
+    """
+    if not isinstance(it, dict):
+        return str(it)
+    tete = it.get("file") or it.get("chemin") or ""
+    raison = (it.get("raison") or it.get("cle") or it.get("extrait")
+              or it.get("visibilite") or "")
+    if not raison:
+        raison = ", ".join(f"{k} : {v}" for k, v in it.items()
+                           if k not in ("file", "chemin"))
+    return f"{tete} : {raison}" if tete and raison else (tete or raison)
+
+
 def rendre(f, conf):
     s = f["stats"]
     nom = (conf.get("organisation") or {}).get("nom", "?")
@@ -488,7 +509,7 @@ def rendre(f, conf):
             sain = False
         print(f"[{'!' if dur else 'i'}] {len(items)} {libelle} :")
         for it in items[:12]:
-            print(f"    - {it if isinstance(it, str) else json.dumps(it, ensure_ascii=False)}")
+            print(f"    - {ligne_constat(it)}")
         if len(items) > 12:
             print(f"    ... et {len(items) - 12} autre(s)")
         print()
@@ -501,9 +522,9 @@ def bref(f):
     """Une ligne pour le hook SessionStart, en langage ordinaire."""
     durs = sum(len(f.get(k) or []) for k in DURS)
     dette = sum(len(f.get(k) or []) for k in LIBELLES if k not in DURS)
-    ligne = (f"Contrôle de santé : {durs} problème(s) bloquant(s), {dette} point(s) à surveiller"
-             + (f", {len(f['structurant_perime'])} structurant(s) périmé(s)" if f.get("structurant_perime") else "")
-             + ".")
+    # `structurant_perime` est deja dans `dette` : l'annoncer a part le comptait
+    # deux fois dans la meme phrase (« 1 point a surveiller, 1 structurant perime »).
+    ligne = f"Contrôle de santé : {durs} problème(s) bloquant(s), {dette} point(s) à surveiller."
     if f.get("cloture_ancienne"):
         c = f["cloture_ancienne"][0]
         ligne += (f" Dernière clôture il y a {c['age_jours']} jours (seuil {c['seuil']}) : "
@@ -606,10 +627,28 @@ def _autotest():
         assert "bloquant" in bref(f)
         f["cloture_ancienne"] = [{"derniere_cloture": "2026-09-01", "age_jours": 18, "seuil": 7}]
         assert "18 jours" in bref(f)
+        # Un constat perime est deja compte dans la dette : jamais annonce deux fois.
+        f["structurant_perime"] = [{"file": "50 - Ressources/Structurants/process/P.md",
+                                    "source_path": "~/x/P.docx",
+                                    "raison": "source modifiee depuis la copie"}]
+        assert "structurant" not in bref(f), bref(f)
+        assert (ligne_constat(f["structurant_perime"][0])
+                == "50 - Ressources/Structurants/process/P.md : source modifiee depuis la copie")
+        assert ligne_constat({"derniere_cloture": "2026-09-01", "age_jours": 18, "seuil": 7}) \
+            == "derniere_cloture : 2026-09-01, age_jours : 18, seuil : 7"
         # Le seuil est lu dans la config, pas codé en dur.
         assert conf["sante"]["jours_sans_cloture_alerte"] == 7
         assert peremption_structurant({"source_path": "", "hash": ""}).startswith("frontmatter incomplet")
-    print("OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref")
+
+        # Temoin : une lettre de lecteur telle qu'elle s'ecrit, un seul antislash.
+        temoin = v / "10 - Domaines" / "Windows.md"
+        temoin.write_text("---\ntype: domaine\ntags:\n  - d/ops\n---\n"
+                          "# Windows\n\nLe dossier est C:\\Users\\Nom\\Documents.\n", encoding="utf-8")
+        vus = lint(v, conf)["chemins_absolus"]
+        assert [c for c in vus if c["file"] == "10 - Domaines/Windows.md"
+                and c["extrait"] == "C:\\"], vus
+        temoin.unlink()
+    print("OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, lettre de lecteur")
     return 0
 
 

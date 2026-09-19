@@ -5,10 +5,12 @@ Contrat 04 §2. Écrit `50 - Ressources/Structurants/<type>/<nom>.md` avec le
 frontmatter `type: structurant`, `structurant: <type>`, `domaine`, `source_path`
 (forme `~`), `hash` (sha256 de la source), `copie_le`, et le texte de la source.
 
-Le texte vient du fichier lui-même (.md, .txt, .csv) ou de `uvx markitdown`
-pour les autres formats ; à défaut, `--texte <fichier>` fournit une conversion
-déjà faite. Pour un `fil_structurant`, `--texte` porte le résumé anonymisé et
-`--source` est facultatif : un fil de messagerie n'a pas de fichier qui change.
+Le texte vient du fichier lui-même (.md, .txt, .csv) ou de
+`uvx --from "markitdown[all]" markitdown` pour les autres formats, lancé depuis
+un dossier temporaire car le convertisseur laisse un fichier `:memory:.ses` ;
+à défaut, `--texte <fichier>` fournit une conversion déjà faite. Pour un
+`fil_structurant`, `--texte` porte le résumé anonymisé et `--source` est
+facultatif : un fil de messagerie n'a pas de fichier qui change.
 
 Refuse : un régime autre que `copie`, un type hors `donnees.structurants`, le
 plafond `sante.max_structurants` atteint, une note existante écrite à la main.
@@ -24,17 +26,40 @@ import hashlib
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
 _ICI = Path(__file__).resolve()
-sys.path.insert(0, str(_ICI.parents[2] / "cortex-4-installation" / "scripts"))
+# Ce script tourne depuis deux endroits : le plugin
+# (`skills/cortex-5-ingest/scripts/`) et le vault instancie
+# (`<vault>/.claude/skills/ingest/`), ou `scaffold.py` n'existe pas et ou
+# `cortex_config.py` est le voisin depose par scaffold dans `../lint/`.
+for _p in (_ICI.parents[2] / "cortex-4-installation" / "scripts",
+           _ICI.parent.parent / "lint", _ICI.parent):
+    if (_p / "cortex_config.py").is_file():
+        sys.path.insert(0, str(_p))
+        break
 import cortex_config  # noqa: E402
-from scaffold import forme_tilde  # noqa: E402
+
+try:
+    from scaffold import forme_tilde  # noqa: E402
+except ImportError:  # vault instancie : scaffold.py n'y est pas livre.
+    def forme_tilde(chemin):
+        """Repli de `scaffold.forme_tilde`, qui reste la definition de reference."""
+        s = str(chemin or "").strip().replace("\\", "/")
+        if not s or s.startswith("~"):
+            return s
+        home = str(Path.home()).replace("\\", "/")
+        if s == home or s.startswith(home + "/"):
+            return "~" + s[len(home):]
+        return s
 
 STRUCTURANTS = Path("50 - Ressources/Structurants")
 MARQUEUR = "<!-- cortex-5-ingest: structurant:{nom} {jour} -->"
 TEXTE_DIRECT = {".md", ".txt", ".csv", ".markdown"}
+# Contrat 04, amendement §3 : le paquet nu ne lit ni pdf ni docx.
+CMD_MARKITDOWN = ["uvx", "--from", "markitdown[all]", "markitdown"]
 
 
 def sha256_fichier(chemin):
@@ -46,13 +71,20 @@ def sha256_fichier(chemin):
 
 
 def texte_de(source, max_octets):
-    """Texte d'un fichier : direct pour le texte brut, `uvx markitdown` sinon."""
+    """Texte d'un fichier : direct pour le texte brut, markitdown sinon.
+
+    L'appel est `uvx --from "markitdown[all]" markitdown <src>` : le paquet nu
+    ne lit ni pdf ni docx. Il tourne dans un dossier temporaire, jamais dans le
+    vault, car le convertisseur y laisse un fichier `:memory:.ses`.
+    """
     if source.suffix.lower() in TEXTE_DIRECT:
         brut = source.read_bytes()[:max_octets]
         return brut.decode("utf-8", errors="replace")
     try:
-        r = subprocess.run(["uvx", "markitdown", str(source)], capture_output=True,
-                           text=True, timeout=120)
+        with tempfile.TemporaryDirectory() as bac:
+            r = subprocess.run(
+                CMD_MARKITDOWN + [str(source.resolve())],
+                capture_output=True, text=True, timeout=120, cwd=bac)
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     if r.returncode != 0:
@@ -153,7 +185,6 @@ def main():
 
 
 def _autotest():
-    import tempfile
     conf = {"donnees": {"regime": "copie", "structurants": ["process", "fil_structurant"]},
             "sante": {"max_structurants": 2}}
     j = date(2026, 9, 19)
@@ -185,6 +216,8 @@ def _autotest():
         fil = (v / STRUCTURANTS / "fil_structurant" / "Revue fournisseurs.md").read_text(encoding="utf-8")
         assert 'source_path: ""' in fil
         assert "fil_structurant" in copier(v, conf, "process", "Ops", titre="Sans source", texte="x")[1]
+        # Temoin de la forme d'appel du convertisseur (contrat 04, amendement §3).
+        assert CMD_MARKITDOWN == ["uvx", "--from", "markitdown[all]", "markitdown"]
     print("OK copie_structurant.py")
     return 0
 

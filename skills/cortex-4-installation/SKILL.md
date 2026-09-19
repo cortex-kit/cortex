@@ -48,7 +48,7 @@ Ce qui relève d'un autre maillon : le choix des domaines (`cortex-3`), la colle
 python3 scripts/scaffold.py --config <config.yaml> --out "<racine du vault client>"
 ```
 
-Il crée l'arborescence, substitue les moustaches, **instancie une note par domaine dans `10 - Domaines/`**, génère `graph.json` depuis les domaines, écrit le miroir `90 - Meta/Configuration.md`, copie les scripts de maintenance dans `.claude/skills/lint/`, génère `.claude/settings.json`, initialise git, propose le dépôt privé, et **échoue si une moustache subsiste** ou si la config est incomplète. Tout chemin du dossier personnel ressort en forme `~`.
+Il crée l'arborescence, substitue les moustaches, **instancie une note par domaine dans `10 - Domaines/`**, génère `graph.json` depuis les domaines, écrit le miroir `90 - Meta/Configuration.md`, copie les scripts de maintenance dans `.claude/skills/lint/` et `copie_structurant.py` dans `.claude/skills/ingest/` (sans quoi le rafraîchissement d'un structurant périmé ne serait tenable qu'avec le plugin installé), génère `.claude/settings.json`, initialise git, propose le dépôt privé, et **échoue si une moustache subsiste** ou si la config est incomplète. Tout chemin du dossier personnel ressort en forme `~`.
 
 ### Les permissions : lire les dossiers de travail, n'y écrire jamais
 
@@ -67,6 +67,8 @@ Après `git init`, le script affiche la commande et s'arrête là :
 ```bash
 cd "<vault>" && gh repo create cortex-<slug> --private --source . --push
 ```
+
+Le `<slug>` est `organisation.code` du `config.yaml`, demandé au maillon 0 et jamais redemandé. Le même sert à `~/Cortex/<slug>/`, à `_export/<slug>/` et à l'entrée du membre dans `federation.yaml`.
 
 Poser la question à la personne (AskUserQuestion) : « Voulez-vous une sauvegarde privée de votre second cerveau sur votre compte GitHub ? » Options : oui ; non, je reste sur mon poste. Sur oui seulement, lancer la commande ci-dessus, ou relancer le scaffold avec `--depot-prive`. Un refus est une réponse complète : le vault versionné localement garde déjà l'annulation et l'historique. Prérequis d'un oui : `gh auth login` fait au maillon 0.
 
@@ -148,8 +150,6 @@ encore vide. N'y écrivez rien à la main avant le remplissage.
 
 On enchaîne ?
 ```
-
-Sur accord, lancer `cortex-5-ingest`.
 
 ## Interdits
 

@@ -57,6 +57,33 @@ Une source ingérée qui ne change rien nulle part est une source qui ne mérita
 
 Une ligne dans le `## Historique` du `_README` du dossier : `- AAAA-MM-JJ - [[Titre]] - impact en une ligne`.
 
+## Régime copie : les structurants
+
+Deux régimes de donnée cohabitent, fixés au cadrage dans `config.yaml`, clé `donnees.regime`.
+
+En régime `pointeur`, tout ce qui précède s'applique et rien d'autre : la source reste à son adresse, le vault la désigne.
+
+En régime `copie`, un second geste existe pour une famille restreinte de documents, les structurants : organigramme, process, fiche de poste, contrat, projet, acteur, tenants et aboutissants, fil de messagerie structurant. Ceux-là sont recopiés dans `50 - Ressources/Structurants/<type>/`, parce qu'ils fondent la compréhension et qu'un lien mort vers un fichier déplacé vaut zéro. La liste exacte vit dans `donnees.structurants`, le plafond dans `sante.max_structurants`.
+
+Le geste, depuis la racine du vault :
+
+    python3 .claude/skills/ingest/copie_structurant.py --vault . --source <fichier> --type process --domaine "Ops"
+
+La copie porte `type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` (sha256 de la source) et `copie_le`. Le script rejoué ne duplique pas : même hash, il ne touche rien ; hash différent, il rafraîchit ; note écrite à la main, il refuse et le dit.
+
+## Rafraîchir un structurant périmé
+
+Le lint compare le `hash` du frontmatter à la source et lève `structurant_perime` : la source a changé depuis la copie, ou elle a disparu. C'est une dette, pas un blocage, et le lint reste à 0.
+
+Devant un `[i] structurant(s) dont la source a change depuis la copie` :
+
+1. Lire la ligne du constat : elle donne le fichier du vault et le `source_path`.
+2. Source toujours là, changement voulu : rejouer la commande ci-dessus sur la même source, avec le même `--type` et le même `--domaine`. La copie se rafraîchit, le hash suit, le constat tombe.
+3. Source déplacée : la copier de nouveau depuis sa nouvelle adresse, puis supprimer l'ancienne note si le titre a changé.
+4. Source supprimée à dessein : garder la copie et l'assumer, elle est devenue la seule trace ; ou la retirer du vault si elle n'a plus d'objet.
+
+Un structurant périmé qu'on laisse est un choix, pas un oubli, du moment qu'il est vu. Le bilan le redit à chaque passage.
+
 ## Idempotence
 
 Avant de créer, vérifier qu'une note ne pointe pas déjà vers la même `source_url`. Si oui : **mettre à jour** plutôt que dupliquer, et le signaler.
