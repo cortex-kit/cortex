@@ -334,8 +334,9 @@ def lint(vault, conf):
                     f["moustaches_residuelles"].append(
                         {"file": str(rel), "cle": m.group(0)})
                     break
-        # Une lettre de lecteur s'ecrit avec UN antislash dans le texte lu :
-        # `C:\Users`. La v1 en exigeait deux et ne voyait donc aucun chemin Windows.
+        # Une lettre de lecteur s'ecrit avec UN antislash dans le texte lu. La v1
+        # en exigeait deux (`\\\\` en chaine brute) et ne voyait donc aucun
+        # chemin Windows. L'auto-test en porte le temoin.
         for m in re.finditer(r"(/Users/[\w.-]+|/home/[\w.-]+|[A-Za-z]:\\)", text):
             f["chemins_absolus"].append({"file": str(rel), "extrait": m.group(1)})
             break
