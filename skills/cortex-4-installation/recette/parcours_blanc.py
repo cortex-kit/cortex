@@ -40,6 +40,9 @@ SKILLS = DEPOT / "skills"
 PAQUET = DEPOT / "fabricant"
 FIXTURES = RECETTE / "fixtures"
 ATELIER_RECETTE = FIXTURES / "_recette"       # sous ~ : les chemins en forme ~ y sont possibles
+# Le depot peut etre clone hors du dossier personnel (CI, dossier temporaire) :
+# `scan.py` ecrit alors des chemins absolus, legitimes (§4, amendement).
+SOUS_HOME = FIXTURES.is_relative_to(Path.home())
 POSTE = SKILLS / "cortex-0-poste" / "scripts" / "poste.py"
 SCAN = SKILLS / "cortex-2-inventaire" / "scripts" / "scan.py"
 FEDERE = SKILLS / "cortex-8-federation" / "scripts" / "federe.py"
@@ -65,6 +68,12 @@ MARQUES_EMPREINTES = {
     "4cbe19716b1aa73a", "35f85825b9016fcc", "93a8567601604723", "2be94190c1fc7991",
 }
 PERIMETRE_WHITE_LABEL = [SKILLS, DEPOT / "notice", DEPOT / "outils", DEPOT / "README.md"]
+# Une ligne qui DEFINIT le motif « chemin absolu » (regex Python, chaine brute,
+# commande grep de la passation) n'est pas un chemin de machine : sans cette
+# exclusion, le controle C9 se mord la queue sur parcours_blanc.py, lint_sante.py
+# et cortex-7-passation/SKILL.md. Les fragments entre backticks sont retires de
+# la ligne avant la recherche, pour la meme raison.
+MOTIF_DE_DETECTION = re.compile(r"""re\.(compile|search|match|findall|finditer|sub)\s*\(|(?<![A-Za-z0-9_])r["']|\bgrep\b""")
 BINAIRES = {".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".docx", ".xlsx", ".pyc", ".woff", ".woff2", ".ttf"}
 PROFILS = ("employe", "dirigeant", "societe")
 ETAPES_CONTRAT = {0: "poste.json", 1: "00-cadrage.md", 2: "01-inventaire.md", 3: "02-ontologie.md",
@@ -545,13 +554,33 @@ def c1_neuf_etapes(tmp, cfg):
     for nom, m, p in ARTEFACTS_MD:
         (complet / f"{nom}.md").write_text(FM_ATELIER.format(m=m, p=p, s="valide", v="passe"), encoding="utf-8")
     pivot_complet = m_etat.generer(complet)
-    verifie("le compteur annonce 9/9 quand les neuf lignes sont faites", m_etat.faites(pivot_complet) == 9,
-            str([e["etat"] for e in pivot_complet["etapes"]]))
+    etats = [e["etat"] for e in pivot_complet["etapes"]]
+    # §5 amende : en mode solo l'etape 8 vaut `arbitre`. Un atelier solo complet
+    # annonce donc « 8 faites et 1 arbitree », jamais 9/9, et n'a plus de suite.
+    verifie("atelier solo complet : 8 faites et 1 arbitrée (§5 amendé), jamais 9/9",
+            m_etat.faites(pivot_complet) == 8 and etats[8] == "arbitre"
+            and m_etat.suivante(pivot_complet["etapes"]) is None, str(etats))
+    # Le 9/9 se mesure la ou il existe : un atelier `mode: federe`, ou l'etape 8
+    # porte un artefact comme les huit autres.
+    federe = tmp / "_cortex-complet-federe"
+    federe.mkdir()
+    (federe / "config.yaml").write_text(
+        cfg.read_text(encoding="utf-8").replace("mode: solo", "mode: federe")
+           .replace('racine: ""', 'racine: "~/Cortex/commun"'), encoding="utf-8")
+    (federe / "poste.json").write_text(poste_json(), encoding="utf-8")
+    for nom, m, pr in ARTEFACTS_MD:
+        (federe / f"{nom}.md").write_text(FM_ATELIER.format(m=m, p=pr, s="valide", v="passe"), encoding="utf-8")
+    pivot_federe = m_etat.generer(federe)
+    verifie("atelier fédéré complet : le compteur annonce 9 sur 9",
+            m_etat.faites(pivot_federe) == 9, str([e["etat"] for e in pivot_federe["etapes"]]))
 
     vierge = tmp / "atelier-vierge"
     vierge.mkdir()
     html_vierge = m_rend.rendre(m_etat.generer(vierge))
-    verifie("le tableau de bord vierge affiche neuf lignes à faire", html_vierge.count("À faire") == 9,
+    # §5 amende : l'etape courante est rendue en tete, hors tableau ; il reste
+    # donc huit pastilles « A faire » sur les neuf etapes d'une page vierge.
+    verifie("le tableau de bord vierge affiche 8 pastilles « À faire », la 9e étant la courante en tête",
+            html_vierge.count("À faire") == 8 and "courante" in html_vierge,
             str(html_vierge.count("À faire")))
     verifie("aucune URL distante dans la notice",
             not re.search(r"https?://", html_vierge) and not re.search(r"""(href|src)\s*=\s*["']//""", html_vierge))
@@ -645,9 +674,17 @@ def c3_inventaire(tmp, configs):
                 and bornes.get("dossiers_vus", 0) <= bornes.get("max_dossiers", 200), str(bornes))
         verifie(f"scan {profil} : aucun champ contenu, nulle part", "contenu" not in cles_recursives(inv))
         disque = inv.get("disque") or []
-        verifie(f"scan {profil} : disque non vide, chemins en forme ~, source_id et substrat portés",
-                disque and all(str(d.get("chemin", "")).startswith("~/") and d.get("source_id") and d.get("substrat")
-                               for d in disque), str(disque[:1]))
+        # §4 amende : la forme ~ n'est exigible que si les fixtures vivent sous le
+        # dossier personnel ; un depot clone ailleurs produit des absolus legitimes.
+        if SOUS_HOME:
+            verifie(f"scan {profil} : disque non vide, chemins en forme ~, source_id et substrat portés",
+                    disque and all(str(d.get("chemin", "")).startswith("~/") and d.get("source_id") and d.get("substrat")
+                                   for d in disque), str(disque[:1]))
+        else:
+            verifie(f"scan {profil} : disque non vide, chemins absolus admis (fixtures hors du dossier "
+                    f"personnel : {FIXTURES}), source_id et substrat portés",
+                    disque and all(str(d.get("chemin", "")) and d.get("source_id") and d.get("substrat")
+                                   for d in disque), str(disque[:1]))
         if profil == "employe":
             verifie("employé : export-notion-*.csv apparaît comme signal de base déportée",
                     "export-notion" in texte and "base_deportee" in texte)
@@ -684,10 +721,29 @@ def c4_couche_vault(tmp, configs):
     hooks = settings.get("hooks") or {}
     verifie("hooks SessionStart et Stop présents dans settings.json",
             bool(hooks.get("SessionStart")) and bool(hooks.get("Stop")), str(list(hooks)))
-    verifie("SessionStart lance le lint bref, Stop rappelle la clôture",
-            "lint_sante.py" in json.dumps(hooks.get("SessionStart", ""))
-            and "--bref" in json.dumps(hooks.get("SessionStart", ""))
-            and re.search(r"cl[oô]ture", json.dumps(hooks.get("Stop", ""), ensure_ascii=False), re.I) is not None)
+    # §9 amende : les hooks sont deux scripts stdlib auto-testes, settings.json
+    # ne fait que les appeler. On verifie les scripts, pas une commande inline.
+    dossier_hooks = vault / ".claude" / "hooks"
+    scripts_hooks = {n: dossier_hooks / f"{n}.py" for n in ("session_start", "stop")}
+    verifie("settings.json appelle .claude/hooks/session_start.py et stop.py",
+            all(f"hooks/{n}.py" in json.dumps(hooks.get(ev, ""))
+                for n, ev in (("session_start", "SessionStart"), ("stop", "Stop"))), str(hooks))
+    verifie("les deux scripts de hook sont livrés dans .claude/hooks/",
+            all(c.is_file() for c in scripts_hooks.values()),
+            str({n: c.is_file() for n, c in scripts_hooks.items()}))
+    src_ss = scripts_hooks["session_start"].read_text(encoding="utf-8") if scripts_hooks["session_start"].is_file() else ""
+    src_stop = scripts_hooks["stop"].read_text(encoding="utf-8") if scripts_hooks["stop"].is_file() else ""
+    verifie("session_start.py lance lint_sante.py --bref",
+            "lint_sante.py" in src_ss and "--bref" in src_ss)
+    verifie("stop.py rappelle la clôture",
+            re.search(r"cl[oô]ture", src_stop, re.I) is not None)
+    for nom, chemin in scripts_hooks.items():
+        if not chemin.is_file():
+            verifie(f"{nom}.py --autotest sort en 0", False, "script absent")
+            continue
+        r_hook = lancer(chemin, "--autotest")
+        verifie(f"{nom}.py --autotest sort en 0",
+                r_hook.returncode == 0, f"code {r_hook.returncode}, {(r_hook.stderr or r_hook.stdout)[:200]}")
     skills_livrees = {p.name for p in (vault / ".claude" / "skills").iterdir() if p.is_dir()} \
         if (vault / ".claude" / "skills").is_dir() else set()
     attendues = set((conf.get("agents") or {}).get("skills") or [])
@@ -855,9 +911,11 @@ def c9_chemins_absolus():
     section("C9", "Zéro chemin absolu (I2, §11) : défaut plausible : un chemin de la machine du "
                   "fabricant qui rend le kit inopérant ailleurs")
     motif = re.compile(r"(/Users/[A-Za-z0-9._-]+/|/home/[A-Za-z0-9._-]+/|\b[A-Z]:\\[A-Za-z])")
+    print("  — exclus : les lignes qui définissent le motif de détection (re.compile, chaîne brute r\"…\", "
+          "commande grep) et les fragments cités entre backticks ; un motif montré n'est pas un chemin de machine.")
     hits = [f"{rel}:{no}" for p, rel in fichiers_texte(PERIMETRE_WHITE_LABEL)
             for no, l in enumerate(p.read_text(encoding="utf-8", errors="replace").splitlines(), 1)
-            if motif.search(l)]
+            if not MOTIF_DE_DETECTION.search(l) and motif.search(re.sub(r"`[^`]*`", "", l))]
     verifie("aucun chemin absolu (/Users/, /home/, lettre de lecteur) dans skills/ notice/ outils/ README.md",
             not hits, f"{len(hits)} ligne(s) : {hits[:6]}")
     skills_md = list(SKILLS.glob("cortex-*/SKILL.md"))
@@ -908,8 +966,9 @@ def c10_paquet(tmp):
                                                       provenance, re.M)]
         verifie("chaque emprunt du zip est couvert par PROVENANCE.md", not decouverts, str(decouverts))
         lisezmoi = z.read("LISEZ-MOI.html").decode("utf-8")
-        verifie("LISEZ-MOI.html du zip : neuf étapes à faire, zéro URL distante",
-                lisezmoi.count("À faire") == 9 and not re.search(r"https?://", lisezmoi)
+        # §5 amende : huit pastilles « A faire », la courante etant en tete hors tableau.
+        verifie("LISEZ-MOI.html du zip : 8 pastilles « À faire » (la 9e en tête), zéro URL distante",
+                lisezmoi.count("À faire") == 8 and not re.search(r"https?://", lisezmoi)
                 and not re.search(r"""(href|src)\s*=\s*["']//""", lisezmoi), str(lisezmoi.count("À faire")))
     notice = DEPOT / "notice" / "LISEZ-MOI.html"
     verifie("notice/LISEZ-MOI.html présente, hors ligne (zéro URL)",
