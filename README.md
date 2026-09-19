@@ -1,6 +1,6 @@
 # Cortex
 
-Un second cerveau installé chez vous, en français, par une chaîne de maillons guidés. Version 2 en chantier.
+Un second cerveau installé chez vous, en français, par une chaîne de maillons guidés.
 
 ## Trois gestes
 
@@ -9,4 +9,4 @@ Un second cerveau installé chez vous, en français, par une chaîne de maillons
 2. Ouvrir Claude Code et écrire : **installe mon second cerveau**
 3. À la fin de chaque séance, écrire : **clôture**
 
-La notice complète (`notice/LISEZ-MOI.html`), la liste des outils (`outils/OUTILS.md`) et le suivi du chantier (`chantiers/cortex-v2/`) arrivent avec les lanes B et A2.
+La notice pas à pas : [`notice/LISEZ-MOI.html`](notice/LISEZ-MOI.html). Les outils du poste : [`outils/OUTILS.md`](outils/OUTILS.md).

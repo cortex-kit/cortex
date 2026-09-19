@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """fabrique.py — assemble le paquet distribuable Cortex. stdlib pure, zéro réseau.
 
-Lit kit.txt, copie les dossiers depuis skills/ du dépôt (les sept maillons et
-les skills annexes du manifeste), y ajoute la notice et PROVENANCE.md, et
-produit le zip de repli. La voie principale est le plugin Claude Code ; le zip
-sert aux postes sans marketplace.
+Lit kit.txt, copie les dossiers depuis skills/ du dépôt (les maillons présents,
+trouvés par glob `cortex-*`, et les skills annexes du manifeste), y ajoute la
+notice et PROVENANCE.md, et produit le zip de repli. Aucun nombre n'est codé en
+dur : le zip compte ce qui est là. La voie principale est le plugin Claude
+Code ; le zip sert aux postes sans marketplace.
 
 Trois contrôles BLOQUANTS, dans cet ordre :
   1. Provenance — chaque entrée du manifeste couverte par PROVENANCE.md avec
@@ -24,6 +25,7 @@ reste chez le fabricant, hors plugin et hors zip. Seul VERSION est ajouté.
 
 Usage (`py` sous Windows vaut `python3`) :
     python3 fabrique.py --sortie <cortex.zip> [--version 2026-08-23]
+    python3 fabrique.py --autotest
 """
 
 import argparse
@@ -38,9 +40,14 @@ from pathlib import Path
 _ICI = Path(__file__).resolve().parent
 PAQUET = _ICI.parent                 # ~/.claude/skills/cortex-paquet
 SKILLS = PAQUET.parent / "skills"    # <dépôt>/skills : maillons et annexes
-MAILLONS = [f"cortex-{i}-{n}" for i, n in enumerate(
-    ["cadrage", "inventaire", "ontologie", "installation", "ingest",
-     "agents-metier", "passation"], 1)]
+
+
+def maillons():
+    """Les maillons présents dans skills/, par glob, dans l'ordre de leur numéro."""
+    return sorted((p.name for p in SKILLS.glob("cortex-*") if p.is_dir()),
+                  key=lambda n: int(n.split("-")[1]))
+
+
 EXCLUS = shutil.ignore_patterns("__pycache__", ".DS_Store", ".git")
 # Chargement de scaffold : SKILL.md volontairement profonds, hors contrôle.
 EXEMPTION_PROFONDEUR = "cortex-4-installation/template/"
@@ -112,6 +119,9 @@ def controle_profondeur(racine):
 def fabriquer(sortie, version=None):
     version = version or date.today().isoformat()
     kit = _kit()
+    MAILLONS = maillons()
+    if not MAILLONS:
+        return _erreur("aucun maillon cortex-* dans skills/")
 
     for nom, defauts in (("provenance", controle_provenance(kit)),
                          ("completude", controle_completude(MAILLONS + kit))):
@@ -132,9 +142,9 @@ def fabriquer(sortie, version=None):
         outils = scene / "cortex-4-installation" / "scripts"
         (outils / "VERSION").write_text(version + "\n", encoding="utf-8")
 
-        # La notice de déballage : le tableau de bord VIERGE — sept étapes à
-        # faire — au-dessus de la notice. Générée par la même chaîne que le
-        # suivi vivant, pour que l'état zéro soit lui aussi une projection.
+        # La notice de déballage : l'état VIERGE (toutes les étapes à faire,
+        # phrase d'entrée en tête). Générée par la même chaîne que le suivi
+        # vivant, pour que l'état zéro soit lui aussi une projection.
         sys.path.insert(0, str(SKILLS / "cortex-4-installation" / "scripts"))
         import etat as m_etat
         import rend_notice as m_rend
@@ -162,11 +172,28 @@ def fabriquer(sortie, version=None):
     return 0
 
 
+def _autotest():
+    with tempfile.TemporaryDirectory() as tmp:
+        z = Path(tmp) / "t.zip"
+        assert fabriquer(z, version="autotest") == 0
+        with zipfile.ZipFile(z) as zf:
+            noms = zf.namelist()
+        dossiers = {n.split("/")[0] for n in noms if "/" in n}
+        assert dossiers == set(maillons()) | set(_kit()), dossiers
+        assert {n for n in noms if "/" not in n} == {"LISEZ-MOI.html", "PROVENANCE.md"}
+        assert "cortex-4-installation/scripts/VERSION" in noms
+    print("fabrique.py : auto-test OK")
+    return 0
+
+
 def main():
     p = argparse.ArgumentParser(description="Fabrique le zip Cortex.")
     p.add_argument("--sortie", default="cortex.zip", help="zip à produire")
     p.add_argument("--version", help="version du paquet (défaut : date du jour)")
+    p.add_argument("--autotest", action="store_true")
     a = p.parse_args()
+    if a.autotest:
+        return _autotest()
     return fabriquer(a.sortie, a.version)
 
 
