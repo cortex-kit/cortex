@@ -18,7 +18,7 @@ Cortex v2 fait d'un second cerveau v1 (sept maillons, vault pointeur, zip) un pr
 | A1 Repo | faite | 2026-09-19 |
 | A2 Contrat | faite | 2026-09-19 |
 | B, C, D, E, F | faites, auditées à froid, mergées, reprises `fix/<lane>` mergées | 2026-09-19 |
-| G Recette | faite : 113 contrôles à 0 sur `main`, M1 joué, M2 à M4 en attente | 2026-09-19 |
+| G Recette | faite : 114 contrôles à 0 sur `main`, audit final joué et corrigé (`fix/final`), M1 et M4 joués, M2 et M3 ouverts | 2026-09-19 |
 | H Parcours réel | démarrée sur ce Mac, onglet `cortex-evrard`, la personne tient l'onglet | 2026-09-19 |
 | I Remise | après H | |
 
