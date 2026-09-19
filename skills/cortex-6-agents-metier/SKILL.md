@@ -1,11 +1,11 @@
 ---
 name: cortex-6-agents-metier
-description: Sixième maillon de la chaîne Cortex. Conçoit et génère les sous-agents sur mesure au métier du client, une fois le vault peuplé — un lecteur de baux pour une foncière, un dépouilleur d'appels d'offres pour un bureau d'études. Chaque agent naît d'une spec versionnée et porte une date de revue que le lint surveille. Déclencher quand le consultant dit "maillon 6", "agents métier", "agent sur mesure", ou après l'ingest si le cadrage a identifié une tâche répétitive. Phrase d'entrée de la notice : « voyons mes assistants métier ». Ne PAS utiliser pour les 2 sous-agents génériques, livrés par cortex-4-installation.
+description: Maillon 6 de la chaîne Cortex. Conçoit et génère les sous-agents sur mesure au métier du client, une fois le vault peuplé — un lecteur de baux pour une foncière, un dépouilleur d'appels d'offres pour un bureau d'études. Chaque agent naît d'une spec versionnée et porte une date de revue que le lint surveille. Déclencher quand le consultant dit "maillon 6", "agents métier", "agent sur mesure", ou après l'ingest si le cadrage a identifié une tâche répétitive. Phrase d'entrée de la notice : « voyons mes assistants métier ». Ne PAS utiliser pour les 2 sous-agents génériques, livrés par cortex-4-installation.
 ---
 
 # cortex-6-agents-metier — sur mesure, avec une date de péremption
 
-Sixième maillon, et le dernier de construction. Il vient **après** l'ingest, délibérément.
+Septième des neuf, le maillon 0 compris, et le dernier de construction. Il vient **après** l'ingest, délibérément.
 
 ## Pourquoi après, et pas à l'installation
 
@@ -39,7 +39,7 @@ C'est la partie la plus utile de ce maillon. Tout client demande des agents, et 
 2. Le lint sort en 0.
 3. Au moins un besoin identifié au cadrage ou constaté à l'ingest.
 
-Si aucun besoin ne passe le test à trois conditions : **livrer zéro agent métier et le dire.** Le kit générique — quatre skills et deux sous-agents — couvre l'usage courant. Zéro est un résultat valide, et souvent le bon.
+Si aucun besoin ne passe le test à trois conditions : **livrer zéro agent métier et le dire.** Le kit générique — six skills et deux sous-agents — couvre l'usage courant. Zéro est un résultat valide, et souvent le bon.
 
 **Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, la réponse honnête au test des trois conditions est le plus souvent « pas encore » : un agent sur mesure se conçoit sur des répétitions observées, et quelqu'un qui vient d'installer son outil n'en a encore aucune. Le dire comme un rendez-vous, jamais comme un refus : « Aucun geste ne s'est encore répété dans votre outil — c'est normal, il vient d'être rempli. Travaillez avec pendant trois semaines ; si une même corvée revient chaque semaine sur un même type de document, revenez me le dire : c'est exactement ce qu'un assistant sur mesure sait absorber. » Ce maillon se relance à tout moment ; passer au maillon 7 n'y ferme aucune porte.
 
@@ -128,15 +128,15 @@ Assistants sur mesure : <N | aucun pour l'instant — et c'est normal>.
 <Si N > 0 : la liste, avec la date de revue de chacun et ce qu'elle
 signifie — un assistant périmé répond quand même, d'où la date.>
 <Si N = 0 : aucun geste ne s'est encore assez répété pour en justifier
-un. Revenez après trois semaines de travail réel — ce maillon se
+un. Revenez après trois semaines de travail réel — cette étape se
 relance quand vous voulez.>
 
-Le dernier maillon prépare la remise : le guide d'usage, la fiche de
+La dernière étape prépare la remise : le guide d'usage, la fiche de
 reprise pour dans six mois, et la recette qui prouve que tout tient.
 Sa condition d'entrée : tous les jalons précédents au vert —
 <c'est fait | il manque : …>.
 
-On enchaîne ?
+Quand vous voulez continuer, dites « prépare la remise ».
 ```
 
 S'il manque un jalon, c'est-à-dire un fichier d'atelier ni validé ni arbitré, s'arrêter et dire lequel : le maillon 7 le refuserait de toute façon en étape 0.
