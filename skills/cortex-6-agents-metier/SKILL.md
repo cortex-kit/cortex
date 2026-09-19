@@ -1,6 +1,6 @@
 ---
 name: cortex-6-agents-metier
-description: Sixième maillon de la chaîne Cortex. Conçoit et génère les sous-agents sur mesure au métier du client, une fois le vault peuplé — un lecteur de baux pour une foncière, un dépouilleur d'appels d'offres pour un bureau d'études. Chaque agent naît d'une spec versionnée et porte une date de revue que le lint surveille. Déclencher quand le consultant dit "maillon 6", "agents métier", "agent sur mesure", ou après l'ingest si le cadrage a identifié une tâche répétitive. Ne PAS utiliser pour les 2 sous-agents génériques, livrés par cortex-4-installation.
+description: Sixième maillon de la chaîne Cortex. Conçoit et génère les sous-agents sur mesure au métier du client, une fois le vault peuplé — un lecteur de baux pour une foncière, un dépouilleur d'appels d'offres pour un bureau d'études. Chaque agent naît d'une spec versionnée et porte une date de revue que le lint surveille. Déclencher quand le consultant dit "maillon 6", "agents métier", "agent sur mesure", ou après l'ingest si le cadrage a identifié une tâche répétitive. Phrase d'entrée de la notice : « voyons mes assistants métier ». Ne PAS utiliser pour les 2 sous-agents génériques, livrés par cortex-4-installation.
 ---
 
 # cortex-6-agents-metier — sur mesure, avec une date de péremption

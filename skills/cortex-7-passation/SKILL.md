@@ -1,6 +1,6 @@
 ---
 name: cortex-7-passation
-description: Septième maillon de la chaîne Cortex. Produit le pack de remise du vault au client — guide d'usage, runbook des quatre opérations, fiche de reprise à froid — passe la recette d'acceptation mécanique, dont le contrôle de white-label bloquant, date la remise (remis_le) pour que la skill bilan du vault fasse le point à J+7 et J+30, et termine en ouvrant la notice. Déclencher quand le consultant dit "maillon 7", "passation", "on remet le vault", "recette", ou quand le vault est peuplé et vérifié. Ne PAS utiliser pour produire un support de formation : hors périmètre par décision.
+description: Septième maillon de la chaîne Cortex. Produit le pack de remise du vault au client — guide d'usage, runbook des quatre opérations, fiche de reprise à froid — passe la recette d'acceptation mécanique, dont le contrôle de white-label bloquant, date la remise (remis_le) pour que la skill bilan du vault fasse le point à J+7 et J+30, et termine en ouvrant la notice. Déclencher quand le consultant dit "maillon 7", "passation", "on remet le vault", "recette", ou quand le vault est peuplé et vérifié. Phrase d'entrée de la notice : « prépare la remise ». Ne PAS utiliser pour produire un support de formation : hors périmètre par décision.
 ---
 
 # cortex-7-passation — remettre, et prouver que c'est remettable

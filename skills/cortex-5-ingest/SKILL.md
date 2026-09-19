@@ -1,6 +1,6 @@
 ---
 name: cortex-5-ingest
-description: Cinquième maillon de la chaîne Cortex. Transforme le catalogue d'inventaire en notes-pointeurs dans le vault installé — projets, acteurs, ressources — avec un résumé plafonné et une écriture idempotente. Tient un registre source vers note qui rend les relances incrémentales. Déclencher quand le consultant dit "maillon 5", "on peuple le vault", "ingest de l'inventaire", ou dispose d'un vault installé et d'un 01-inventaire.json validé. Ne PAS confondre avec la skill `ingest` livrée au client, qui traite une source externe à la fois en mode maintenance.
+description: Cinquième maillon de la chaîne Cortex. Transforme le catalogue d'inventaire en notes-pointeurs dans le vault installé — projets, acteurs, ressources — avec un résumé plafonné et une écriture idempotente. Tient un registre source vers note qui rend les relances incrémentales. Déclencher quand le consultant dit "maillon 5", "on peuple le vault", "ingest de l'inventaire", ou dispose d'un vault installé et d'un 01-inventaire.json validé. Phrase d'entrée de la notice : « remplis mon second cerveau ». Ne PAS confondre avec la skill `ingest` livrée au client, qui traite une source externe à la fois en mode maintenance.
 ---
 
 # cortex-5-ingest — peupler sans recopier

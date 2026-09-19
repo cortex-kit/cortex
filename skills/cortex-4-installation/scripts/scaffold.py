@@ -39,11 +39,15 @@ import cortex_config  # noqa: E402
 RACINE_SKILL = Path(__file__).resolve().parent.parent
 GABARIT = RACINE_SKILL / "template" / "vault"
 
-# Contrat 04 §9 : lecture seule, et rien qui écrive hors du vault.
+# Contrat 04 §9, amende le 2026-09-19 par le chef d'orchestre : lecture seule
+# sur les racines, et les quatre gestes de la cloture (add, commit, push, export)
+# pour qu'une cloture de novice ne demande aucune permission.
 ALLOW = [
     "Read", "Glob", "Grep",
     "Bash(python3 .claude/skills/lint/lint_sante.py:*)",
+    "Bash(python3 .claude/skills/cloture/export.py:*)",
     "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
+    "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
     "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)",
     "Bash(file:*)", "Bash(du:*)",
 ]
@@ -525,7 +529,7 @@ def main():
     print(f"✎ settings.json : {len(racines)} racine(s) en lecture seule, "
           f"{2 * len(racines)} regle(s) deny, 2 hooks")
     if git_ok:
-        depot_prive(dest, (conf.get("organisation") or {}).get("code", "vault"), a.depot_prive)
+        depot_prive(dest, "cortex-" + (conf.get("organisation") or {}).get("code", "vault"), a.depot_prive)
     print(f"→ Suite : python3 lint_sante.py --vault \"{dest}\"")
     return 0
 
@@ -561,7 +565,7 @@ def _autotest():
         assert (out / ".claude" / "hooks" / "session_start.py").is_file()
         assert (out / ".claude" / "skills" / "parle" / "SKILL.md").is_file()
         assert (out / ".claude" / "skills" / "bilan" / "SKILL.md").is_file()
-        assert "gh repo create" in r.stdout, r.stdout
+        assert "gh repo create cortex-acme --private" in r.stdout, r.stdout
         assert "/Users/" not in (out / "90 - Meta" / "Runbook - Nouveau Projet.md").read_text(encoding="utf-8")
     print("OK scaffold.py : forme ~, settings.json, hooks, skills parle et bilan, depot prive propose")
     return 0

@@ -1,6 +1,6 @@
 ---
 name: cortex-4-installation
-description: Installe un vault Cortex — un second cerveau structuré — chez une organisation, à partir d'un fichier de configuration. Crée l'arborescence, la doctrine paramétrée, les templates, la couche d'agents (6 skills, 2 sous-agents, 2 hooks), les permissions en lecture seule sur les dossiers de travail, et propose un dépôt git privé sans l'imposer. Déterministe et rejouable : détruire et relancer est un geste normal. Déclencher quand l'utilisateur dit "installe le vault", "instancie Cortex", "crée le second cerveau de X", "maillon 4", ou dispose d'un config.yaml prêt. Ne PAS utiliser pour cadrer (cortex-1), inventorier (cortex-2), décider de l'ontologie (cortex-3) ni pour peupler le vault (cortex-5).
+description: Installe un vault Cortex — un second cerveau structuré — chez une organisation, à partir d'un fichier de configuration. Crée l'arborescence, la doctrine paramétrée, les templates, la couche d'agents (6 skills, 2 sous-agents, 2 hooks), les permissions en lecture seule sur les dossiers de travail, et propose un dépôt git privé sans l'imposer. Déterministe et rejouable : détruire et relancer est un geste normal. Déclencher quand l'utilisateur dit "installe le vault", "instancie Cortex", "crée le second cerveau de X", "maillon 4", ou dispose d'un config.yaml prêt. Phrase d'entrée de la notice : « construis mon second cerveau ». Ne PAS utiliser pour cadrer (cortex-1), inventorier (cortex-2), décider de l'ontologie (cortex-3) ni pour peupler le vault (cortex-5).
 ---
 
 # cortex-4-installation — matérialiser le vault
@@ -52,7 +52,7 @@ Il crée l'arborescence, substitue les moustaches, **instancie une note par doma
 
 ### Les permissions : lire les dossiers de travail, n'y écrire jamais
 
-`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et deux règles `deny`, `Write(<racine>/**)` et `Edit(<racine>/**)`. La liste `allow` ne porte que de la lecture : `Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
+`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et deux règles `deny`, `Write(<racine>/**)` et `Edit(<racine>/**)`. La liste `allow` porte la lecture (`Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`) et les quatre gestes de la clôture (`git add`, `git commit`, `git push`, `export.py`), pour qu'une clôture ne demande aucune permission. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
 
 Une config v1 sans `collecte.racines` retombe sur `chemins.dossiers_projets`, la seule racine qu'elle connaît.
 
@@ -65,7 +65,7 @@ Deux, dans le même `settings.json`, en scripts Python du vault (`.claude/hooks/
 Après `git init`, le script affiche la commande et s'arrête là :
 
 ```bash
-cd "<vault>" && gh repo create <slug> --private --source . --push
+cd "<vault>" && gh repo create cortex-<slug> --private --source . --push
 ```
 
 Poser la question à la personne (AskUserQuestion) : « Voulez-vous une sauvegarde privée de votre second cerveau sur votre compte GitHub ? » Options : oui ; non, je reste sur mon poste. Sur oui seulement, lancer la commande ci-dessus, ou relancer le scaffold avec `--depot-prive`. Un refus est une réponse complète : le vault versionné localement garde déjà l'annulation et l'historique. Prérequis d'un oui : `gh auth login` fait au maillon 0.
