@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from collections import Counter
 from datetime import datetime
@@ -33,6 +34,10 @@ from pathlib import Path
 
 _ICI = Path(__file__).resolve().parent
 sys.path.insert(0, str(_ICI.parent.parent / "cortex-4-installation" / "scripts"))
+try:
+    import cortex_config          # maillon 4, interne au dépôt (contrat §6, « stdlib seule » hors imports internes)
+except ImportError:               # zip partiel, dépôt de lane isolé : --config devient indisponible, le reste tourne
+    cortex_config = None
 
 PLAFOND_MAIL = 2000
 OCTETS_PAR_FICHIER = 65536          # texte lu par candidat, au plus
@@ -41,7 +46,7 @@ SEUIL_GRAPHIFY = 500                # documents dans un dossier, sous-arbre comp
 DOSSIERS_IGNORES = {"node_modules", "__pycache__", "venv"}
 EXT_TEXTE = {".md", ".txt", ".csv"}
 EXT_CONVERTIR = {".docx", ".pdf", ".xlsx", ".pptx"}
-EXT_LIEN = {".url", ".webloc", ".lnk"}
+EXT_LIEN = {".url", ".webloc"}      # `.lnk` exclu : un raccourci Windows n'est pas une base déportée
 LANGAGES = {"py": "python", "js": "javascript", "ts": "typescript", "sh": "shell", "rb": "ruby",
             "go": "go", "rs": "rust", "java": "java", "php": "php", "swift": "swift", "kt": "kotlin",
             "c": "c", "h": "c", "cpp": "cpp", "cs": "csharp", "sql": "sql", "html": "html", "css": "css"}
@@ -60,8 +65,14 @@ VIDES = {"les", "des", "une", "pour", "avec", "dans", "sur", "par", "aux", "est"
 # ── Utilitaires ─────────────────────────────────────────────────────────────
 
 def tilde(chemin):
-    """Forme `~` obligatoire dans les données (invariant I2)."""
-    s = str(Path(chemin).resolve())
+    """Forme `~` pour tout chemin sous le dossier personnel (invariant I2).
+
+    Hors du dossier personnel, l'absolu est toléré : le contrat amendé (§4, chemins)
+    l'admet pour un dépôt cloné ailleurs, recette lancée depuis un dossier temporaire
+    comprise. Pas de `.resolve()` : une racine liée symboliquement vers un volume
+    externe sortirait du dossier personnel et rendrait un absolu là où `~` existe.
+    """
+    s = os.path.abspath(str(Path(chemin).expanduser()))
     maison = str(Path.home())
     return "~" + s[len(maison):] if s == maison or s.startswith(maison + os.sep) else s
 
@@ -170,21 +181,50 @@ def readme_20_lignes(dossier):
     return ""
 
 
-def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extracteur, max_extractions):
+def prefixes(racines):
+    """Préfixe de `source_id` par racine, unique entre racines (contrat §4, rejeu du scan).
+
+    Deux racines de même nom de base (`A/Travail` et `B/Travail`) sont désambiguïsées
+    par le dernier segment de leur parent, sans quoi `ecarts_candidats[].source_id` et
+    `preuve_de` pointeraient sur deux dossiers différents.
+    """
+    noms = [plat(Path(r).expanduser().name) for r in racines]
+    out = []
+    for r, nom in zip(racines, noms):
+        parent = plat(Path(r).expanduser().parent.name)
+        out.append("-".join(x for x in (parent, nom) if x) if noms.count(nom) > 1 else nom)
+    return out
+
+
+def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extracteur,
+            max_extractions, budget_secondes):
     """Parcourt les racines ; renvoie (disque, depots, bornes)."""
     disque, depots = [], []
     bornes = {"profondeur_max_vue": 0, "dossiers_vus": 0, "fichiers_vus": 0, "octets_extraits": 0,
               "profondeur_arbre": profondeur_arbre, "max_dossiers": max_dossiers,
               "dossiers_au_dela": 0, "extractions": 0, "depassement": False}
     extractions = 0
-    for racine in racines:
+    debut = time.monotonic()
+
+    def hors_budget():
+        return time.monotonic() - debut > budget_secondes
+
+    for racine, prefixe in zip(racines, prefixes(racines)):
         racine = Path(racine).expanduser()
         if not racine.is_dir():
             raise FileNotFoundError(f"racine introuvable : {tilde(racine)}")
-        prefixe = plat(racine.name)
+        if hors_budget():
+            bornes["dossiers_au_dela"] += 1      # au moins cette racine n'a pas été ouverte
+            bornes["depassement"] = True
+            continue
         pile = [(racine, 0)]
         entrees = {}   # chemin → entrée, pour cumuler fichiers_arbre
         while pile:
+            if hors_budget():
+                # arrêt propre : le budget de temps est une borne comme une autre (contrat §2)
+                bornes["dossiers_au_dela"] += len(pile)
+                bornes["depassement"] = True
+                break
             dossier, prof = pile.pop(0)
             if bornes["dossiers_vus"] >= max_dossiers:
                 bornes["dossiers_au_dela"] += 1
@@ -198,35 +238,42 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
             bornes["profondeur_max_vue"] = max(bornes["profondeur_max_vue"], prof)
             fichiers, sous, ext, mtimes, sig, cand, bases, depot = 0, 0, Counter(), [], Counter(), [], [], False
             for e in items:
-                if e.name == ".git":
-                    depot = True
+                # une permission retirée ou un volume démonté en cours de parcours ne doit
+                # pas avorter le scan : `is_dir`, `is_file` et `stat` lèvent tous `OSError`
+                try:
+                    if e.name == ".git":
+                        depot = True
+                        continue
+                    if e.name.startswith(".") or e.name in DOSSIERS_IGNORES:
+                        continue
+                    if e.is_dir(follow_symlinks=False):
+                        sous += 1
+                        if prof < profondeur_arbre:
+                            pile.append((Path(e.path), prof + 1))
+                        else:
+                            bornes["dossiers_au_dela"] += 1
+                            bornes["depassement"] = True
+                        continue
+                    if not e.is_file(follow_symlinks=False):
+                        continue
+                    fichiers += 1
+                    bornes["fichiers_vus"] += 1
+                    suffixe = Path(e.name).suffix.lower().lstrip(".")
+                    ext[suffixe or "sans"] += 1
+                    mtimes.append(e.stat().st_mtime)
+                except OSError:
                     continue
-                if e.name.startswith(".") or e.name in DOSSIERS_IGNORES:
-                    continue
-                if e.is_dir(follow_symlinks=False):
-                    sous += 1
-                    if prof < profondeur_arbre:
-                        pile.append((Path(e.path), prof + 1))
-                    else:
-                        bornes["dossiers_au_dela"] += 1
-                        bornes["depassement"] = True
-                    continue
-                if not e.is_file(follow_symlinks=False):
-                    continue
-                fichiers += 1
-                bornes["fichiers_vus"] += 1
-                suffixe = Path(e.name).suffix.lower().lstrip(".")
-                ext[suffixe or "sans"] += 1
-                mtimes.append(e.stat().st_mtime)
                 sig.update(mots(Path(e.name).stem))
                 if signal_base(e.name):
                     bases.append(e.name)
                 type_ = candidat_structurant(e.name, types_structurants)
                 if type_:
                     cand.append(e.name)
-                    if extractions < max_extractions:
+                    if extractions < max_extractions and not hors_budget():
                         extractions += 1
                         sig.update(mots(extracteur.texte(Path(e.path))))
+                    else:
+                        bornes["depassement"] = True
             sig.update(mots(dossier.name))
             rel = dossier.relative_to(racine)
             entree = {
@@ -249,21 +296,27 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
             if depot:
                 depots.append({"source_id": "depot-" + entree["source_id"], "type": "depot", "chemin": tilde(dossier),
                                "langages": [], "dernier_commit": dernier_commit(dossier),
-                               "readme_20_lignes": readme_20_lignes(dossier), "graphify_propose": True})
-        # langages d'un dépôt : extensions vues dans son sous-arbre, dans les bornes
-        for d in depots:
-            racine_depot = Path(d["chemin"]).expanduser()
-            vus = Counter()
-            for e in disque:
-                p = Path(e["chemin"]).expanduser()
-                if p == racine_depot or racine_depot in p.parents:
-                    for x, n in e["extensions"].items():
-                        if x in LANGAGES:
-                            vus[LANGAGES[x]] += n
-            d["langages"] = [l for l, _ in vus.most_common(5)]
+                               "readme_20_lignes": readme_20_lignes(dossier), "graphify_propose": False})
+    # langages d'un dépôt : extensions vues dans son sous-arbre, dans les bornes.
+    # Hors de la boucle des racines : le calcul est le même à chaque tour, sur un `disque` qui grandit.
+    for d in depots:
+        racine_depot = Path(d["chemin"]).expanduser()
+        vus = Counter()
+        for e in disque:
+            p = Path(e["chemin"]).expanduser()
+            if p == racine_depot or racine_depot in p.parents:
+                for x, n in e["extensions"].items():
+                    if x in LANGAGES:
+                        vus[LANGAGES[x]] += n
+        d["langages"] = [l for l, _ in vus.most_common(5)]
+        # un dépôt sans code (vault versionné, dossier de notes sous git) ne gagne rien à un graphe
+        d["graphify_propose"] = bool(d["langages"])
+    # une proposition par sous-arbre : le seuil porte sur `fichiers_arbre`, cumulé chez tous les parents
+    proposes = []
     for e in disque:
-        if e["fichiers_arbre"] > SEUIL_GRAPHIFY:
+        if e["fichiers_arbre"] > SEUIL_GRAPHIFY and not any(e["chemin"].startswith(p + "/") for p in proposes):
             e["graphify_propose"] = True
+            proposes.append(e["chemin"])
     bornes["octets_extraits"] = extracteur.octets
     bornes["extractions"] = extracteur.fichiers
     return disque, depots, bornes
@@ -292,9 +345,12 @@ def inventaire(conf, racines, extracteur):
     racines = racines or collecte.get("racines") or []
     if not racines:
         raise ValueError("aucune racine : passer --racine ou une config avec collecte.racines")
+    # `collecte.max_extractions` est le plafond de conversion du maillon 2 ; `sante.max_structurants`
+    # est celui de la copie du maillon 5, et n'est plus lu ici (contrat §2, amendement `collecte`).
     disque, depots, bornes = scanner(
         racines, int(collecte.get("profondeur_arbre", 3)), int(collecte.get("max_dossiers", 200)),
-        set(types), extracteur, int((conf.get("sante") or {}).get("max_structurants", 40)))
+        set(types), extracteur, int(collecte.get("max_extractions", 40)),
+        float(collecte.get("budget_secondes", 120)))
     poste = conf.get("poste") or {}
     return {
         "format": "cortex/inventaire", "version": 2, "genere_le": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
@@ -310,11 +366,45 @@ def inventaire(conf, racines, extracteur):
     }
 
 
+CLES_REJEU = ("format", "version", "genere_le", "racines", "bornes", "extraction", "disque", "depots")
+ECARTS_DU_DISQUE = {"base_deportee_non_declaree", "depot_non_declare"}
+
+
+def fusionner(neuf, ancien):
+    """Rejeu du scan sur un `--out` existant (contrat §4, amendement « rejeu du scan »).
+
+    Le disque se remplace ; le travail de l'agent survit : `mail`, `bases`, `agenda`,
+    les `resume` et `preuve_de` posés par entrée, et les écarts qu'il a dérivés du
+    cadrage. `SKILL.md` fait du rejeu du disque seul un geste normal de validation par
+    substrat : il ne doit pas coûter une campagne de lecture d'en-têtes.
+    """
+    garde = {e.get("source_id"): e for e in (ancien.get("disque") or []) if isinstance(e, dict)}
+    for e in neuf["disque"]:
+        vieux = garde.get(e["source_id"])
+        if vieux:
+            e["resume"] = vieux.get("resume", "")
+            e["preuve_de"] = vieux.get("preuve_de", [])
+    out = dict(ancien)
+    out.update({k: neuf[k] for k in CLES_REJEU})
+    out["ecarts_candidats"] = [x for x in (ancien.get("ecarts_candidats") or [])
+                               if not (isinstance(x, dict) and x.get("type") in ECARTS_DU_DISQUE)]
+    out["ecarts_candidats"] += neuf["ecarts_candidats"]
+    return out
+
+
 def ecrire(inv, sortie):
-    refuser_contenu(inv)
     sortie = Path(sortie).expanduser()
+    if sortie.is_file():
+        try:
+            ancien = json.loads(sortie.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            ancien = None
+        if isinstance(ancien, dict) and inv.get("format") == "cortex/inventaire":
+            inv = fusionner(inv, ancien)
+    refuser_contenu(inv)
     sortie.parent.mkdir(parents=True, exist_ok=True)
     sortie.write_text(json.dumps(inv, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return inv
 
 
 # ── Auto-test ───────────────────────────────────────────────────────────────
@@ -334,7 +424,10 @@ def _autotest():
         inv = inventaire(conf, [str(r)], Extracteur(actif=False))
         refuser_contenu(inv)
         b = inv["bornes"]
-        assert all(isinstance(v, int) for v in b.values()), b
+        # `isinstance(False, int)` vaut True : les compteurs se testent à part du drapeau
+        assert all(isinstance(v, int) and not isinstance(v, bool)
+                   for k, v in b.items() if k != "depassement"), b
+        assert isinstance(b["depassement"], bool), b
         assert b["profondeur_max_vue"] == 2 and b["depassement"] is True and b["dossiers_au_dela"] == 1, b
         assert b["fichiers_vus"] == 4, b   # profond.txt est au-delà de la profondeur
         crm = next(e for e in inv["disque"] if e["source_id"] == "travail-projets-crm")
@@ -350,12 +443,44 @@ def _autotest():
         sortie = Path(tmp) / "inv.json"
         ecrire(inv, sortie)
         assert json.loads(sortie.read_text())["version"] == 2
+
+        # témoin du rejeu (contrat §4) : le travail de l'agent survit au second scan
+        pose = json.loads(sortie.read_text())
+        pose["mail"].update({"voie": "connecteur", "en_tetes_lus": 1840,
+                             "agregats": [{"domaine": "client.test", "volume": 612}]})
+        pose["bases"] = [{"source_id": "base-projets", "substrat": "base_projets", "resume": "à la main"}]
+        pose["agenda"] = [{"titre": "Comité hebdo", "recurrence": "hebdomadaire", "occurrences": 40}]
+        pose["ecarts_candidats"].append({"type": "correspondant_non_declare",
+                                         "indice": "client.test, 612 messages", "source_id": "mail"})
+        for e in pose["disque"]:
+            e["resume"], e["preuve_de"] = "résumé de l'agent", ["projet-crm"]
+        sortie.write_text(json.dumps(pose, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        (r / "Projets/CRM/ajout.md").write_text("x")
+        rejeu = ecrire(inventaire(conf, [str(r)], Extracteur(actif=False)), sortie)
+        assert rejeu["mail"]["en_tetes_lus"] == 1840 and rejeu["mail"]["agregats"], rejeu["mail"]
+        assert rejeu["bases"] and rejeu["agenda"], rejeu["bases"]
+        assert all(e["resume"] == "résumé de l'agent" and e["preuve_de"] == ["projet-crm"]
+                   for e in rejeu["disque"]), rejeu["disque"]
+        assert [x["type"] for x in rejeu["ecarts_candidats"]].count("correspondant_non_declare") == 1
+        assert [x["type"] for x in rejeu["ecarts_candidats"]].count("depot_non_declare") == 1
+        assert rejeu["bornes"]["fichiers_vus"] == 5, rejeu["bornes"]   # le disque, lui, est bien relu
+
+        # témoin de l'unicité des `source_id` entre deux racines de même nom (contrat §4)
+        for cote in ("A", "B"):
+            (Path(tmp) / cote / "Travail" / "Projets").mkdir(parents=True)
+            (Path(tmp) / cote / "Travail" / "Projets" / "note.md").write_text("x")
+        deux = inventaire(conf, [str(Path(tmp) / "A" / "Travail"), str(Path(tmp) / "B" / "Travail")],
+                          Extracteur(actif=False))
+        ids = [e["source_id"] for e in deux["disque"]]
+        assert ids == ["a-travail", "a-travail-projets", "b-travail", "b-travail-projets"], ids
+
         try:
             ecrire({"disque": [{"contenu": "x"}]}, sortie)
             raise AssertionError("un champ contenu aurait dû être refusé")
         except ValueError:
             pass
-    print("OK scan.py : bornes en entiers, base déportée, dépôt, profondeur, refus de `contenu`")
+    print("OK scan.py : bornes en entiers, `depassement` booléen, base déportée, dépôt, "
+          "profondeur, rejeu non destructif, `source_id` unique entre racines, refus de `contenu`")
     return 0
 
 
@@ -370,7 +495,11 @@ def main():
         return _autotest()
     conf = {}
     if a.config:
-        import cortex_config
+        if cortex_config is None:
+            print("scan.py : --config a besoin de cortex_config.py, livré par le maillon 4 dans "
+                  "skills/cortex-4-installation/scripts/. Dépôt incomplet : passer --racine à la place.",
+                  file=sys.stderr)
+            return 1
         conf = cortex_config.charger(a.config)
     try:
         inv = inventaire(conf, a.racine, Extracteur())
@@ -378,7 +507,7 @@ def main():
         print(f"scan.py : {e}", file=sys.stderr)
         return 1
     if a.out:
-        ecrire(inv, a.out)
+        inv = ecrire(inv, a.out)
         b = inv["bornes"]
         print(f"{tilde(a.out)} : {b['dossiers_vus']} dossiers, {b['fichiers_vus']} fichiers, "
               f"{len(inv['depots'])} dépôt(s), {b['extractions']} extraction(s), "

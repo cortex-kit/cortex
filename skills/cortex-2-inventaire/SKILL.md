@@ -45,8 +45,8 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/scan.py" --config <vault>/config.yaml --out
 
 - parcourt chaque racine jusqu'à `collecte.profondeur_arbre`, au plus `collecte.max_dossiers` dossiers, en ignorant les dossiers cachés ;
 - écrit une entrée `disque` par dossier : chemin en forme `~`, profondeur, fichiers directs et dans le sous-arbre, sous-dossiers, extensions comptées, première et dernière modification, `depot_git`, `signal_ontologique` (mots des noms de dossiers et de fichiers, candidats structurants), `signaux_base_deportee` ;
-- écrit une entrée `depots` par dossier `.git` : langages par extensions, dernier commit, vingt premières lignes du README, `graphify_propose: true` ;
-- extrait le texte des candidats structurants (nom qui porte organigramme, process, contrat, fiche de poste, cahier des charges, cadrage) par `uvx markitdown` s'il est présent, au plus 64 Kio par fichier et 2 Mio au total, jusqu'à `sante.max_structurants` fichiers. Seuls des mots comptés en sortent ; le texte n'est jamais écrit ;
+- écrit une entrée `depots` par dossier `.git` : langages par extensions, dernier commit, vingt premières lignes du README, `graphify_propose` vrai pour les seuls dépôts qui portent du code ;
+- extrait le texte des candidats structurants (nom qui porte organigramme, process, contrat, fiche de poste, cahier des charges, cadrage) par `uvx markitdown` s'il est présent, au plus 64 Kio par fichier et 2 Mio au total, jusqu'à `collecte.max_extractions` fichiers (quarante par défaut ; `sante.max_structurants` est le plafond de copie du maillon 5, pas celui-ci). Seuls des mots comptés en sortent ; le texte n'est jamais écrit ;
 - mesure `bornes` en entiers : `profondeur_max_vue`, `dossiers_vus`, `fichiers_vus`, `octets_extraits`, `dossiers_au_dela`, `extractions`, rappel de `profondeur_arbre` et `max_dossiers`, et `depassement` dès qu'un dossier n'a pas été parcouru ;
 - pré-remplit `ecarts_candidats` avec `base_deportee_non_declaree` (si `substrats.base_projets` est vide) et `depot_non_declare` ;
 - laisse `mail` en squelette (`voie: aucune`, compteurs à zéro), `bases` et `agenda` vides, `resume` vide.
@@ -121,13 +121,13 @@ Quand `depots` n'est pas vide, ou qu'une entrée `disque` porte `graphify_propos
 
 ## Les bornes
 
-Depuis `config.collecte`, jamais dépassées sans arbitrage écrit : `profondeur_arbre`, `max_dossiers`, `mail_mois`, 2 000 en-têtes, README seul pour les dépôts, 64 Kio par structurant extrait. Au-delà, on produit un catalogue que le maillon 3 ne peut plus lire, donc qu'il survolera.
+Depuis `config.collecte`, jamais dépassées sans arbitrage écrit : `profondeur_arbre`, `max_dossiers`, `mail_mois`, `max_extractions`, `budget_secondes` (cent vingt par défaut : au-delà, le scan s'arrête proprement et pose `depassement`), 2 000 en-têtes, README seul pour les dépôts, 64 Kio par structurant extrait. Au-delà, on produit un catalogue que le maillon 3 ne peut plus lire, donc qu'il survolera.
 
 Si `bornes.depassement` vaut `true`, le dire au lieu de tronquer en silence : `bornes.dossiers_au_dela` compte ce qui n'a pas été parcouru. Deux issues, à faire trancher : relever une borne dans `config.yaml` et relancer le scan, ou accepter la coupe et l'écrire dans « Au-delà des bornes ». Une troncature tacite se lit comme une couverture complète.
 
 ## Validation : par substrat
 
-Un substrat, une validation. Pas par entrée. Les échecs sont partiels et fréquents (limites de débit, permissions, expirations) ; on veut pouvoir rejouer **une** source sans rejouer les autres, et sans jamais rejouer le cadrage. Rejouer le disque seul : `scan.py` avec le même `--out`, puis reporter le bloc `mail` et les blocs de l'agent. Rejouer la messagerie seule : refaire l'étape 2 sur le fichier existant.
+Un substrat, une validation. Pas par entrée. Les échecs sont partiels et fréquents (limites de débit, permissions, expirations) ; on veut pouvoir rejouer **une** source sans rejouer les autres, et sans jamais rejouer le cadrage. Rejouer le disque seul : `scan.py` avec le même `--out`. Le script fusionne : il remplace `disque`, `depots`, `bornes`, `racines`, `extraction` et `genere_le`, et laisse intacts `mail`, `bases`, `agenda`, les `resume`, les `preuve_de` et les écarts que l'agent a dérivés du cadrage. Rien à reporter à la main. Rejouer la messagerie seule : refaire l'étape 2 sur le fichier existant.
 
 ## Écrire
 
@@ -162,7 +162,7 @@ Inventaire terminé pour <organisation>.
 
 Pour toi :
 1. Relis 01-inventaire.md, surtout la section « Au-delà des bornes ».
-2. Lance `cortex-3-ontologie`.
+2. Dis « décidons mes domaines ».
 ```
 
 **En mode solo :**
