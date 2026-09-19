@@ -263,3 +263,17 @@ La notice montre l'état des étapes et propose la phrase à prononcer pour la s
 - La sonde Cowork et la création de l'org GitHub sont des gestes du chef d'orchestre, hors lane.
 - `fixtures.py` produit les arbres sur disque (ignorés par git) ; la Roumier « en mémoire » de la recette v1 est un vault de trois notes, pas un arbre de fichiers : les deux coexistent.
 - Le stub `notice.py` d'A2 fait déjà le travail complet (régénère, ouvre) ; la lane B y ajoute la phrase suivante et les neuf étapes.
+
+## Amendements du chef d'orchestre (2026-09-19, après les questions des lanes)
+
+Les lanes ont posé dix-neuf questions ; les réponses ci-dessous ont valeur de contrat.
+
+- §2, §3 : l'atelier vit dans `~/Cortex/<slug>/_cortex/`, le slug est demandé au maillon 0 ; `cortex-1` fusionne dans ce `config.yaml` (version 1, bloc `poste`), jamais ne le recrée. Le dépôt privé proposé au maillon 4 s'appelle `cortex-<slug>`.
+- §2 : `donnees` : les domaines de départ du profil vont dans `00-cadrage.md` seulement ; `config.yaml` garde `domaines: []` jusqu'au maillon 3.
+- §3 : l'outil de conversion est `uvx --from "markitdown[all]" markitdown` (le paquet nu ne lit ni pdf ni docx) ; `poste.py`, `OUTILS.md`, `scan.py` et la recette utilisent cette forme. Le convertisseur laisse un fichier `:memory:.ses` : il s'exécute depuis un dossier temporaire.
+- §4 : `scan.py` écrit un superset admis : `bornes.dossiers_au_dela`, `bornes.extractions` (entiers), `fichiers_arbre` par dossier, `signaux_base_deportee`, `graphify_propose` (seuil 500 documents), bloc racine `extraction {outil, echecs}`.
+- §5 : la table `PHRASES` d'`etat.py` est canonique. Chaque SKILL.md maillon porte sa phrase dans sa `description` : 0 « installe mon second cerveau », 1 « faisons le cadrage », 2 « lance l'inventaire », 3 « décidons mes domaines », 4 « construis mon second cerveau », 5 « remplis mon second cerveau », 6 « voyons mes assistants métier », 7 « prépare la remise », 8 « relie les cerveaux », fin « clôture ». `notice_ouverte_le` est posé dès que la notice est régénérée, même avec `--no-open`. Le deck (`rend_deck.py`, `bento-runtime.html`) est retiré : un seul rendu, la notice.
+- §6 : `export.py` ne fait rien en `mode: solo` et le dit. `federe.py` génère aussi `<commun>/config.yaml` (dérivé des exports, pour que le commun se linte seul) et reprend le journal sous `60 - Journal/<SLUG> - <titre>.md`, dossier ignoré par le lint. Un lien `[[X]]` vers une note absente du commun est neutralisé en texte, compté et listé dans le bilan.
+- §9 : `allow` gagne `Bash(git add:*)`, `Bash(git commit:*)`, `Bash(git push:*)`, `Bash(python3 .claude/skills/cloture/export.py:*)` : une clôture de novice ne demande aucune permission. `structurant_perime` est une dette `[i]`, le lint reste à 0. Les sous-agents n'ont que `Read, Grep, Glob`.
+- §11 : liste des marques interdites tenue en empreintes sha256 dans la recette (dix formes déduites de `01-cadrage.md` plus `kockpit` et `evrardmarcon`) ; la notice écrit `%USERPROFILE%` et jamais une lettre de lecteur ; le découpage C1 à C10 dérivé des acceptations des lanes est validé.
+- Windows : les hooks et scripts appellent `python3` ; l'équivalence `py` se règle en Phase G (décision 19).
