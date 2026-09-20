@@ -314,7 +314,8 @@ def _autotest():
     assert voie("", imap=True) == "mcp-email" and voie("") == "aucune"
     etat = {n: {"present": n in ("git", "uv"), "version": ""} for n in OUTILS}
     lignes = lignes_dry_run(etat, "macos")
-    assert len(lignes) == 5 and lignes[0] == "obsidian : absent → brew install --cask obsidian"
+    assert len(lignes) == 6 and lignes[0] == "obsidian : absent → brew install --cask obsidian"
+    assert lignes[-1] == 'graphify : absent → uv tool install "graphifyy[pdf,office]"'
     assert lignes[1] == 'markitdown : absent → uv tool install "markitdown[all]"'
     assert OUTILS["markitdown"]["uvx"] == ["--from", "markitdown[all]", "markitdown"]
     assert all(" : absent → " in l for l in lignes_dry_run(etat, "windows"))
