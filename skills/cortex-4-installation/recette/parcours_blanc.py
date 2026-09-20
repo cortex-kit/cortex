@@ -345,7 +345,7 @@ def poste_json(notice_ouverte=True):
     p = {"format": "cortex/poste", "version": 1, "genere_le": "2026-09-19T10:12:00", "os": "macos",
          "outils": {o: {"present": True, "version": "1", "installe_par_cortex": False}
                     for o in ("obsidian", "uv", "markitdown", "git", "gh")},
-         "options_proposees": ["wispr-flow", "superwhisper", "noota", "graphify"],
+         "options_proposees": ["wispr-flow", "superwhisper", "noota"],
          "mail": {"fournisseur": "gmail", "boites": 1, "voie": "connecteur",
                   "domaine": "exemple.test", "mx": "aspmx.l.google.com"},
          "notice_ouverte_le": "2026-09-19T10:12:03" if notice_ouverte else ""}

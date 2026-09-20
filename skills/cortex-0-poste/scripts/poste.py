@@ -30,8 +30,8 @@ from pathlib import Path
 _ICI = Path(__file__).resolve().parent
 # Le kit, dans l'ordre du contrat. `node` n'en fait pas partie : il ne s'installe que si
 # la voie mail l'exige (softeria ou mcp-email), il est mesuré mais jamais listé en dry-run.
-KIT = ["obsidian", "uv", "markitdown", "git", "gh", "github-desktop", "buzz"]
-OPTIONS = ["wispr-flow", "superwhisper", "noota", "graphify"]
+KIT = ["obsidian", "uv", "markitdown", "git", "gh", "github-desktop", "buzz", "graphify"]
+OPTIONS = ["wispr-flow", "superwhisper", "noota"]
 
 # cmd : exécutable cherché dans le PATH ; app : application par OS ; install : commande par OS.
 OUTILS = {
@@ -61,6 +61,10 @@ OUTILS = {
              "install": {"macos": "brew install --cask buzz",
                          "windows": "winget install --id ChidiWilliams.Buzz -e",
                          "linux": "uv tool install buzz-captions"}},
+    # Carte d'un dossier de documents ou d'un dépôt de code : installé par uv comme markitdown,
+    # optionnel dans le kit, jamais pointé sur le vault (décision 15).
+    "graphify": {"cmd": "graphify", "install": {os_: 'uv tool install "graphifyy[pdf,office]"'
+                                                for os_ in ("macos", "windows", "linux")}},
     "node": {"cmd": "node", "install": {"macos": "brew install node",
                                          "windows": "winget install --id OpenJS.NodeJS.LTS -e",
                                          "linux": "sudo apt-get install -y nodejs"}},

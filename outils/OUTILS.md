@@ -38,7 +38,7 @@ Où travailler : Claude Code en terminal ou en application de bureau. La version
 |---|---|---|---|---|---|---|
 | Wispr Flow | dictée vocale dans toute application | depuis l'éditeur | depuis l'éditeur | propriétaire, abonnement | wisprflow.ai | option, installée par la personne |
 | Superwhisper | dictée vocale locale, mac | depuis l'éditeur | sans objet | propriétaire | superwhisper.com | option mac |
-| Graphify | carte d'un dépôt de code ou d'un gros dossier de documents | proposé au maillon 2 sur détection | idem | voir l'éditeur | à confirmer par le maillon 2 | option, jamais sur le vault |
+| Graphify | carte d'un dépôt de code ou d'un gros dossier de documents | `uv tool install "graphifyy[pdf,office]"` (maillon 0, sur choix) | idem | Apache-2.0, gratuit ; la lecture des documents consomme des tokens | kit, optionnel | jamais pointé sur le second cerveau lui-même |
 | Obsidian Web Clipper | capture de pages web dans le vault | extension du navigateur | idem | MIT | obsidian.md/clipper | option |
 | pandoc | conversion de documents de repli | `brew install pandoc` | `winget install --id JohnMacFarlane.Pandoc -e` | GPL 2 | pandoc.org | option, si markitdown ne suffit pas |
 | docling | extraction de PDF complexes | `uv tool install docling` | idem | MIT | github.com/docling-project/docling | option, gros PDF |
