@@ -392,6 +392,31 @@ def ecrire_index(exp, slug):
          "notes": notes}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def export_reel(racine_vaults, slug):
+    """Un export écrit par le vrai export.py du gabarit, depuis des notes de vault.
+
+    Défaut de Phase H : les exports fictifs ci-dessus sont fabriqués par la
+    recette elle-même, et ne voyaient pas qu'export.py et federe.py hashaient
+    deux contenus différents. Ce chemin-ci passe par la clôture réelle."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "export_cloture", GABARIT / ".claude" / "skills" / "cloture" / "export.py")
+    m_export = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m_export)
+    v = racine_vaults / f"reel-{slug}"
+    shutil.rmtree(v, ignore_errors=True)
+    for rel, texte in (
+            ("20 - Projets/OPE - Belvédère.md", "---\ntype: projet\nvisibilite: commun\n---\n# Belvédère\n"),
+            ("40 - Acteurs/Direction commerciale.md", "---\ntype: acteur\nvisibilite: commun\n---\n# Direction commerciale\n"),
+            ("40 - Acteurs/Banque.md", "---\ntype: acteur\nvisibilite: prive\n---\n# Banque\n")):
+        (v / rel).parent.mkdir(parents=True, exist_ok=True)
+        (v / rel).write_text(texte, encoding="utf-8")
+    conf = {"mode": "federe", "organisation": {"code": slug},
+            "commun": {"export": "_export", "visibilite_defaut": "prive"}}
+    cible, _ = m_export.exporter(v, conf)
+    return cible
+
+
 def empreinte_commun(commun):
     """Contenu du commun, hors horodatages : ce qui doit etre identique d'une generation a l'autre."""
     out = {}
@@ -714,6 +739,14 @@ def c4_couche_vault(tmp, configs):
     verifie("scaffold accepte une config v2 complète", r.returncode == 0, r.stderr[:300])
     if r.returncode != 0:
         return None
+    # Phase H : sans identité locale, l'identité globale du poste signait l'historique livré.
+    attendu = (conf.get("organisation") or {}).get("redacteur") or "Cortex"
+    ident = subprocess.run(["git", "-C", str(vault), "config", "--local", "user.name"],
+                           capture_output=True, text=True).stdout.strip()
+    auteurs = subprocess.run(["git", "-C", str(vault), "log", "--format=%an"],
+                             capture_output=True, text=True).stdout.split("\n")
+    verifie("le vault porte une identité git locale, celle qui signe son premier commit",
+            ident == attendu and auteurs[0] == attendu, f"{ident!r} / {auteurs[:1]}")
     settings_path = vault / ".claude" / "settings.json"
     try:
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -725,10 +758,18 @@ def c4_couche_vault(tmp, configs):
     allow = perm.get("allow") or []
     verifie("additionalDirectories reprend collecte.racines", perm.get("additionalDirectories") == racines,
             str(perm.get("additionalDirectories")))
-    verifie("une règle deny Write et Edit par racine",
-            racines and all(f"Write({r}/**)" in deny and f"Edit({r}/**)" in deny for r in racines), str(deny))
+    # Phase H : Claude Code ignore une règle Write(...) ; Edit(...) couvre tous
+    # les outils d'écriture, et seul le sandbox arrête Bash.
+    verifie("une règle deny Edit par racine, aucune règle Write inopérante",
+            racines and all(f"Edit({r}/**)" in deny for r in racines)
+            and not any(d.startswith("Write(") for d in deny), str(deny))
     verifie("aucune règle allow n'ouvre Write, Edit ni un Bash libre",
             not any(a in ("Write", "Edit", "Bash") or a.startswith(("Write(", "Edit(")) for a in allow), str(allow))
+    if sys.platform != "win32":
+        sb = settings.get("sandbox") or {}
+        verifie("Bash confiné : sandbox actif, sans échappatoire, racines en denyWrite",
+                sb.get("enabled") is True and sb.get("allowUnsandboxedCommands") is False
+                and all(r in (sb.get("filesystem") or {}).get("denyWrite", []) for r in racines), str(sb))
     hooks = settings.get("hooks") or {}
     verifie("hooks SessionStart et Stop présents dans settings.json",
             bool(hooks.get("SessionStart")) and bool(hooks.get("Stop")), str(list(hooks)))
@@ -883,6 +924,21 @@ def c6_federation(tmp):
     r3 = lancer(FEDERE, "--config", str(commun / "federation.yaml"))
     verifie("une note visibilite: prive dans un export est refusée et absente du commun",
             r3.returncode != 0 and not list(commun.rglob("*Secret Roumier*")), f"code {r3.returncode}")
+
+    # La chaîne réelle : deux clôtures par export.py, puis federe.py.
+    reel = ATELIER_RECETTE / "commun-reel"
+    shutil.rmtree(reel, ignore_errors=True)
+    reel.mkdir(parents=True)
+    exports_reels = {s: export_reel(vaults, s) for s in ("helene", "karim")}
+    (reel / "federation.yaml").write_text(
+        "version: 1\nnom: \"Chaîne réelle\"\nmembres:\n"
+        + "".join(f'  - {{ slug: {s}, export: "{tilde(e)}" }}\n' for s, e in exports_reels.items()),
+        encoding="utf-8")
+    r4 = lancer(FEDERE, "--config", str(reel / "federation.yaml"))
+    fusion = list(reel.rglob("40 - Acteurs/Direction commerciale.md"))
+    verifie("deux exports écrits par export.py se fédèrent, l'acteur commun en une note",
+            r4.returncode == 0 and len(fusion) == 1 and not list(reel.rglob("*Banque*")),
+            (r4.stderr or r4.stdout)[:300])
 
 
 # ── C7 a C9 : manifestes, white-label, chemins absolus ──────────────────────

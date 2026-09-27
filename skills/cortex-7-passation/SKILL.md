@@ -66,6 +66,10 @@ V="<racine du vault>"
 M="<config.marque.mentions_interdites, en alternance>"
 test -n "$M" || { echo "mentions_interdites vide : recette arrêtée"; exit 1; }
 grep -rwiE "$M" "$V"                                                  # attendu : vide
+#    L'historique part avec le vault : auteurs, messages et chaque version des
+#    notes. Les objets de .git sont compressés, le grep ci-dessus ne les lit
+#    pas. Phase H : l'identité git du consultant signait les commits du vault.
+git -C "$V" log --all -p --format='%an %ae %cn %ce %B' | grep -wiE "$M"   # attendu : vide
 
 # 2. Transmissibilité
 grep -rE "/Users/|/home/|[A-Z]:\\\\" "$V" --include='*.md'            # attendu : vide
@@ -82,7 +86,7 @@ test ! -f "$V/.obsidian/community-plugins.json"
 # 6. Pointeurs vivants : trois au hasard, vérifiés à la main
 ```
 
-**Le contrôle 1 est bloquant et sans exception.** Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de finition : c'est une fuite, et elle ne se rattrape pas après remise.
+**Le contrôle 1 est bloquant et sans exception.** Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de finition : c'est une fuite, et elle ne se rattrape pas après remise. Une trace dans l'historique git se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
 
 **Le contrôle 6 est le seul manuel, et il est irremplaçable.** Le lint vérifie qu'un pointeur est présent, jamais qu'il mène quelque part. Un pointeur faux est invisible pour la machine et ne se découvre qu'à l'usage, des semaines plus tard, au pire moment.
 

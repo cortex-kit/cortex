@@ -104,8 +104,18 @@ def racines_collecte(conf):
     return [forme_tilde(r) for r in rac if r]
 
 
-def settings_json(conf):
-    """Une règle deny Write et Edit par racine, les racines en lecture."""
+def settings_json(conf, plateforme=None):
+    """Les racines en lecture, jamais en écriture, et Bash confiné au vault.
+
+    Une règle deny `Edit(<racine>/**)` par racine : elle couvre Write, Edit,
+    MultiEdit et NotebookEdit. Une règle `Write(...)` n'est jamais consultée par
+    Claude Code, qui le signale à chaque ouverture (Phase H).
+
+    Les règles de permission ne voient pas un script Python ni un `echo >`
+    lancés par Bash. Hors Windows, un sandbox sans échappatoire confine donc
+    Bash au vault : racines en `denyWrite`, commun seul autorisé en plus,
+    réseau limité au push. Sans lui, une session du vault a écrit dans un
+    dossier du poste qui n'était ni le vault ni l'atelier (Phase H)."""
     racines = racines_collecte(conf)
     # Une racine qui passe par un lien symbolique (macOS : /var -> /private/var)
     # n'est pas reconnue par la règle écrite sous sa forme donnée : on écrit aussi
@@ -116,14 +126,25 @@ def settings_json(conf):
         reel = os.path.realpath(os.path.expanduser(r))
         if reel != os.path.abspath(os.path.expanduser(r)):
             formes.append(forme_tilde(reel))
-    deny = []
-    for r in formes:
-        deny += [f"Write({r}/**)", f"Edit({r}/**)"]
-    return {
-        "permissions": {"allow": list(ALLOW), "deny": deny,
+    s = {
+        "permissions": {"allow": list(ALLOW), "deny": [f"Edit({r}/**)" for r in formes],
                         "additionalDirectories": formes},
         "hooks": HOOKS,
     }
+    # ponytail: pas de sandbox sous Windows natif (non pris en charge par Claude
+    # Code) ; Bash y reste couvert par les seules règles, à revoir avec WSL2.
+    if (plateforme or sys.platform) != "win32":
+        commun = ((conf.get("commun") or {}).get("racine", "")
+                  if conf.get("mode") == "federe" else "")
+        s["sandbox"] = {
+            "enabled": True,
+            "allowUnsandboxedCommands": False,
+            "autoAllowBashIfSandboxed": False,
+            "filesystem": {"denyWrite": formes,
+                           "allowWrite": [forme_tilde(commun)] if commun else []},
+            "network": {"allowedDomains": ["github.com"]},
+        }
+    return s
 
 
 def ecrire_settings(dest, conf):
@@ -560,13 +581,19 @@ def main():
     # git init toujours, même sans remote : un vault versionné localement donne
     # l'annulation et l'historique, qui sont la moitié de la valeur d'un second
     # cerveau. `substrats.git_remote` ne gouverne que le push, pas le dépôt.
+    # Identité locale au vault : sans elle, chaque commit porte l'identité
+    # globale du poste, celle du consultant, et son nom part chez le client
+    # par l'historique (Phase H). Le rédacteur signe son vault.
+    org = conf.get("organisation") or {}
+    nom = str(org.get("redacteur") or "").strip() or "Cortex"
+    courriel = str(org.get("courriel") or "").strip() or "cortex@localhost"
     try:
         subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
+        subprocess.run(["git", "config", "user.name", nom], cwd=dest, check=True)
+        subprocess.run(["git", "config", "user.email", courriel], cwd=dest, check=True)
         subprocess.run(["git", "add", "-A"], cwd=dest, check=True)
-        subprocess.run(
-            ["git", "-c", "user.name=Cortex", "-c", "user.email=cortex@localhost",
-             "commit", "-q", "-m", "Vault initial (scaffold Cortex)"],
-            cwd=dest, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "Vault initial (scaffold Cortex)"],
+                       cwd=dest, check=True)
         git_ok = True
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         git_ok = False
@@ -578,7 +605,7 @@ def main():
           f"mode {conf.get('mode')}, 0 moustache residuelle")
     racines = racines_collecte(conf)
     print(f"✎ settings.json : {len(racines)} racine(s) en lecture seule, "
-          f"{2 * len(racines)} regle(s) deny, 2 hooks")
+          f"{len(racines)} regle(s) deny, 2 hooks")
     if git_ok:
         depot_prive(dest, "cortex-" + (conf.get("organisation") or {}).get("code", "vault"), a.depot_prive)
     print(f"→ Suite : python3 lint_sante.py --vault \"{dest}\"")
@@ -596,10 +623,17 @@ def _autotest():
     conf = {"collecte": {"racines": [home + "/Documents", "~/Desktop/Travail"]}}
     s = settings_json(conf)
     assert s["permissions"]["additionalDirectories"] == ["~/Documents", "~/Desktop/Travail"], s
-    assert s["permissions"]["deny"] == ["Write(~/Documents/**)", "Edit(~/Documents/**)",
-                                        "Write(~/Desktop/Travail/**)", "Edit(~/Desktop/Travail/**)"]
+    assert s["permissions"]["deny"] == ["Edit(~/Documents/**)", "Edit(~/Desktop/Travail/**)"], s
     assert s["permissions"]["allow"] == ALLOW
     assert set(s["hooks"]) == {"SessionStart", "Stop"}
+    # Bash confiné : pas d'échappatoire, racines interdites, commun autorisé en fédéré.
+    sb = settings_json(dict(conf, mode="federe", commun={"racine": home + "/Cortex/commun"}),
+                       "darwin")["sandbox"]
+    assert sb["enabled"] and sb["allowUnsandboxedCommands"] is False, sb
+    assert sb["filesystem"] == {"denyWrite": ["~/Documents", "~/Desktop/Travail"],
+                                "allowWrite": ["~/Cortex/commun"]}, sb
+    assert settings_json(conf, "darwin")["sandbox"]["filesystem"]["allowWrite"] == []
+    assert "sandbox" not in settings_json(conf, "win32")
     # Config v1 : sans `collecte.racines`, la racine est `chemins.dossiers_projets`.
     assert racines_collecte({"chemins": {"dossiers_projets": home + "/Affaires"}}) == ["~/Affaires"]
     assert racines_collecte({}) == []

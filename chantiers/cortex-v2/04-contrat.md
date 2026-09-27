@@ -227,14 +227,19 @@ Hooks, dans `<vault>/.claude/settings.json` seulement (jamais dans le plugin) :
 {
   "permissions": {
     "allow": ["Read", "Glob", "Grep", "Bash(python3 .claude/skills/lint/lint_sante.py:*)", "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)", "Bash(file:*)", "Bash(du:*)"],
-    "deny": ["Write(~/Documents/**)", "Edit(~/Documents/**)", "Write(~/Desktop/Travail/**)", "Edit(~/Desktop/Travail/**)"],
+    "deny": ["Edit(~/Documents/**)", "Edit(~/Desktop/Travail/**)"],
     "additionalDirectories": ["~/Documents", "~/Desktop/Travail"]
   },
-  "hooks": { "SessionStart": [...], "Stop": [...] }
+  "hooks": { "SessionStart": [...], "Stop": [...] },
+  "sandbox": {
+    "enabled": true, "allowUnsandboxedCommands": false, "autoAllowBashIfSandboxed": false,
+    "filesystem": { "denyWrite": ["~/Documents", "~/Desktop/Travail"], "allowWrite": [] },
+    "network": { "allowedDomains": ["github.com"] }
+  }
 }
 ```
 
-Une règle `deny` par racine de `collecte.racines`, pour `Write` et `Edit`.
+Une règle `deny` `Edit` par racine de `collecte.racines` : elle couvre Write, Edit, MultiEdit et NotebookEdit. Amendement Phase H (2026-09-27) : une règle `Write(...)` n'est jamais consultée, et Bash échappe aux règles ; le bloc `sandbox`, absent sous Windows natif, le confine au vault. En mode fédéré, `allowWrite` porte la racine du commun. Le scaffold pose aussi une identité git locale au vault (le rédacteur), pour que l'identité du poste ne signe jamais l'historique livré.
 
 ## 10. Ligne « Notice » des maillons (invariant I10)
 

@@ -13,7 +13,9 @@ En mode `federe`, vide puis réécrit `<vault>/<commun.export>/<slug>/` :
 
 Une note sans clé `visibilite` prend `commun.visibilite_defaut`. Une note `prive`
 n'est jamais exportée. Régénéré en entier à chaque appel : idempotent. Le `hash`
-est le sha256 de la note d'origine, pour que l'agrégateur voie ce qui a changé.
+est le sha256 des octets écrits dans l'export, frontmatter enrichi compris :
+federe.py le recalcule sur ce fichier pour refuser un export touché après la
+clôture. Hasher la note d'origine faisait refuser tout export réel (Phase H).
 
 En mode `solo`, ne fait rien et le dit : il n'y a personne à qui exporter.
 
@@ -69,9 +71,12 @@ def exporter(vault, conf, aujourdhui=None):
             enrichi = (f"---\nsource_vault: {slug}\nexporte_le: {jour}\n" + texte[4:]
                        if texte.startswith("---\n")
                        else f"---\nsource_vault: {slug}\nexporte_le: {jour}\n---\n{texte}")
+            # write_bytes, jamais write_text : sous Windows, la conversion des fins
+            # de ligne rendrait le fichier différent des octets hashés.
+            octets = enrichi.encode("utf-8")
             (cible / rel).parent.mkdir(parents=True, exist_ok=True)
-            (cible / rel).write_text(enrichi, encoding="utf-8")
-            notes.append({"chemin": str(rel), "hash": hashlib.sha256(brut).hexdigest()})
+            (cible / rel).write_bytes(octets)
+            notes.append({"chemin": rel.as_posix(), "hash": hashlib.sha256(octets).hexdigest()})
     index = {"format": "cortex/export", "version": 1, "slug": slug,
              "exporte_le": jour, "notes": notes}
     (cible / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n",
@@ -115,7 +120,9 @@ def _autotest():
         assert not (cible / "20 - Projets" / "B.md").exists()
         idx = json.loads((cible / "index.json").read_text(encoding="utf-8"))
         assert idx["format"] == "cortex/export" and idx["slug"] == "camille"
-        assert len(idx["notes"][0]["hash"]) == 64
+        # Le hash est celui du fichier exporté, celui que federe.py recalcule.
+        assert idx["notes"][0]["hash"] == hashlib.sha256(
+            (cible / "20 - Projets" / "A.md").read_bytes()).hexdigest(), idx["notes"][0]
         # Défaut `commun` : la note sans clé part ; deux passes donnent le même arbre.
         conf["commun"]["visibilite_defaut"] = "commun"
         _, notes2 = exporter(v, conf, date(2026, 9, 19))

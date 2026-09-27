@@ -52,7 +52,7 @@ Il crée l'arborescence, substitue les moustaches, **instancie une note par doma
 
 ### Les permissions : lire les dossiers de travail, n'y écrire jamais
 
-`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et deux règles `deny`, `Write(<racine>/**)` et `Edit(<racine>/**)`. La liste `allow` porte la lecture (`Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`) et les quatre gestes de la clôture (`git add`, `git commit`, `git push`, `export.py`), pour qu'une clôture ne demande aucune permission. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
+`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et une règle `deny` `Edit(<racine>/**)`, qui couvre tous les outils d'écriture ; Claude Code ignore une règle `Write(...)`. Les règles ne voient pas ce que Bash lance : hors Windows, un bloc `sandbox` sans échappatoire (`allowUnsandboxedCommands: false`) confine Bash au vault, les racines en `denyWrite`, le commun seul en `allowWrite` en mode fédéré, le réseau limité à `github.com` pour le push. La liste `allow` porte la lecture (`Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`) et les quatre gestes de la clôture (`git add`, `git commit`, `git push`, `export.py`), pour qu'une clôture ne demande aucune permission. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
 
 Une config v1 sans `collecte.racines` retombe sur `chemins.dossiers_projets`, la seule racine qu'elle connaît.
 
