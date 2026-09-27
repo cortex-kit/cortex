@@ -36,3 +36,8 @@ Chaque lane vit dans `~/Dev/cortex--<lane>`, branche `lane/<lane>`, ne touche qu
 - Critère C2 (lane C) réécrit : les trois `config.yaml` rejoués par `rejeu_profil.py` se rechargent sans erreur par `cortex_config.charger`, et `valider_installable` ne signale que l'absence de domaines (les domaines de départ restent en prose dans `00-cadrage.md` jusqu'au maillon 3).
 - Cause réelle du rouge de la recette v1 entre `2e0ee29` et le merge de G : le retrait de la skill `presentation` que `rend_deck.py` importait, pas le passage à neuf étapes ; corrigé par le retrait du deck (lane B) et la recette v2 (lane G).
 - Le dossier `skills/presentation/` réapparu après merge n'était qu'un reliquat non suivi (`__pycache__`) : supprimé.
+
+## Défauts relevés au maillon 8 en parcours réel (Alcyon, 2026-09-27)
+
+- `federe.py` refuse tout export réel : `export.py` (gabarit `cloture`) calcule le hash sur la note d'origine, `federe.py` le vérifie sur la copie exportée, qui porte deux lignes de plus (`source_vault`, `exporte_le`). L'autotest de `federe.py` construit ses exports sans ces lignes, donc ne voit rien. À corriger d'un côté ou de l'autre, avec un cas de test qui passe par `export.py`.
+- `cortex-8-federation/SKILL.md` §5 prescrit `statut: en_cours`, mais `etat.py` ne connaît que `brouillon`, `valide` et `arbitre` et affiche `en_cours` comme « illisible ». Atelier Alcyon écrit en `brouillon` en attendant.
