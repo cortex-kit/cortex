@@ -390,8 +390,24 @@ def outillage_seul(dest, conf, table_vide):
     n += 1
     ecrire_settings(dest, conf)
     n += 1
+    if (dest / ".git").is_dir() and not subprocess.run(
+            ["git", "config", "--local", "user.name"], cwd=dest, capture_output=True).stdout.strip():
+        poser_identite(dest, conf)
+        print("✎ Identité git locale posée : les prochains commits ne portent plus celle du poste.")
     print(f"✓ Outillage rafraichi : {n} fichier(s) sous .claude/. Contenu intact.")
     return 0
+
+
+def poser_identite(dest, conf):
+    """Identité git locale au vault, le rédacteur à défaut « Cortex ».
+
+    Sans elle, chaque commit porte l'identité globale du poste, celle du
+    consultant, et son nom part chez le client par l'historique (Phase H)."""
+    org = conf.get("organisation") or {}
+    nom = str(org.get("redacteur") or "").strip() or "Cortex"
+    courriel = str(org.get("courriel") or "").strip() or "cortex@localhost"
+    subprocess.run(["git", "config", "user.name", nom], cwd=dest, check=True)
+    subprocess.run(["git", "config", "user.email", courriel], cwd=dest, check=True)
 
 
 def copier_ingest(dest):
@@ -581,16 +597,9 @@ def main():
     # git init toujours, même sans remote : un vault versionné localement donne
     # l'annulation et l'historique, qui sont la moitié de la valeur d'un second
     # cerveau. `substrats.git_remote` ne gouverne que le push, pas le dépôt.
-    # Identité locale au vault : sans elle, chaque commit porte l'identité
-    # globale du poste, celle du consultant, et son nom part chez le client
-    # par l'historique (Phase H). Le rédacteur signe son vault.
-    org = conf.get("organisation") or {}
-    nom = str(org.get("redacteur") or "").strip() or "Cortex"
-    courriel = str(org.get("courriel") or "").strip() or "cortex@localhost"
     try:
         subprocess.run(["git", "init", "-q"], cwd=dest, check=True)
-        subprocess.run(["git", "config", "user.name", nom], cwd=dest, check=True)
-        subprocess.run(["git", "config", "user.email", courriel], cwd=dest, check=True)
+        poser_identite(dest, conf)
         subprocess.run(["git", "add", "-A"], cwd=dest, check=True)
         subprocess.run(["git", "commit", "-q", "-m", "Vault initial (scaffold Cortex)"],
                        cwd=dest, check=True)
