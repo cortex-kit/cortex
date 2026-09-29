@@ -19,7 +19,8 @@ Cortex v2 fait d'un second cerveau v1 (sept maillons, vault pointeur, zip) un pr
 | A2 Contrat | faite | 2026-09-19 |
 | B, C, D, E, F | faites, auditées à froid, mergées, reprises `fix/<lane>` mergées | 2026-09-19 |
 | G Recette | faite : 114 contrôles à 0 sur `main`, audit final joué et corrigé (`fix/final`), M1 et M4 joués, M2 et M3 ouverts | 2026-09-19 |
-| H Parcours réel | démarrée sur ce Mac, onglet `cortex-evrard`, la personne tient l'onglet | 2026-09-19 |
+| H Parcours réel | jouée (Alcyon Promotion, deux rédacteurs et fédération) : non validée, 3 bloquants et 10 majeurs ; bloquants corrigés sur `fix/phase-h` et rejoués | 2026-09-27 |
+| H2 Majeurs | pack `phase-h2-majeurs/` écrit : lanes A (code) et B (conduite) en parallèle, puis C (parcours rejoué) | 2026-09-29 |
 | I Remise | après H | |
 
 ## Conduite

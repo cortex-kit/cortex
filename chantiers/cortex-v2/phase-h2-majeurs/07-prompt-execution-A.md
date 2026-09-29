@@ -1,0 +1,15 @@
+Tu exécutes la lane A (code) de la Phase H2 du chantier Cortex v2. Tu travailles dans le worktree `~/Dev/cortex--h2a`, branche `lane/h2a`, déjà créés depuis `fix/phase-h`. Tu n'as aucun autre contexte que le dossier `chantiers/cortex-v2/phase-h2-majeurs/`.
+
+Avant toute action, lis dans cet ordre : `README.md`, `01-cadrage.md`, `02-backlog-produit.md`, `03-backlog-technique.md`, `04-contrat.md`, `05-execution.md` (section lane A), `06-verification.md` (section lane A). Charge la skill `verifier-avant-de-croire` avant d'écrire le premier contrôle.
+
+Exécute les tâches A1 à A11 de `05-execution.md`, dans l'ordre. Tu ne touches que les fichiers de la lane A listés dans `03-backlog-technique.md` ; un besoin ailleurs s'écrit dans ton rapport, il ne s'exécute pas. Tu respectes les non-objectifs de `01-cadrage.md` sur tout le périmètre : en particulier, ni `export.py`, ni le bloc `sandbox`, ni `poser_identite()`. Scripts en Python stdlib pure, édition chirurgicale, un correctif par commit avec son contrôle de recette. Chaque contrôle se joue dans les deux sens : vert sur ton code, rouge sur celui de `fix/phase-h`, et tu consignes les deux sorties. Un point qui exige une décision absente du pack : fais tout ce qui n'en dépend pas, arrête-toi sur ce point et décris les options.
+
+Clôture, dans cet ordre :
+1. Commits sur `lane/h2a`, messages commençant par « Lane H2A : ». Pas de push, pas de merge, pas de rebase.
+2. Coche `05-execution.md` (lane A) avec les hashes réels, et écris `rapport-A.md` : fichiers touchés, hashes, sortie de chaque commande de `06-verification.md` (lane A), contre-épreuves rouges, points en attente.
+3. Ne touche pas au Statut du `README.md` : il appartient au chef d'orchestre.
+4. Rends compte au chef d'orchestre par `SendMessage`, destinataire = l'attribut `from` du message qui t'a lancé, puis arrête-toi. Tu n'enchaînes sur aucune autre lane.
+
+--- exécutant Opus 5.5, effort high ---
+Applique les non-objectifs de 01-cadrage à tout le périmètre, pas seulement au premier cas rencontré. Tout le contexte utile est dans les fichiers ; traite la lane en entier, sans multiplier les allers-retours.
+Consigne permanente sur la fin de tes tours. Un message sans tool call termine ton tour, et le travail s'arrête jusqu'à ce qu'on te relance. Quatre façons de finir un tour sont exclues tant que la lane n'est pas terminée. Un : un long résumé de ce qui est fait qui se conclut en annonçant l'étape suivante, sans tool call. Deux : une offre de continuer sauf avis contraire, qui attend une réponse qui ne viendra pas. Trois : une liste de décisions pour l'humain alors qu'aucune, de ton propre aveu, ne bloque le reste. Quatre : juger que c'est un bon moment pour rendre compte parce que le tour a été long ou qu'un jalon est franchi. Les points d'étape sont bienvenus, mais dans le même message que ton prochain tool call. Les seuls arrêts voulus : rien ne peut avancer sans l'humain, ou ce qui te bloque est délibérément protégé. Cela ne lève pas la confirmation requise pour une action risquée ou destructrice.
