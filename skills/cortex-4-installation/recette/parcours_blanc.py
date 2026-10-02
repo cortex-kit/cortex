@@ -346,7 +346,7 @@ def poste_json(notice_ouverte=True):
     p = {"format": "cortex/poste", "version": 1, "genere_le": "2026-09-19T10:12:00", "os": "macos",
          "outils": {o: {"present": True, "version": "1", "installe_par_cortex": False}
                     for o in ("obsidian", "uv", "markitdown", "git", "gh")},
-         "options_proposees": ["wispr-flow", "superwhisper", "noota"],
+         "options_proposees": [],
          "mail": {"fournisseur": "gmail", "boites": 1, "voie": "connecteur",
                   "domaine": "exemple.test", "mx": "aspmx.l.google.com"},
          "notice_ouverte_le": "2026-09-19T10:12:03" if notice_ouverte else ""}
@@ -650,7 +650,8 @@ def poste_isole(tmp, *args, outils_uv=(), uvx=""):
 
 def c1_poste_h2(tmp):
     """Phase H2, défauts 6 et 7 : un outil posé par uv est vu, un outil non mesurable est
-    « à vérifier », une voie mail qui installe ne s'écrit que sur la réponse de la personne."""
+    « à vérifier », une voie mail qui installe ne s'écrit que sur la réponse de la personne,
+    les options sont celles qu'elle a retenues."""
     if sys.platform == "win32":
         verifie("poste.py H2 : faux exécutables en shell, contrôle joué hors Windows", True)
         return
@@ -679,6 +680,13 @@ def c1_poste_h2(tmp):
     mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8")).get("mail", {})
     verifie("H2 témoin : la réponse --voie softeria s'écrit telle quelle",
             r.returncode == 0 and mail.get("voie") == "softeria", str(mail))
+    poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+    verifie("H2 : sans --options, options_proposees est vide (la personne n'a rien retenu)",
+            poste.get("options_proposees") == [], str(poste.get("options_proposees")))
+    r, _ = poste_isole(tmp, *commun, "--options", "noota")
+    poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+    verifie("H2 témoin : --options noota donne exactement [noota]",
+            r.returncode == 0 and poste.get("options_proposees") == ["noota"], str(poste.get("options_proposees")))
 
 
 # ── C2 : trois profils ──────────────────────────────────────────────────────

@@ -33,7 +33,6 @@ _ICI = Path(__file__).resolve().parent
 # Le kit, dans l'ordre du contrat. `node` n'en fait pas partie : il ne s'installe que si
 # la voie mail l'exige (softeria ou mcp-email), il est mesuré mais jamais listé en dry-run.
 KIT = ["obsidian", "uv", "markitdown", "git", "gh", "github-desktop", "buzz", "graphify"]
-OPTIONS = ["wispr-flow", "superwhisper", "noota"]
 
 # cmd : exécutable cherché dans le PATH ; app : application par OS ; install : commande par OS.
 OUTILS = {
@@ -341,6 +340,12 @@ def deja_par_cortex(ancien):
                   if isinstance(o, dict) and o.get("installe_par_cortex")}
 
 
+def options_choisies(texte):
+    """La liste passée par --options, telle quelle ; vide sans --options ou sur « aucune »."""
+    noms = [n.strip() for n in texte.split(",") if n.strip()]
+    return [] if noms == ["aucune"] else noms
+
+
 def ecrire(a, systeme, etat):
     atelier = Path(a.atelier).expanduser()
     atelier.mkdir(parents=True, exist_ok=True)
@@ -359,7 +364,7 @@ def ecrire(a, systeme, etat):
     slug = slug_de(a, atelier) or (ancien.get("organisation") or {}).get("code", "")
     poste = {"format": "cortex/poste", "version": 1, "genere_le": maintenant, "os": systeme,
              "organisation": {"code": slug},
-             "outils": outils, "options_proposees": a.options.split(",") if a.options else OPTIONS,
+             "outils": outils, "options_proposees": options_choisies(a.options),
              "mail": bloc_mail(a), "notice_ouverte_le": maintenant}
     chemin.write_text(json.dumps(poste, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     config = atelier / "config.yaml"
@@ -392,6 +397,8 @@ def _autotest():
     assert voie("m365", admin=True) == "connecteur" and voie("m365") == "softeria"
     assert voie("outlook_perso") == "softeria"
     assert voie("", imap=True) == "mcp-email" and voie("") == "aucune"
+    assert options_choisies("") == [] and options_choisies("aucune") == []
+    assert options_choisies("wispr-flow, noota") == ["wispr-flow", "noota"]
     etat = {n: {"present": n in ("git", "uv"), "version": ""} for n in OUTILS}
     lignes = lignes_dry_run(etat, "macos")
     assert len(lignes) == 6 and lignes[0] == "obsidian : absent → brew install --cask obsidian"
@@ -458,6 +465,7 @@ def _autotest():
         poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
         par_cortex = sorted(n for n, o in poste["outils"].items() if o["installe_par_cortex"])
         assert par_cortex == ["git", "uv"], par_cortex
+        assert poste["options_proposees"] == []        # H2 : sans --options, aucune option inventée
         assert poste["organisation"]["code"] == "acme"        # slug déduit du chemin
         assert poste["notice_ouverte_le"]
         conf = cortex_config.charger(atelier / "config.yaml")
@@ -489,7 +497,7 @@ def main():
                    help="réponse à la question à trois options quand le MX ne suffit pas")
     p.add_argument("--voie", default="", choices=["", "connecteur", "softeria", "mcp-email", "imap", "aucune"],
                    help="voie mail acceptée par la personne ; sans elle, softeria et mcp-email s'écrivent « aucune »")
-    p.add_argument("--options", default="", help="options proposées, séparées par des virgules")
+    p.add_argument("--options", default="", help="options retenues par la personne, séparées par des virgules ; « aucune » ou rien : liste vide")
     p.add_argument("--ecrire", action="store_true", help="écrire poste.json et le bloc poste, ouvrir la notice")
     p.add_argument("--atelier", default="", help="chemin du dossier _cortex/")
     p.add_argument("--slug", default="", help="nom court du second cerveau (organisation.code) ; "
