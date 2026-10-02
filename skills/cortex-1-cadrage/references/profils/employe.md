@@ -23,18 +23,17 @@ La question sur les projets subis est celle qui rapporte le plus. Un employé d�
 
 ## Les substrats attendus
 
-- Un espace de fichiers personnel ou d'équipe : `~/Documents`, un lecteur réseau, un dossier synchronisé de l'entreprise.
+- Un espace de fichiers personnel ou d'équipe : un dossier de travail sur le poste, un lecteur réseau, un dossier synchronisé de l'entreprise.
 - Une boîte mail professionnelle, souvent la seule mémoire réelle des échanges.
 - Souvent aucune base de projets déclarée, alors qu'un outil d'équipe existe et que la personne y a un accès. Le poser deux fois : « et votre équipe, elle suit ça où ? ».
 - Rarement du code.
 
-## Les racines proposées
+## Les racines à demander
 
-À proposer telles quelles, puis à confirmer une par une. Forme `~` obligatoire.
+À demander, jamais à proposer depuis un parcours du disque (`../doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? ». Chaque réponse s'ouvre une fois pour vérifier qu'elle répond, puis s'écrit en forme `~`. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine.
 
-- `~/Documents`
-- `~/Desktop`
-- Le dossier synchronisé de l'employeur s'il existe, deviné depuis `_cortex/poste.json` : fournisseur `gmail` suggère un dossier de type Drive, `m365` un dossier de type OneDrive ou SharePoint. Proposer, ne jamais supposer.
+- Le dossier de travail de la personne, là où elle range ce qu'elle produit pour son poste.
+- Le dossier synchronisé de l'employeur s'il existe : selon `_cortex/poste.json`, demander s'il vit dans un Drive (`gmail`) ou dans un OneDrive ou SharePoint (`m365`). Le fournisseur oriente la question, il ne donne pas de chemin.
 
 Jamais le dossier personnel entier : la vie privée y côtoie le travail, et le maillon 2 la verrait.
 
@@ -88,7 +87,7 @@ mode: solo
 donnees:
   regime: copie
 collecte:
-  racines: ["~/Documents", "~/Desktop"]
+  racines: []
   profondeur_arbre: 3
   max_dossiers: 200
   mail_mois: 12

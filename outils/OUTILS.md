@@ -2,7 +2,7 @@
 
 Ce que le maillon 0 installe, branche, propose ou écarte, avec la commande de chaque OS, la licence et l'adresse. Aucun de ces outils n'est redistribué dans le paquet : chacun s'installe depuis son éditeur, sur accord de la personne, outil par outil. Le paquet lui-même ne contient que ses maillons et l'annexe `stop-slop` (voir `PROVENANCE.md`).
 
-Sous Windows, `py` vaut `python3` et `winget` est fourni avec le système. Sous Linux, les commandes visent la famille Debian ; une autre distribution adapte le gestionnaire de paquets.
+Sous Windows, `py` vaut `python3` et `winget` est fourni avec le système. Limite connue de Windows natif : le confinement qui retient les commandes de l'assistant dans le vault n'y existe pas, seules les règles de lecture et d'édition protègent les dossiers de travail. L'installation n'en est pas bloquée ; pour un poste sensible, WSL2 est recommandé, le confinement s'y applique comme sous Linux. Sous Linux, les commandes visent la famille Debian ; une autre distribution adapte le gestionnaire de paquets.
 
 Où travailler : Claude Code en terminal ou en application de bureau. La version dans le navigateur ne convient pas, elle tourne dans un conteneur distant sans accès au disque alors que le vault vit sur le poste ; l'application de bureau reste à recetter sur ce parcours.
 

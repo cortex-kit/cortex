@@ -35,6 +35,8 @@ C'est le seul geste qui compte, et c'est celui sur lequel tout repose. Un vault 
 
 **« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault.
 
+**Sous Windows natif, une limite de plus, écrite dans le guide.** `os: windows` dans `_cortex/poste.json` : le guide le dit en clair. Sous Windows sans WSL2, les commandes que lance l'assistant ne sont pas confinées au vault ; seules les règles de lecture et d'édition protègent les dossiers de travail. Pour un poste qui porte des données sensibles, recommander Claude Code dans WSL2 (le sous-système Linux de Windows), où le confinement s'applique. L'installation n'en est pas bloquée.
+
 ## 2. La fiche de reprise à froid
 
 `90 - Meta/Reprise.md`. Pour le jour où le client rouvre son vault après trois semaines et ne sait plus par où entrer.
@@ -86,7 +88,7 @@ test ! -f "$V/.obsidian/community-plugins.json"
 # 6. Pointeurs vivants : trois au hasard, vérifiés à la main
 ```
 
-**Le contrôle 1 est bloquant et sans exception.** Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de finition : c'est une fuite, et elle ne se rattrape pas après remise. Une trace dans l'historique git se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
+**Le contrôle 1 est bloquant et sans exception.** Il attrape les marques et les outils du consultant restés dans le vault livré : ce n'est pas un défaut de finition, c'est une fuite, et elle ne se rattrape pas après remise. Le nom d'un autre client ne figure pas dans sa liste (`cortex-1-cadrage/references/doctrine.md` §11) : il reste dehors par la lecture bornée (§9), pas par ce contrôle. Une trace dans l'historique git se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
 
 **Le contrôle 6 est le seul manuel, et il est irremplaçable.** Le lint vérifie qu'un pointeur est présent, jamais qu'il mène quelque part. Un pointeur faux est invisible pour la machine et ne se découvre qu'à l'usage, des semaines plus tard, au pire moment.
 
@@ -133,17 +135,17 @@ Vault remis à <organisation>.
 
 Recette : <N>/6 contrôles passés<, arbitrages : …>
 Livré : guide d'usage, fiche de reprise, runbook des 4 opérations
-        <N> notes, <M> domaines, kit de 6 skills, <K> sous-agents, 2 hooks
+        <N> notes, <M> domaines, 6 savoir-faire, <K> assistants, 2 automatismes
 Remise datée du <remis_le> : bilan proposé à J+7 et J+30.
 
 Pour toi :
-1. Fais la remise en montrant UN geste : `cloture` sur une vraie session.
+1. Fais la remise en montrant UN geste : « clôture » sur une vraie session.
    Pas une visite guidée du vault.
-2. Archive _cortex/ de ton côté. Il ne part pas chez le client, sauf la
-   ligne remis_le (§6).
-3. À J+7 et J+30, demande le `bilan`.
+2. Archive ton dossier de travail de ton côté. Il ne part pas chez le
+   client, sauf la date de remise.
+3. À J+7 et J+30, dis « bilan ».
 
-Ce maillon se relance quand tu veux : si le vault évolue, la documentation
+La remise se relance quand tu veux : si le vault évolue, la documentation
 se régénère. C'est pour ça qu'elle n'est pas écrite à la main.
 ```
 
@@ -178,6 +180,7 @@ Puis la notice (section ci-dessous) : c'est elle qui montre l'installation finie
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais remettre avec le contrôle de white-label en échec.**
 - **Jamais livrer `_cortex/`.** L'atelier contient l'inventaire brut, les hypothèses écartées et les constats sur l'organisation du client. Il reste chez le consultant.
 - **Jamais produire un support de formation** : hors périmètre par décision. Le suivi, lui, existe et tient en une skill, `bilan`, à J+7 et J+30 ; pas un protocole de plus.

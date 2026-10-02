@@ -29,7 +29,7 @@ Un agent métier ne se crée que si les **trois** sont réunies :
 2. **Elle est lourde en lecture** — beaucoup de matière en entrée, peu de sortie. C'est ce qui justifie un contexte séparé plutôt qu'une skill.
 3. **Elle porte sur un type de document nommé** — un bail, un appel d'offres, un rapport d'expertise. Pas « les documents du client ».
 
-**Si une condition manque, ne pas créer l'agent. Le dire, et expliquer laquelle.**
+**Si une condition manque, ne pas créer l'agent. Le dire, et expliquer laquelle.** Une réponse « aucun besoin » clôt le test : ni fréquence ni volume ne se demandent ensuite (`cortex-1-cadrage/references/doctrine.md` §11).
 
 C'est la partie la plus utile de ce maillon. Tout client demande des agents, et la moitié de ces demandes décrivent une tâche qui se fait mieux dans le fil principal, sans agent du tout.
 
@@ -59,7 +59,7 @@ Chaque agent naît d'une entrée dans `_cortex/05-agents-metier.md` :
   motif_revue: "la trame de bail change à chaque renouvellement de modèle"
 ```
 
-La spec se fait valider **avant** l'écriture de l'agent. C'est aussi elle qui rend l'agent maintenable par quelqu'un d'autre : sans elle, personne ne sait plus ce qu'il était censé faire ni pourquoi.
+La spec se fait valider **avant** l'écriture de l'agent, et elle se valide vue : affichée en entier, telle qu'elle s'écrira, dans le message qui précède la question ou dans l'aperçu de l'option qui la valide (`cortex-1-cadrage/references/doctrine.md` §10). « Le cahier des charges est-il juste ? » sans le cahier à l'écran est une signature à l'aveugle. C'est aussi elle qui rend l'agent maintenable par quelqu'un d'autre : sans elle, personne ne sait plus ce qu'il était censé faire ni pourquoi.
 
 ## 2. Le mécanisme de péremption
 
@@ -143,6 +143,7 @@ S'il manque un jalon, c'est-à-dire un fichier d'atelier ni validé ni arbitré,
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais un agent par métier ou par service.** C'est la demande la plus fréquente et le plus sûr moyen de produire une bibliothèque morte au deuxième trimestre.
 - **Jamais un agent sans date de revue.**
 - **Jamais un agent qui écrit.**

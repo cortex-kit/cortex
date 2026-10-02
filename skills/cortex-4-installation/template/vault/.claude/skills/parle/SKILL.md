@@ -7,6 +7,8 @@ description: Répond à une question sur le travail de la personne à partir du 
 
 La personne pose une question dans ses mots. La skill lit ce qu'il faut, pas plus, et répond en citant les notes d'où vient chaque affirmation. Une réponse sans citation n'est pas vérifiable, donc pas fiable.
 
+**Devant la personne** : ses mots, jamais ceux de l'outil (ni « écart », ni « régime », ni une clé de `config.yaml`, ni le nom d'un script ou d'un contrôle) ; et tout ce qu'on lui demande de valider s'affiche en entier avant la question, jamais « ci-dessus » vers un texte qui n'a pas été écrit.
+
 ## 1. Charger, dans cet ordre
 
 1. **`00 - Centre/Centre.md`**, toujours. C'est la carte : les domaines, les gestes, l'inbox.

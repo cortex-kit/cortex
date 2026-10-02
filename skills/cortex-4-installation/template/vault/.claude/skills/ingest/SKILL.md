@@ -7,6 +7,8 @@ description: Transforme une source externe en note-pointeur dans le vault — ar
 
 Procédure complète et raisonnée : [[Ingest - Sources externes]]. Cette skill l'exécute.
 
+**Devant la personne** : ses mots, jamais ceux de l'outil (ni « écart », ni « régime », ni une clé de `config.yaml`, ni le nom d'un script ou d'un contrôle) ; et tout ce qu'on lui demande de valider s'affiche en entier avant la question, jamais « ci-dessus » vers un texte qui n'a pas été écrit.
+
 ## Le test d'éligibilité, avant tout
 
 **La source nourrit-elle au moins un projet ou un domaine actif ?**

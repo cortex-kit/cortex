@@ -7,6 +7,8 @@ description: Instancie un nouveau projet — la fiche dans le vault, le dossier 
 
 Trois objets, dans cet ordre, et rien de plus.
 
+**Devant la personne** : ses mots, jamais ceux de l'outil (ni « écart », ni « régime », ni une clé de `config.yaml`, ni le nom d'un script ou d'un contrôle) ; et tout ce qu'on lui demande de valider s'affiche en entier avant la question, jamais « ci-dessus » vers un texte qui n'a pas été écrit.
+
 ## Étape 0 — Prérequis
 
 `config.yaml` à la racine du vault. Sans lui, ni les domaines, ni les cycles, ni la racine des dossiers de travail ne sont connus.

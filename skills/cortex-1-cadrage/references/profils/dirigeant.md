@@ -29,13 +29,12 @@ La question sur les outils décide du régime. Un dirigeant qui suit ses affaire
 - Un agenda tenu par la personne ou par une assistante.
 - Rarement du code, sauf société technologique.
 
-## Les racines proposées
+## Les racines à demander
 
-À proposer telles quelles, puis à confirmer une par une. Forme `~` obligatoire.
+À demander, jamais à proposer depuis un parcours du disque (`../doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? ». Chaque réponse s'ouvre une fois pour vérifier qu'elle répond, puis s'écrit en forme `~`. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine.
 
-- `~/Documents`
-- Le dossier partagé de l'entreprise, deviné depuis `_cortex/poste.json` : `gmail` suggère un dossier de type Drive, `m365` un dossier de type SharePoint ou OneDrive. Proposer, ne jamais supposer.
-- Le dossier des affaires s'il vit ailleurs, par exemple `~/Affaires`.
+- Le dossier partagé de l'entreprise : selon `_cortex/poste.json`, demander s'il vit dans un Drive (`gmail`) ou dans un SharePoint ou OneDrive (`m365`). Le fournisseur oriente la question, il ne donne pas de chemin.
+- Le dossier des affaires, s'il vit ailleurs que le dossier partagé.
 
 ## Les plafonds
 
@@ -90,7 +89,7 @@ mode: solo
 donnees:
   regime: copie
 collecte:
-  racines: ["~/Documents"]
+  racines: []
   profondeur_arbre: 3
   max_dossiers: 200
   mail_mois: 12

@@ -29,7 +29,7 @@ Trois acteurs se partagent le travail :
 
 Si un substrat ne répond pas : **s'arrêter et le dire.** Ne pas inventorier les autres « en attendant ». Un inventaire partiel est pire qu'absent : le maillon 3 déduirait une ontologie d'un corpus troué en le croyant complet, et le trou deviendrait un domaine oublié.
 
-Lire la clé `conduite` du `config.yaml` : absente, elle vaut `consultant`. En `solo`, le fond ne change pas. Changent l'adresse (« vos dossiers », pas « les substrats du client ») et le message de clôture, qui propose la suite au lieu de rendre la main.
+Lire la clé `conduite` du `config.yaml` : absente, elle vaut `consultant`. Dans les deux modes, l'adresse se fait dans les mots de la personne (« vos dossiers », jamais « les substrats du client », `cortex-1-cadrage/references/doctrine.md` §8). En `solo`, le fond ne change pas ; seul le message de clôture change, il propose la suite au lieu de rendre la main.
 
 ## Le piège, et sa parade structurelle
 
@@ -117,7 +117,7 @@ Chaque écart : `{type, indice, source_id}`, l'indice chiffré (« 9 fichiers »
 
 ## Graphify : proposé, jamais installé d'office
 
-Quand `depots` n'est pas vide, ou qu'une entrée `disque` porte `graphify_propose: true` (plus de 500 documents dans son sous-arbre), le dire une fois, en une phrase, dans le message de clôture : un graphe de dépendances aiderait le maillon 5 sur ce dépôt ou ce dossier, et son installation est une option du maillon 0. Ne rien installer, ne rien lancer, ne jamais le proposer sur le vault lui-même.
+Quand `depots` n'est pas vide, ou qu'une entrée `disque` porte `graphify_propose: true` (plus de 500 documents dans son sous-arbre), le dire une fois, en une phrase, dans le message de clôture : une carte de ce dépôt ou de ce dossier aiderait au remplissage, et elle s'installe depuis l'équipement du poste (« équipe mon poste »). Ne rien installer, ne rien lancer, ne jamais le proposer sur le vault lui-même.
 
 ## Les bornes
 
@@ -152,13 +152,13 @@ Le rapport lisible reprend, par substrat : ce qui a été parcouru, les chiffres
 ```
 Inventaire terminé pour <organisation>.
 
-- <N> substrats parcourus, <M> entrées cataloguées
-- disque : <dossiers_vus> dossiers, <fichiers_vus> fichiers, <extractions> structurants lus en mots
+- <N> dossiers et outils parcourus, <M> entrées cataloguées
+- disque : <dossiers_vus> dossiers, <fichiers_vus> fichiers, <extractions> documents de fond lus
 - schémas relevés : <K> bases, <P> propriétés distinctes
 - messagerie : <en_tetes_lus> en-têtes sur <periode_mois> mois, <N domaines agrégés | hors périmètre>
-- <E> écarts candidats pour l'entretien
+- <E> points à éclaircir avec vous à l'étape suivante
 - au-delà des bornes : <ce qui a été laissé de côté, ou rien>
-- <graphe de dépendances proposé sur <dépôt ou dossier>, option du maillon 0 | rien>
+- <carte proposée pour <dépôt ou dossier>, à installer depuis l'équipement du poste | rien>
 
 Pour toi :
 1. Relis 01-inventaire.md, surtout la section « Au-delà des bornes ».
@@ -184,6 +184,7 @@ Puis la section Notice ci-dessous. Si un endroit déclaré n'a pas pu être parc
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais de contenu rapatrié.** Le schéma l'interdit ; ne pas le contourner par un champ ajouté.
 - **Jamais la messagerie sans opt-in tracé.** Jamais un corps, jamais une adresse en clair hors `acteurs`.
 - **Jamais d'inventaire partiel présenté comme complet.**

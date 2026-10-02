@@ -5,6 +5,8 @@ description: Audite la santé du vault contre son contrat de données. À lancer
 
 # lint — audit de santé du vault
 
+**Devant la personne** : ses mots, jamais ceux de l'outil (ni « écart », ni « régime », ni une clé de `config.yaml`, ni le nom d'un script ou d'un contrôle) ; et tout ce qu'on lui demande de valider s'affiche en entier avant la question, jamais « ci-dessus » vers un texte qui n'a pas été écrit.
+
 ## La commande
 
 ```bash
@@ -31,7 +33,7 @@ Deux registres, et ne jamais les confondre dans un compte rendu.
 | `journal_entree_obese` | entrée de journal au-delà du seuil : c'est une copie déguisée |
 | `moustaches_residuelles` | placeholder d'installation non substitué |
 | `chemins_absolus` | chemin lié à une machine : le vault cesse d'être transmissible |
-| `commun_edite_main` | note du vault commun modifiée à la main, en mode fédéré |
+| `commun_edite_main` | en mode fédéré, note du vault commun sans la marque « généré », ou commun qui ne correspond plus à son empreinte `.cortex-genere` : une note éditée à la main, ou un commun périmé à régénérer depuis l'atelier |
 | `progression_absente` | projet actif sans progression |
 | `visibilite_hors_enum` | `visibilite` autre que `prive` ou `commun` : l'export ne saurait pas quoi en faire |
 

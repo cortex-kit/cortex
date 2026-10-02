@@ -1,6 +1,6 @@
 ---
 name: cortex-1-cadrage
-description: Maillon 1 de la chaîne Cortex, le cadrage. Pose le profil (employé, dirigeant, société) en langage ordinaire, fixe le régime de donnée (pointeur ou copie), propose les dossiers à parcourir et les plafonds depuis references/profils/<profil>.md, lit _cortex/poste.json pour pré-remplir le poste et la voie mail. Produit config.yaml et 00-cadrage.md dans _cortex/. Déclencher quand la personne dit "faisons le cadrage" (phrase de la notice), "cadre mon second cerveau", "on commence le cadrage", "maillon 1", "nouveau client Cortex", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
+description: Maillon 1 de la chaîne Cortex, le cadrage. Pose le profil (employé, dirigeant, société) en langage ordinaire, fixe le régime de donnée (pointeur ou copie), demande les dossiers à parcourir et propose les plafonds depuis references/profils/<profil>.md, lit _cortex/poste.json pour pré-remplir le poste et la voie mail. Produit config.yaml et 00-cadrage.md dans _cortex/. Déclencher quand la personne dit "faisons le cadrage" (phrase de la notice), "cadre mon second cerveau", "on commence le cadrage", "maillon 1", "nouveau client Cortex", ou dispose d'un compte rendu de rendez-vous à exploiter. Ne PAS confondre avec cortex-3-ontologie, qui décide des domaines à partir de l'inventaire réel.
 ---
 
 # cortex-1-cadrage — le maillon le plus cher
@@ -41,7 +41,7 @@ Rien n'est requis. C'est le point d'entrée. Si un compte rendu de rendez-vous o
 
 > « Installez-vous cet outil pour vous-même, ou pour quelqu'un d'autre ? »
 
-En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant`, tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo`. La personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les maillons suivants.
+En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `conduite: consultant`, tout le comportement historique de ce maillon, à l'identique. « Pour moi-même » ⇒ `conduite: solo`. La personne qui répond est celle qui vivra avec l'outil : la collecte se reformule (§1), le white-label sort de la conversation (§2), et chaque message de clôture de la chaîne proposera la suite au lieu de rendre la main. La réponse s'écrit dans `config.yaml` à la création de l'atelier et n'est plus jamais reposée, ni ici ni dans les maillons suivants. Ni la question ni la suite ne disent « mode », « conduite », « consultant » ou « solo » : on dit « vous installez pour quelqu'un d'autre » ou « pour vous seul » (`references/doctrine.md` §8).
 
 **Le profil se pose juste après, une seule fois.** Si `config.yaml` porte déjà `profil`, ne pas la reposer. Sinon, par AskUserQuestion, options fermées plus « autre », sans jamais prononcer « profil » ni les trois noms de l'enum :
 
@@ -50,13 +50,15 @@ En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `
 > 2. Je dirige une organisation, seul ou avec des associés.
 > 3. Nous sommes plusieurs dans la même organisation à vouloir cet outil, chacun le sien.
 
-1 ⇒ `profil: employe`, 2 ⇒ `profil: dirigeant`, 3 ⇒ `profil: societe`. Le profil choisit `references/profils/<profil>.md`, qui donne les questions, les substrats attendus, les racines, les plafonds, les domaines de départ et les pièges : le lire en entier avant la première question du §1. `societe` impose `mode: federe` et trois décisions de groupe avant les questions individuelles ; le fichier de profil les détaille. « Autre » ne crée pas de quatrième profil : demander ce qui ne rentre pas, puis rattacher à l'un des trois.
+1 ⇒ `profil: employe`, 2 ⇒ `profil: dirigeant`, 3 ⇒ `profil: societe`. Le profil choisit `references/profils/<profil>.md`, qui donne les questions, les substrats attendus, les racines, les plafonds, les domaines de départ et les pièges : le lire en entier avant la première question du §1. `societe` impose `mode: federe` et trois décisions de groupe avant les questions individuelles ; le fichier de profil les détaille. « Autre » ne crée pas de quatrième profil : demander ce qui ne rentre pas, puis rattacher à l'un des trois. La suite ne dit jamais « profil », « parcours dirigeant » ni « parcours employé » : elle reprend la réponse de la personne (« vous dirigez », « vous travaillez pour un responsable », « vous êtes plusieurs »).
 
-**Lire `_cortex/poste.json` s'il existe**, écrit par le maillon 0. Il pré-remplit sans question : le bloc `poste` de `config.yaml` (`os`, `outils` présents, `mail_fournisseur`, `mail_boites`, `mail_voie`), la voie mail que le maillon 2 prendra (`04-contrat.md` §7), et un candidat d'espace documentaire à proposer au §1 (`gmail` suggère un dossier de type Drive, `m365` un dossier de type OneDrive ou SharePoint). Proposer, jamais supposer : le candidat se confirme comme n'importe quelle racine. Sans `poste.json`, le bloc `poste` reste vide et la question mail du §3 se pose telle quelle.
+**En groupe, les décisions de groupe se reprennent.** À partir du deuxième rédacteur, la liste des rédacteurs, l'emplacement du commun, la visibilité par défaut et la liste des noms à ne jamais faire apparaître sont fixés depuis le premier cadrage. Les lire dans l'atelier du premier rédacteur, `00-cadrage.md` et `config.yaml` seuls, rien d'autre de ses notes ni de son vault (`references/doctrine.md` §9). Les reprendre telles quelles et les annoncer dans le récapitulatif d'identité, sans les reposer ni les compléter de propositions (§11).
+
+**Lire `_cortex/poste.json` s'il existe**, écrit par le maillon 0. Il pré-remplit sans question : le bloc `poste` de `config.yaml` (`os`, `outils` présents, `mail_fournisseur`, `mail_boites`, `mail_voie`), la voie mail que le maillon 2 prendra (`04-contrat.md` §7), et l'orientation de la question des dossiers au §1 : avec `gmail`, demander si les fichiers de travail sont dans un Drive ; avec `m365`, dans un OneDrive ou un SharePoint. Le fournisseur oriente la question, il ne donne pas de chemin, et rien ne se cherche sur le disque pour en trouver un. Sans `poste.json`, le bloc `poste` reste vide et la question mail du §3 se pose telle quelle.
 
 ## 1. Collecte, à trois niveaux, en une seule passe
 
-Poser sous forme de liste compacte. Question par question, un cadrage prend une heure et le client décroche.
+Poser sous forme de liste compacte, dans les mots du quotidien (plus bas) : les intitulés qui suivent sont le pense-bête de l'agent, jamais le texte posé. Question par question, un cadrage prend une heure et le client décroche.
 
 ### Niveau 1 — bloquant
 
@@ -82,30 +84,32 @@ Axes commerciaux (`vehicules`, `payeurs`), identité légale, échéance souhait
 
 `references/profils/<profil>.md` porte huit sujets : métier, N+1, collègues, parties prenantes, projets portés, projets subis, outils, rituels. Chacun s'y trouve déjà formulé en langage ordinaire, avec ce que la réponse alimente. Les poser par AskUserQuestion, quatre par appel, options fermées plus « autre », dans l'ordre du fichier. Une réponse qui ouvre un point nouveau relance un lot ; un silence ne se comble pas.
 
-**Les racines se proposent, elles ne se demandent pas.** Le fichier de profil liste `collecte.racines` en forme `~` ; y ajouter le candidat tiré de `poste.json`. Montrer la liste, faire confirmer, retirer ou ajouter chaque entrée. Chaque racine confirmée doit répondre (le dossier s'ouvre) avant d'être écrite. Une racine absente du disque ne s'écrit pas, elle se note dans `00-cadrage.md` comme à retrouver.
+**Les racines se demandent, elles ne se proposent pas depuis le disque** (`references/doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? », orientée par le fournisseur de messagerie (Étape 0). Aucun `ls` ni aucune recherche dans le dossier personnel pour deviner la réponse. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine. Chaque racine nommée doit répondre (le dossier s'ouvre) avant d'être écrite, en forme `~`. Une racine absente du disque ne s'écrit pas, elle se note dans `00-cadrage.md` comme à retrouver.
 
 **Le régime de donnée se fixe ici, sans le nommer** (`04-contrat.md` §2). Dès que la réponse à « où suivez-vous l'état de vos dossiers ? » désigne un outil en ligne ou un logiciel, `substrats.base_projets` reçoit son adresse et `donnees.regime` vaut `pointeur`. Sinon, `copie` : le maillon 5 copiera, un par un et sur accord, les documents structurants listés dans `donnees.structurants`. Dire la conséquence dans les mots de la personne : « votre outil restera la référence, celui-ci y renverra » ou « vos documents de fond seront recopiés ici, un par un, avec votre accord ». Le régime peut encore basculer au maillon 3 si l'inventaire révèle une base non déclarée.
 
 **Les domaines de départ du profil ne s'écrivent pas dans `config.yaml`.** Ils vont dans `00-cadrage.md`, section « Domaines de départ (hypothèses du profil) », pour que le maillon 3 les teste en premier contre l'inventaire. Un domaine écrit dans la config avant l'inventaire serait adopté par politesse (§Interdits).
 
-### En mode solo — les mêmes questions, dans les mots du quotidien
+### Dans les deux modes, les mêmes questions dans les mots du quotidien
 
-Le fond ne change pas : mêmes trois niveaux, mêmes informations, même passe unique, mêmes confirmations actives au niveau 2. Seul le vocabulaire change — la personne n'a pas à apprendre le jargon de la chaîne pour répondre.
+Que la personne installe pour elle ou pour quelqu'un d'autre, consultant compris, la traduction vaut (`references/doctrine.md` §8). Le fond ne change pas : mêmes trois niveaux, mêmes informations, même passe unique, mêmes confirmations actives au niveau 2. Seul le vocabulaire change : la personne n'a pas à apprendre le jargon de la chaîne pour répondre.
 
 - « Déclarez vos substrats » devient **« où sont vos dossiers de travail ? »**, puis, si elle en a : où suit-elle l'état de ses projets, où vit son code.
 - « Qui porte ce vault » devient **« c'est bien vous, et personne d'autre, qui écrirez dedans ? »** — la règle du rédacteur unique ne se relâche pas, elle se dit autrement.
 - Le secteur et l'effectif se demandent comme on demande « que faites-vous, et à combien ? » — ils orientent le vocabulaire et les plafonds sans qu'il soit besoin de le dire.
-- La messagerie ne se mentionne que si la personne souhaite l'inventorier. La question d'autorisation du §3 se pose alors dans les mêmes termes qu'en consultant : c'est la seule question réglementaire de la chaîne, elle ne se simplifie pas.
+- La messagerie ne se mentionne que si la personne souhaite l'inventorier. La question d'autorisation du §3 se pose alors dans les termes du §3, pour tous : c'est la seule question réglementaire de la chaîne, elle ne se simplifie pas.
 
 ## 2. Le white-label
 
-`marque.mentions_interdites` reçoit : ta marque, tes outils internes, tes noms propres, et **les clients que tu as déjà servis**.
+`marque.mentions_interdites` reçoit tes marques, et elles seules : ton nom, ta société, tes outils internes. La liste proposée ne contient qu'elles, et tu la complètes toi-même. Devant toi, elle se nomme « les noms à ne jamais faire apparaître dans l'outil livré », jamais par sa clé.
 
-Cette dernière catégorie est celle qu'on oublie, et c'est la plus dangereuse. Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de propreté, c'est une fuite — et elle se produit par des chemins qu'on n'imagine pas : un exemple laissé dans un template, un identifiant de page dans une note de méthode, un registre oublié dans un fichier d'agent.
+**Aucun nom d'un autre client** n'y figure, ne s'y propose, ni ne se cherche sur le poste, dans un dépôt ou dans la mémoire de Claude (`references/doctrine.md` §11). Un vault livré qui contient le nom d'un autre client est une fuite ; une liste qui en propose six dans l'atelier d'un client en est déjà une. Le vault reste propre des autres clients par la lecture bornée de la chaîne (doctrine §9) et par un gabarit vérifié à chaque version.
+
+**En groupe, la liste est une décision de groupe.** Fixée au cadrage du premier rédacteur, elle se reprend telle quelle de son `config.yaml` chez les suivants et s'annonce dans le récapitulatif, sans question.
 
 Le contrôle est bloquant au maillon 7.
 
-**En mode solo, ce bloc sort de la conversation.** Il n'y a aucune marque à effacer : la personne installe pour elle-même. `mentions_interdites` ne se demande pas — et ne reste pas vide pour autant : elle se pré-remplit avec les traces d'origine du gabarit (noms propres, exemples et identifiants laissés par son fabricant, à relever dans le gabarit lui-même), que le contrôle bloquant du maillon 7 attrapera si elles fuient dans l'outil. Le pré-remplissage est un geste du maillon ; la personne n'a rien à fournir ni à comprendre ici.
+**En mode solo, ce bloc sort de la conversation.** Il n'y a aucune marque à effacer : la personne installe pour elle-même. `mentions_interdites` ne se demande pas, et ne reste pas vide pour autant : elle se pré-remplit avec les traces d'origine du gabarit (noms propres, exemples et identifiants laissés par son fabricant, à relever dans le gabarit lui-même), que le contrôle bloquant du maillon 7 attrapera si elles fuient dans l'outil. Le pré-remplissage est un geste du maillon ; la personne n'a rien à fournir ni à comprendre ici.
 
 ## 3. La messagerie — la seule question réglementaire
 
@@ -156,9 +160,18 @@ Le corps porte, en plus des réponses : « Domaines de départ (hypothèses du p
 
 **Un fichier dont un contrôle n'est ni `passé` ni explicitement `arbitré` ne peut pas être consommé** par le maillon suivant. C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne : le maillon 2 s'arrête en étape 0, sans repli.
 
+**En groupe, inscrire le rédacteur au commun**, une fois les blocs validés (§6) et l'atelier écrit. `federation.yaml` vit dans le commun et porte les membres du groupe ; c'est lui que le tableau de bord lit pour savoir qui reste à remettre avant de relier les cerveaux.
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-8-federation/scripts/federe.py" --inscrire <slug> --redacteur "<Prénom Nom>" \
+        --export "~/Cortex/<slug>/vault/_export/<slug>" \
+        --config "<commun.racine>/federation.yaml" --nom "<organisation>" \
+        [--attendu "<Prénom Nom>" ...]
+
+`--redacteur` est la personne qui porte ce vault, son nom écrit exactement comme dans la liste du groupe : un attendu ne se retire que par la même orthographe. `--export` est le chemin que son vault aura, en forme `~`. Un `--attendu` par autre rédacteur nommé dans la liste du groupe et pas encore membre de `federation.yaml` ; aucun s'il n'en reste pas. Le script crée le commun et le fichier s'ils manquent, ajoute ou met à jour le membre, retire son nom des attendus, et n'écrit rien d'autre. Il refuse, sans rien toucher, un dossier commun non vide qui n'en est pas un : le dire, et faire choisir un autre emplacement.
+
 ## 6. Validation — par bloc
 
-Identité, puis white-label, puis substrats, puis bornes. Attendre à chaque bloc.
+Identité, puis white-label, puis substrats, puis bornes. Attendre à chaque bloc. Chaque bloc s'affiche en entier dans le message, ou dans l'aperçu de l'option qui le valide, avant la question (`references/doctrine.md` §10) : « le bloc identité ci-dessus est-il juste ? » sans le bloc à l'écran est une validation à l'aveugle.
 
 C'est la granularité la plus fine de toute la chaîne, et elle se justifie par le coût de régénération : refaire ce maillon veut dire reprendre du temps au client. Tous les autres se rejouent seuls.
 
@@ -169,17 +182,19 @@ C'est la granularité la plus fine de toute la chaîne, et elle se justifie par 
 ```
 Cadrage terminé pour <organisation>.
 
-- config.yaml initialisé : <N> substrats déclarés, plafonds acceptés
-- white-label : <N> mentions interdites
-- messagerie : <opt-in tracé | hors périmètre>
+- <N> dossiers et outils déclarés, plafonds acceptés
+- noms à ne jamais faire apparaître dans l'outil livré : <N>
+- messagerie : <accord écrit tracé | hors du champ>
+- équipe : <inscrit au commun, en attente de <noms> | sans objet>
 
 Pour toi :
-1. Obtiens les accès aux substrats listés en §Substrats.
+1. Obtiens les accès aux dossiers et outils déclarés.
 2. Quand ils répondent, dis « lance l'inventaire ».
 
-Le maillon 2 vérifie que chaque substrat déclaré répond avant de commencer.
-S'il en manque un, il s'arrête : mieux vaut attendre un accès que produire
-un inventaire partiel dont personne ne saura ce qu'il a manqué.
+L'inventaire vérifie que chaque dossier et chaque outil déclaré répond
+avant de commencer. S'il en manque un, il s'arrête : mieux vaut attendre
+un accès que produire un inventaire partiel dont personne ne saura ce
+qu'il a manqué.
 ```
 
 **En mode solo**, la clôture récapitule, énonce la condition d'entrée du maillon suivant, et **propose** — jamais n'impose :
@@ -203,13 +218,16 @@ Si un accès manque (un mot de passe à retrouver, un compte à réactiver), s'a
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`references/doctrine.md` §8 à §11).
 - **Ne jamais décider des domaines ici.** Ils se déduisent de l'inventaire, avec preuve. Un domaine proposé au cadrage sera adopté par politesse et jamais réexaminé.
 - **Ne jamais promettre la reprise du contenu.** Le vault pointe.
 - **Ne jamais inventer** une valeur manquante : `_Non renseigné — à compléter_` est toujours préférable. Halluciner une décision de cadrage est pire que laisser un trou visible.
 - **Ne jamais ouvrir la messagerie sans accord tracé.**
 - **Ne jamais accepter un rédacteur collectif.** Un vault, une personne. « L'équipe » comme réponse est le début d'un produit différent.
-- **En solo, ne jamais demander « quel mode »** ni prononcer « solo » ou « consultant » devant la personne. La question d'ouverture en langage ordinaire suffit, la réponse s'écrit, et elle ne se repose jamais.
-- **Ne jamais prononcer « profil », « employé », « dirigeant », « société », « régime », « pointeur », « copie »** devant la personne. Ce sont des clés de `config.yaml`, pas des mots de conversation.
+- **Ne jamais demander « quel mode »** ni prononcer « solo », « consultant » ou « conduite » devant la personne, quelle que soit sa réponse. La question d'ouverture en langage ordinaire suffit, la réponse s'écrit, et elle ne se repose jamais.
+- **Ne jamais prononcer « profil », « parcours », « employé », « dirigeant », « société », « régime », « pointeur », « copie », « substrat », « écart »** devant la personne. Ce sont des clés de `config.yaml` ou des mots de la chaîne, pas des mots de conversation.
+- **Ne jamais proposer une racine trouvée sur le disque**, ni `~/Documents` ou `~/Desktop` par défaut. Les racines se demandent.
+- **Ne jamais proposer le nom d'un autre client** pour la liste des noms à ne jamais faire apparaître, ni le chercher sur le poste. Ne jamais reposer cette liste une fois donnée.
 - **Ne jamais écrire une racine qui ne répond pas**, ni une racine en chemin absolu. Forme `~` seule.
 
 ## Notice
