@@ -12,7 +12,7 @@ Trois choses, avant toute question individuelle, avec la personne qui porte la d
 2. **L'emplacement du commun.** Un dossier hors de tout vault individuel, forme `~`, par exemple `~/Cortex/commun`. Il sera régénéré à chaque fédération et ne se modifie jamais à la main.
 3. **Le défaut de visibilité.** Ce qu'une note devient quand son auteur n'a rien précisé : `prive` (rien ne sort sans geste explicite) ou `commun` (tout sort sauf mention contraire). Le défaut recommandé est `prive` : une note qui fuit coûte plus qu'une note qui manque.
 
-Ces trois réponses s'écrivent dans chaque `config.yaml` individuel (`mode`, `commun.racine`, `commun.visibilite_defaut`) et dans `federation.yaml`, qui vit dans le commun et que le maillon 8 écrit.
+Ces trois réponses s'écrivent dans chaque `config.yaml` individuel (`mode`, `commun.racine`, `commun.visibilite_defaut`). La liste des rédacteurs va aussi dans `federation.yaml`, qui vit dans le commun : chaque cadrage y inscrit son rédacteur par `federe.py --inscrire`, avec les autres noms du groupe comme attendus (`cortex-1-cadrage` §5). Pour les rédacteurs suivants, ces décisions se reprennent du premier cadrage et s'annoncent ; elles ne se reposent pas.
 
 ## Les questions, en langage ordinaire
 
@@ -36,12 +36,13 @@ Les mêmes que pour chaque rédacteur selon son poste, plus deux questions de gr
 - Souvent un outil commun de suivi ; s'il existe, le régime est `pointeur` pour tout le monde, et le commun n'a rien à copier.
 - Parfois un dépôt de code partagé.
 
-## Les racines proposées
+## Les racines à demander
 
 Par rédacteur, celles de son profil, plus le dossier partagé. Deux rédacteurs peuvent déclarer la même racine : chacun la parcourt pour lui, et le commun fusionne ce qui se recoupe.
 
-- `~/Documents`
-- Le dossier partagé de l'organisation, deviné depuis `_cortex/poste.json` comme pour les autres profils.
+À demander, jamais à proposer depuis un parcours du disque (`../doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? ». Chaque réponse s'ouvre une fois pour vérifier qu'elle répond, puis s'écrit en forme `~`. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine.
+
+- Le dossier partagé de l'organisation, demandé comme pour les autres profils : le fournisseur de messagerie oriente la question, il ne donne pas de chemin.
 
 ## Les plafonds
 
@@ -68,7 +69,7 @@ Chaque rédacteur, à son cadrage, reçoit `mode: federe`, `commun.racine` et `c
 
 Le maillon 8, `cortex-8-federation`, lit `federation.yaml` dans le commun (la liste des membres et le chemin de leur export), vide le commun et le régénère : Centre, domaines fusionnés par nom, projets et acteurs avec `source_vault`, un acteur présent chez deux rédacteurs devient une note unique. Deux fédérations sur les mêmes exports ne diffèrent que par la date. Le commun porte un `README.md` « généré, ne pas éditer » et une empreinte.
 
-Le maillon 8 ne se lance qu'une fois au moins deux rédacteurs remis (maillon 7 fait). Avant, l'étape reste `arbitre` dans la notice avec la raison « vault solo ».
+Le maillon 8 ne se lance qu'une fois tous les rédacteurs de `federation.yaml` remis (maillon 7 fait) et aucun attendu restant. Avant, l'étape reste `arbitre` dans la notice, avec la raison « en attente de <noms> », et la notice ne propose pas « relie les cerveaux ».
 
 ## Bloc config proposé
 
@@ -84,7 +85,7 @@ commun:
 donnees:
   regime: copie
 collecte:
-  racines: ["~/Documents"]
+  racines: []
   profondeur_arbre: 3
   max_dossiers: 200
   mail_mois: 12
