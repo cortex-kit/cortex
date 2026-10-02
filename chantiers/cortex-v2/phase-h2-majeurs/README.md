@@ -37,7 +37,7 @@ Tenu par le chef d'orchestre, jamais par une lane.
 | Lane B | faite, auditée (3 bloquants repris), reprise mergée | 2026-10-02 |
 | Audits A et B | faits | 2026-10-02 |
 | Merge dans `main` (= `fix/phase-h`) | fait, plugin rc.7 | 2026-10-02 |
-| Lane C, parcours | après le merge | |
+| Lane C, parcours | lancée (pilote Opus depuis `~/Cortex-test`, plugin rc.7, fixtures neuves) | 2026-10-02 |
 
 ## Version
 
