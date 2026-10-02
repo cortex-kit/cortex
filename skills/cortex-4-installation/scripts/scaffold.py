@@ -531,8 +531,9 @@ def main():
 
     # La config du client vit DANS son vault : c'est ce qui rend le vault
     # autonome et le lint exécutable sans argument supplementaire.
-    # Mais PAS `mentions_interdites` : cette liste porte les autres clients du
-    # consultant, et la copier ici ferait voyager leurs noms chez celui-ci —
+    # Mais PAS `mentions_interdites` : cette liste porte les marques et les
+    # outils du consultant, qu'il saisit lui-meme (decision 6, aucun nom de
+    # client), et la copier ici ferait voyager ces marques chez le client —
     # le fichier qui existe pour interdire ces mentions serait celui qui les
     # transporte. Le lint ne s'en sert pas ; la recette de remise la lit dans
     # l'atelier, cote consultant.
