@@ -4,7 +4,7 @@
 Ne bloque jamais l'arrêt : un rappel, pas une contrainte. La sortie JSON porte
 `systemMessage`, la seule forme qu'un hook Stop montre à la personne.
 
-Usage : python3 .claude/hooks/stop.py [--autotest]
+Usage : python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/stop.py" [--autotest]
 """
 import argparse
 import json
@@ -15,8 +15,10 @@ from pathlib import Path
 
 
 def racine_vault():
-    """Le vault est celui que Claude Code annonce, pas le dossier courant."""
-    return Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path.cwd())
+    """Le vault est celui que Claude Code annonce, sinon celui qui porte ce script
+    (<vault>/.claude/hooks/), jamais le dossier courant : après un `cd` de la session,
+    le hook ne trouvait plus ni le lint ni `_cortex/06-passation.md`."""
+    return Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path(__file__).resolve().parents[2])
 
 
 def message(porcelain):
@@ -51,7 +53,7 @@ def _autotest():
     os.environ["CLAUDE_PROJECT_DIR"] = "/tmp/vault-annonce"
     assert racine_vault() == Path("/tmp/vault-annonce")
     del os.environ["CLAUDE_PROJECT_DIR"]
-    assert racine_vault() == Path.cwd()
+    assert racine_vault() == Path(__file__).resolve().parents[2]
     if avant is not None:
         os.environ["CLAUDE_PROJECT_DIR"] = avant
     print("OK stop.py")

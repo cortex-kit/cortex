@@ -68,11 +68,12 @@ ALLOW = [
     "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)",
     "Bash(file:*)", "Bash(du:*)",
 ]
+# Chemin ancré sur le vault : une commande relative cassait après un `cd` de la session.
 HOOKS = {
     "SessionStart": [{"hooks": [{"type": "command",
-                                 "command": "python3 .claude/hooks/session_start.py"}]}],
+                                 "command": 'python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/session_start.py"'}]}],
     "Stop": [{"hooks": [{"type": "command",
-                         "command": "python3 .claude/hooks/stop.py"}]}],
+                         "command": 'python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/stop.py"'}]}],
 }
 
 

@@ -6,7 +6,7 @@ Trois lignes au plus, dans le contexte de la session :
   2. la proposition de `bilan` à J+7 et J+30 de la remise, lue dans
      `_cortex/06-passation.md` (clé `remis_le`) quand l'atelier est dans le vault.
 
-Usage : python3 .claude/hooks/session_start.py [--autotest]
+Usage : python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/session_start.py" [--autotest]
 """
 import argparse
 import os
@@ -18,12 +18,10 @@ from pathlib import Path
 
 
 def racine_vault():
-    """Le vault est celui que Claude Code annonce, pas le dossier courant.
-
-    Sans `CLAUDE_PROJECT_DIR`, un hook lance depuis un sous-dossier ne trouvait
-    ni le lint ni `_cortex/06-passation.md`, et se taisait sans le dire.
-    """
-    return Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path.cwd())
+    """Le vault est celui que Claude Code annonce, sinon celui qui porte ce script
+    (<vault>/.claude/hooks/), jamais le dossier courant : après un `cd` de la session,
+    le hook ne trouvait plus ni le lint ni `_cortex/06-passation.md`."""
+    return Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path(__file__).resolve().parents[2])
 
 
 def fenetre_bilan(remis_le, aujourdhui=None):
@@ -73,12 +71,12 @@ def _autotest():
     assert fenetre_bilan("2026-08-20", j) == "J+30"
     assert fenetre_bilan("2026-09-18", j) == ""
     assert fenetre_bilan("pas une date", j) == ""
-    # Le vault vient de CLAUDE_PROJECT_DIR, le dossier courant n'est qu'un repli.
+    # Le vault vient de CLAUDE_PROJECT_DIR, sinon de l'emplacement du script.
     avant = os.environ.get("CLAUDE_PROJECT_DIR")
     os.environ["CLAUDE_PROJECT_DIR"] = "/tmp/vault-annonce"
     assert racine_vault() == Path("/tmp/vault-annonce")
     del os.environ["CLAUDE_PROJECT_DIR"]
-    assert racine_vault() == Path.cwd()
+    assert racine_vault() == Path(__file__).resolve().parents[2]
     if avant is not None:
         os.environ["CLAUDE_PROJECT_DIR"] = avant
     print("OK session_start.py")

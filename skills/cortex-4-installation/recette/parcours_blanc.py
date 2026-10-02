@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -901,6 +902,29 @@ def c4_couche_vault(tmp, configs):
         r_hook = lancer(chemin, "--autotest")
         verifie(f"{nom}.py --autotest sort en 0",
                 r_hook.returncode == 0, f"code {r_hook.returncode}, {(r_hook.stderr or r_hook.stdout)[:200]}")
+    # H2 : une commande relative cassait après un `cd` de la session. La commande de
+    # settings.json, jouée depuis un autre dossier, doit trouver le hook et le lint.
+    commandes = {ev: ((hooks.get(ev) or [{}])[0].get("hooks") or [{}])[0].get("command", "")
+                 for ev in ("SessionStart", "Stop")}
+    verifie("H2 : les deux commandes de hook sont ancrées sur ${CLAUDE_PROJECT_DIR}",
+            all(c.startswith('python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/') for c in commandes.values()),
+            str(commandes))
+    ailleurs = tmp / "ailleurs-hooks"
+    ailleurs.mkdir(exist_ok=True)
+    argv = [x.replace("${CLAUDE_PROJECT_DIR}", str(vault)) for x in shlex.split(commandes["SessionStart"])]
+    r_ss = subprocess.run([sys.executable] + argv[1:], cwd=ailleurs, capture_output=True, text=True, timeout=120,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(vault)))
+    verifie("H2 : la commande SessionStart lancée depuis un autre dossier lit le lint du vault",
+            r_ss.returncode == 0 and "Contrôle de santé" in r_ss.stdout, f"code {r_ss.returncode}, {(r_ss.stderr or r_ss.stdout)[:200]}")
+    sans_env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+    r_ss = subprocess.run([sys.executable, str(scripts_hooks["session_start"])], cwd=ailleurs,
+                          capture_output=True, text=True, timeout=120, env=sans_env)
+    verifie("H2 : sans CLAUDE_PROJECT_DIR, le hook se repère sur son emplacement, pas sur le dossier courant",
+            r_ss.returncode == 0 and "Contrôle de santé" in r_ss.stdout, f"code {r_ss.returncode}, {(r_ss.stderr or r_ss.stdout)[:200]}")
+    r_stop = subprocess.run([sys.executable, str(scripts_hooks["stop"]), "--autotest"], cwd=ailleurs,
+                            capture_output=True, text=True, timeout=120, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(vault)))
+    verifie("H2 : stop.py --autotest lancé hors du vault sort en 0", r_stop.returncode == 0,
+            (r_stop.stderr or r_stop.stdout)[:200])
     skills_livrees = {p.name for p in (vault / ".claude" / "skills").iterdir() if p.is_dir()} \
         if (vault / ".claude" / "skills").is_dir() else set()
     attendues = set((conf.get("agents") or {}).get("skills") or [])
