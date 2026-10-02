@@ -6,7 +6,8 @@ Quatre gestes, tous explicites :
   --installer a,b              installe CES outils, et seulement ceux-là (l'accord a été donné avant)
   --mail adresse [...]         reconnaît le fournisseur (MX) et propose la voie de branchement ;
                                --voie porte la réponse de la personne : sans elle, une voie qui
-                               installe quelque chose (softeria, mcp-email) s'écrit « aucune »
+                               installe quelque chose (softeria, mcp-email) s'écrit « aucune »,
+                               sauf réponse déjà écrite ; --options se garde de même
   --ecrire --atelier <_cortex> écrit _cortex/poste.json, le bloc `poste` et organisation.code
                                (le slug, --slug ou déduit du chemin) de config.yaml, puis
                                régénère et ouvre la notice. notice_ouverte_le est posé ici : la
@@ -77,10 +78,10 @@ def os_courant():
 
 
 def _version(cmd):
-    # cwd temporaire : `markitdown --version` dépose un `:memory:.ses` dans le dossier courant.
+    # cwd temporaire et propre : `markitdown --version` dépose un `:memory:.ses` dans le dossier courant.
     try:
-        r = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=10,
-                           cwd=tempfile.gettempdir())
+        with tempfile.TemporaryDirectory() as cwd:
+            r = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=10, cwd=cwd)
         m = re.search(r"\d+(\.\d+)+", r.stdout + r.stderr)
         return m.group(0) if m else ""
     except (OSError, subprocess.TimeoutExpired):
@@ -122,8 +123,8 @@ def _uvx(args, uvx):
     if not uvx:
         return {"present": False, "version": ""}
     try:
-        r = subprocess.run([uvx, *args, "--version"], capture_output=True, text=True, timeout=120,
-                           cwd=tempfile.gettempdir())
+        with tempfile.TemporaryDirectory() as cwd:
+            r = subprocess.run([uvx, *args, "--version"], capture_output=True, text=True, timeout=120, cwd=cwd)
     except subprocess.TimeoutExpired:
         return {"present": None, "version": "", "raison": "sonde uvx : délai de 120 s dépassé"}
     except OSError as e:
@@ -267,15 +268,20 @@ def voie(four, boites=1, admin=False, imap=False):
 VOIES_QUI_INSTALLENT = ("softeria", "mcp-email")
 
 
-def bloc_mail(a):
-    """`voie` est ce qui s'écrit : la réponse de la personne (--voie), sinon la voie
-    calculée si elle n'installe rien, sinon « aucune ». `voie_proposee` garde la voie
-    calculée, pour que le skill sache quoi proposer (04-contrat H2 §2)."""
+def bloc_mail(a, ancien=None):
+    """`voie` est ce qui s'écrit : la réponse de la personne (--voie), sinon celle déjà
+    écrite pour la même proposition (`ancien`, le bloc mail de poste.json), sinon la
+    voie calculée si elle n'installe rien, sinon « aucune ». `voie_proposee` garde la
+    voie calculée, pour que le skill sache quoi proposer (04-contrat H2 §2)."""
+    ancien = ancien or {}
+    if ancien and not (a.mail or a.fournisseur or a.voie):
+        return ancien          # rien de neuf sur le mail : la réponse acquise reste
     domaine = a.mail.rsplit("@", 1)[-1].strip().lower() if a.mail else ""
     hotes = mx(domaine) if domaine and not a.fournisseur else []
     four = a.fournisseur or (fournisseur(domaine, hotes) if domaine else "")
     proposee = voie(four, a.boites, a.admin, a.imap)
-    retenue = a.voie or ("aucune" if proposee in VOIES_QUI_INSTALLENT else proposee)
+    acquise = ancien.get("voie", "") if ancien.get("voie_proposee") == proposee else ""
+    retenue = a.voie or acquise or ("aucune" if proposee in VOIES_QUI_INSTALLENT else proposee)
     return {"fournisseur": four, "boites": a.boites, "voie": retenue, "voie_proposee": proposee,
             "domaine": domaine, "mx": hotes[0] if hotes else ""}
 
@@ -341,7 +347,8 @@ def deja_par_cortex(ancien):
 
 
 def options_choisies(texte):
-    """La liste passée par --options, telle quelle ; vide sans --options ou sur « aucune »."""
+    """La liste passée par --options, telle quelle ; vide sur « aucune ». Sans --options,
+    ecrire() garde la liste déjà écrite."""
     noms = [n.strip() for n in texte.split(",") if n.strip()]
     return [] if noms == ["aucune"] else noms
 
@@ -364,8 +371,10 @@ def ecrire(a, systeme, etat):
     slug = slug_de(a, atelier) or (ancien.get("organisation") or {}).get("code", "")
     poste = {"format": "cortex/poste", "version": 1, "genere_le": maintenant, "os": systeme,
              "organisation": {"code": slug},
-             "outils": outils, "options_proposees": options_choisies(a.options),
-             "mail": bloc_mail(a), "notice_ouverte_le": maintenant}
+             "outils": outils,
+             "options_proposees": options_choisies(a.options) if a.options
+             else ancien.get("options_proposees", []),
+             "mail": bloc_mail(a, ancien.get("mail")), "notice_ouverte_le": maintenant}
     chemin.write_text(json.dumps(poste, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     config = atelier / "config.yaml"
     if slug:
@@ -479,6 +488,23 @@ def _autotest():
         assert ecrire(args([], "m365", "softeria"), "macos", faux) == 0
         mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]
         assert mail["voie"] == "softeria" and mail["voie_proposee"] == "softeria", mail
+        # Reprise m5 : un second --ecrire sans --voie ni --options garde la réponse acquise.
+        a = args([], "m365")
+        a.options = "noota"
+        assert ecrire(a, "macos", faux) == 0
+        assert ecrire(args([], "m365"), "macos", faux) == 0
+        poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+        assert poste["mail"]["voie"] == "softeria" and poste["options_proposees"] == ["noota"], poste
+        assert cortex_config.charger(atelier / "config.yaml")["poste"]["mail_voie"] == "softeria"
+        a = args([], "")
+        a.mail = ""
+        assert ecrire(a, "macos", faux) == 0                            # sans --mail : bloc gardé
+        assert json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]["voie"] == "softeria"
+        a = args([], "m365", "aucune")
+        a.options = "aucune"
+        assert ecrire(a, "macos", faux) == 0                            # une réponse neuve l'emporte
+        poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+        assert poste["mail"]["voie"] == "aucune" and poste["options_proposees"] == [], poste
         assert ecrire(args([], "gmail"), "macos", faux) == 0          # connecteur : rien à installer
         assert json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]["voie"] == "connecteur"
     print("poste.py : auto-test OK")
@@ -496,8 +522,10 @@ def main():
     p.add_argument("--fournisseur", default="", choices=["", "gmail", "m365", "outlook_perso", "autre"],
                    help="réponse à la question à trois options quand le MX ne suffit pas")
     p.add_argument("--voie", default="", choices=["", "connecteur", "softeria", "mcp-email", "imap", "aucune"],
-                   help="voie mail acceptée par la personne ; sans elle, softeria et mcp-email s'écrivent « aucune »")
-    p.add_argument("--options", default="", help="options retenues par la personne, séparées par des virgules ; « aucune » ou rien : liste vide")
+                   help="voie mail acceptée par la personne ; sans elle, la réponse déjà écrite pour la même "
+                        "proposition reste, sinon softeria et mcp-email s'écrivent « aucune »")
+    p.add_argument("--options", default="", help="options retenues par la personne, séparées par des virgules ; « aucune » : liste vide ; "
+                   "sans --options : la liste déjà écrite reste")
     p.add_argument("--ecrire", action="store_true", help="écrire poste.json et le bloc poste, ouvrir la notice")
     p.add_argument("--atelier", default="", help="chemin du dossier _cortex/")
     p.add_argument("--slug", default="", help="nom court du second cerveau (organisation.code) ; "
