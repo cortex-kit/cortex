@@ -335,6 +335,8 @@ def sous_projets(chemin, projets, racines):
     ponytail: seul repère des projets connu du scan ; le reste se juge au maillon 3."""
     if not projets:
         return False
+    if not isinstance(projets, str):
+        raise ValueError(f"chemins.dossiers_projets : un seul chemin attendu, lu {projets!r}")
     p, d = Path(projets).expanduser(), Path(chemin).expanduser()
     if any(p == r or p in r.parents for r in (Path(x).expanduser() for x in racines)):
         return False
