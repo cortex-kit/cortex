@@ -27,11 +27,11 @@ Le script du maillon : `${CLAUDE_SKILL_DIR}/scripts/poste.py`, stdlib pure, `py`
 
 ## Étape 0 : rien n'est requis
 
-C'est le point d'entrée. Lister les noms des dossiers de `~/Cortex/`, leurs noms seuls, sans rien ouvrir dedans. Puis poser une seule question, en langage ordinaire, toujours la première :
+C'est le point d'entrée. Ne rien lister dans `~/Cortex/` : sur le poste d'un consultant, ses dossiers sont d'autres clients. Poser une seule question, en langage ordinaire, toujours la première :
 
 > « Quel nom court voulez-vous donner à votre second cerveau ? Un mot, sans espace : votre prénom, votre société, ce que vous voulez. »
 
-Si un atelier existe déjà sur le poste, la même question porte les ateliers existants comme options, à côté de « un nouveau nom ». Un atelier trouvé n'est jamais présumé celui de la personne qui parle, et ne se décrit pas d'après son contenu (`cortex-1-cadrage/references/doctrine.md` §11).
+Aucun atelier existant ne se propose en option. Seul se reconnaît l'atelier dont la personne donne le nom : `~/Cortex/<slug>/` testé pour ce nom, rien d'autre. S'il existe, il n'est jamais présumé le sien : dire qu'un second cerveau porte déjà ce nom sur l'ordinateur, sans le décrire d'après son contenu, et demander s'il faut le reprendre ou choisir un autre nom (`cortex-1-cadrage/references/doctrine.md` §11).
 
 La réponse, en minuscules, devient `<slug>`. Si `~/Cortex/<slug>/_cortex/poste.json` existe déjà avec `notice_ouverte_le` renseigné, le maillon est fait pour cet atelier : le dire, proposer de rouvrir la notice, et s'arrêter. L'atelier vit dans `~/Cortex/<slug>/_cortex/`, hors de tout dossier synchronisé. Le slug est `organisation.code` : `poste.py` l'écrit dans `config.yaml` et dans `poste.json`, et c'est lui que reprendront `_export/<slug>/`, le dépôt `cortex-<slug>` et `federation.yaml`. Le maillon 1 y trouvera `config.yaml` avec le bloc `poste` déjà écrit.
 
@@ -69,7 +69,7 @@ Le script exécute la commande de chaque outil nommé, rien d'autre, et mémoris
 Ensuite, deux gestes qui demandent la personne :
 
 - **Les core plugins du lecteur de notes.** Bases, Daily notes, Templates, Graph, Properties. Ils s'activent dans les réglages du lecteur, une fois le second cerveau installé : le dire ici en ces mots, ne rien faire maintenant.
-- **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra l'installation du second cerveau : le noter, continuer. Une connexion illisible d'ici (`connecte: null`) n'est pas une connexion expirée : la dire « à vérifier », et ne proposer la connexion que si la personne dit ne pas l'avoir faite.
+- **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra l'installation du second cerveau : le noter, continuer. Une connexion illisible d'ici (`connecte: null`) n'est pas une connexion expirée : la dire « à vérifier », et donner la commande de connexion dans le même message, sans question de plus : la personne la lance si elle ne l'a pas faite.
 
 Proposer enfin, sans insister, les options que le script n'installe pas : dictée vocale (`wispr-flow`, `superwhisper`) et prise de notes de réunion (`noota`), chacune depuis le site de l'éditeur. Ce que la personne retient part dans `--options` au §4, et `options_proposees` vaut exactement cette liste. Une réponse « aucune » ou un silence : pas de `--options`, la liste reste vide.
 

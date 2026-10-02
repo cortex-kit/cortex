@@ -24,7 +24,7 @@ Ces mots ont un sens précis dans la chaîne. Les employer autrement devant un c
 | **domaine** | un centre de gravité du travail réel. Entre 1 et 6, décidés au maillon 3 sur preuve chiffrée |
 | **cycle** | le vocabulaire de phases d'un type de projet. Les mots du client, pas les tiens |
 | **atelier** | `_cortex/`, le dossier de travail du consultant. Ne part jamais chez le client |
-| **white-label** | l'absence, dans le livrable, de ta marque, de tes outils et **des clients que tu as déjà servis** |
+| **white-label** | l'absence, dans le livrable, de ta marque et de tes outils internes. Les autres clients en restent dehors par la lecture bornée (§9), jamais par une liste qui les nommerait (§11) |
 | **kit générique** | les 6 skills et 2 sous-agents livrés par le maillon 4, identiques chez tous |
 | **agent métier** | un sous-agent sur mesure, conçu au maillon 6 sur un vault déjà peuplé, avec une date de péremption |
 
@@ -128,7 +128,7 @@ La règle couvre tout ce que la personne voit : le texte des messages, les quest
 
 ## 9. Ce que la chaîne lit
 
-Cinq endroits, pas un de plus : l'atelier `_cortex/` du rédacteur en cours, son vault, les racines déclarées au cadrage, les fichiers du plugin sous `${CLAUDE_SKILL_DIR}`, et le dossier du commun au maillon 8. Le second rédacteur d'un groupe lit en plus `00-cadrage.md` et `config.yaml` dans l'atelier du premier, pour reprendre les décisions de groupe ; rien d'autre de ses notes ni de son vault. Pour savoir si un atelier existe déjà, le maillon 0 lit les noms des dossiers de `~/Cortex/`, leurs noms seuls.
+Cinq endroits, pas un de plus : l'atelier `_cortex/` du rédacteur en cours, son vault, les racines déclarées au cadrage, les fichiers du plugin sous `${CLAUDE_SKILL_DIR}`, et le dossier du commun au maillon 8. Le second rédacteur d'un groupe lit en plus `00-cadrage.md` et `config.yaml` dans l'atelier du premier, pour reprendre les décisions de groupe ; rien d'autre de ses notes ni de son vault. En groupe, le cadrage lit `federation.yaml` dans le commun pour savoir qui est déjà membre : c'est la seule lecture du commun hors du maillon 8. Le maillon 8 lit la date de remise dans `_cortex/06-passation.md` de chaque membre, rien d'autre de leurs ateliers. Pour savoir si un atelier existe déjà, le maillon 0 teste le seul nom court que la personne a donné (`~/Cortex/<slug>/` existe ou non) ; il ne liste jamais `~/Cortex/`.
 
 Le reste du poste ne se lit jamais : `~/Documents`, `~/Desktop`, `~/OneDrive*`, `~/Library`, les dépôts de code, les dossiers de travail du consultant, la mémoire de Claude (`~/.claude/projects/*/memory`), l'historique des sessions, le dépôt source du plugin hors de `${CLAUDE_SKILL_DIR}`. On n'y cherche ni nom, ni marque, ni indice pour deviner une réponse. Ce que la personne n'a pas dit se demande.
 
@@ -150,4 +150,4 @@ La personne ne voit que les messages. Un contenu préparé dans le raisonnement 
 
 **Marque.** La liste des noms à ne jamais faire apparaître dans un vault livré ne contient que les marques du consultant : son nom, sa société, ses outils internes. Il la saisit lui-même. Aucun nom d'un autre client ne s'y propose et aucun ne se cherche sur le poste : proposer ce nom dans l'atelier d'un client, c'est déjà l'y écrire. Le vault reste propre des autres clients par la lecture bornée du §9, pas par une liste qui les transporterait d'atelier en atelier. En groupe, la liste est une décision de groupe : fixée au cadrage du premier rédacteur, reprise telle quelle chez les suivants et annoncée dans leur récapitulatif, jamais redemandée.
 
-**Atelier existant.** Au maillon 0, dès qu'un atelier existe sur le poste, la première question demande le nom court ; les ateliers existants y figurent comme options, à côté d'un nouveau nom. Un atelier trouvé n'est jamais présumé celui de la personne qui parle, et son contenu ne se lit pas pour le décrire.
+**Atelier existant.** Au maillon 0, la première question demande toujours le nom court. `~/Cortex/` ne se liste pas et aucun atelier ne se propose en option : sur le poste d'un consultant, ce sont ses autres clients. Seul l'atelier dont la personne donne le nom se reconnaît ; il n'est jamais présumé le sien, et son contenu ne se lit pas pour le décrire.
