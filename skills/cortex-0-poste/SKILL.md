@@ -68,8 +68,8 @@ Le script exécute la commande de chaque outil nommé, rien d'autre, et mémoris
 
 Ensuite, deux gestes qui demandent la personne :
 
-- **Les core plugins du lecteur de notes.** Bases, Daily notes, Templates, Graph, Properties. Ils s'activent dans les réglages du lecteur, une fois le vault ouvert au maillon 4 : le dire ici, ne rien faire maintenant.
-- **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra le maillon 4 : le noter, continuer. Une connexion illisible d'ici (`connecte: null`) n'est pas une connexion expirée : la dire « à vérifier », et ne proposer la connexion que si la personne dit ne pas l'avoir faite.
+- **Les core plugins du lecteur de notes.** Bases, Daily notes, Templates, Graph, Properties. Ils s'activent dans les réglages du lecteur, une fois le second cerveau installé : le dire ici en ces mots, ne rien faire maintenant.
+- **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra l'installation du second cerveau : le noter, continuer. Une connexion illisible d'ici (`connecte: null`) n'est pas une connexion expirée : la dire « à vérifier », et ne proposer la connexion que si la personne dit ne pas l'avoir faite.
 
 Proposer enfin, sans insister, les options que le script n'installe pas : dictée vocale (`wispr-flow`, `superwhisper`) et prise de notes de réunion (`noota`), chacune depuis le site de l'éditeur. Ce que la personne retient part dans `--options` au §4, et `options_proposees` vaut exactement cette liste. Une réponse « aucune » ou un silence : pas de `--options`, la liste reste vide.
 
