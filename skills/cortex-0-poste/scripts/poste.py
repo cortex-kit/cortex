@@ -4,7 +4,10 @@
 Quatre gestes, tous explicites :
   --dry-run                    une ligne par outil du kit absent, avec la commande de l'OS courant
   --installer a,b              installe CES outils, et seulement ceux-là (l'accord a été donné avant)
-  --mail adresse [...]         reconnaît le fournisseur (MX) et propose la voie de branchement
+  --mail adresse [...]         reconnaît le fournisseur (MX) et propose la voie de branchement ;
+                               --voie porte la réponse de la personne : sans elle, une voie qui
+                               installe quelque chose (softeria, mcp-email) s'écrit « aucune »,
+                               sauf réponse déjà écrite ; --options se garde de même
   --ecrire --atelier <_cortex> écrit _cortex/poste.json, le bloc `poste` et organisation.code
                                (le slug, --slug ou déduit du chemin) de config.yaml, puis
                                régénère et ouvre la notice. notice_ouverte_le est posé ici : la
@@ -31,7 +34,6 @@ _ICI = Path(__file__).resolve().parent
 # Le kit, dans l'ordre du contrat. `node` n'en fait pas partie : il ne s'installe que si
 # la voie mail l'exige (softeria ou mcp-email), il est mesuré mais jamais listé en dry-run.
 KIT = ["obsidian", "uv", "markitdown", "git", "gh", "github-desktop", "buzz", "graphify"]
-OPTIONS = ["wispr-flow", "superwhisper", "noota"]
 
 # cmd : exécutable cherché dans le PATH ; app : application par OS ; install : commande par OS.
 OUTILS = {
@@ -76,27 +78,64 @@ def os_courant():
 
 
 def _version(cmd):
+    # cwd temporaire et propre : `markitdown --version` dépose un `:memory:.ses` dans le dossier courant.
     try:
-        r = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=10)
+        with tempfile.TemporaryDirectory() as cwd:
+            r = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=10, cwd=cwd)
         m = re.search(r"\d+(\.\d+)+", r.stdout + r.stderr)
         return m.group(0) if m else ""
     except (OSError, subprocess.TimeoutExpired):
         return ""
 
 
-def _uvx(args):
-    """Sonde un outil servi par uvx : `uvx --from "paquet[extra]" outil --version`."""
-    if not shutil.which("uvx"):
+def _raison(sortie, prefixe):
+    """Première ligne d'erreur et sa cause, chemin personnel en forme ~, bornée : la
+    raison d'une sonde qui n'a rien prouvé, dite telle quelle plutôt qu'« absent »."""
+    lignes = [l.strip() for l in sortie.splitlines() if l.strip()][:2]
+    texte = " ; ".join(lignes).replace(str(Path.home()), "~") or "aucune sortie"
+    return f"{prefixe} : {texte}"[:200]
+
+
+def dossier_outils_uv():
+    """Le dossier où `uv tool install` pose ses exécutables : `uv tool dir --bin` quand
+    uv répond, sinon ~/.local/bin (Path.home() vaut %USERPROFILE% sous Windows)."""
+    defaut = Path.home() / ".local" / "bin"
+    uv = shutil.which("uv") or shutil.which("uv", path=str(defaut))
+    if uv:
+        try:
+            r = subprocess.run([uv, "tool", "dir", "--bin"], capture_output=True, text=True, timeout=15)
+            if r.returncode == 0 and r.stdout.strip():
+                return Path(r.stdout.strip())
+        except (OSError, subprocess.TimeoutExpired):
+            pass  # repli du contrat (§2) : l'emplacement par défaut de uv, cherché quand même
+    return defaut
+
+
+def trouver(cmd, bin_uv):
+    """Le PATH d'abord, puis le dossier des outils de uv, absent du PATH d'une session neuve."""
+    return shutil.which(cmd) or shutil.which(cmd, path=str(bin_uv))
+
+
+def _uvx(args, uvx):
+    """Sonde un outil servi par uvx : `uvx --from "paquet[extra]" outil --version`.
+    Sans uvx, l'outil est absent. Une sonde qui échoue (cache refusé par un bac à sable,
+    réseau coupé, délai) ne prouve pas l'absence : present vaut None, avec sa raison."""
+    if not uvx:
         return {"present": False, "version": ""}
     try:
-        r = subprocess.run(["uvx", *args, "--version"], capture_output=True, text=True, timeout=120)
-    except (OSError, subprocess.TimeoutExpired):
-        return {"present": False, "version": ""}
+        with tempfile.TemporaryDirectory() as cwd:
+            r = subprocess.run([uvx, *args, "--version"], capture_output=True, text=True, timeout=120, cwd=cwd)
+    except subprocess.TimeoutExpired:
+        return {"present": None, "version": "", "raison": "sonde uvx : délai de 120 s dépassé"}
+    except OSError as e:
+        return {"present": None, "version": "", "raison": _raison(str(e), "sonde uvx impossible")}
+    if r.returncode != 0:
+        return {"present": None, "version": "", "raison": _raison(r.stderr or r.stdout, "sonde uvx en échec")}
     m = re.search(r"\d+(\.\d+)+", r.stdout + r.stderr)
-    return {"present": r.returncode == 0, "version": m.group(0) if m and r.returncode == 0 else ""}
+    return {"present": True, "version": m.group(0) if m else ""}
 
 
-def _app(nom, systeme):
+def _app(nom, systeme, bin_uv):
     """Rend (présent, version) pour une application de bureau."""
     if not nom:
         return False, ""
@@ -113,35 +152,63 @@ def _app(nom, systeme):
     if systeme == "windows":
         exe = Path(os.environ.get("LOCALAPPDATA", "")) / nom
         return exe.is_file(), ""
-    return bool(shutil.which(nom)), _version(nom) if shutil.which(nom) else ""
+    chemin = trouver(nom, bin_uv)
+    return bool(chemin), _version(chemin) if chemin else ""
 
 
 def detecter(systeme=None):
-    """Mesure chaque outil. Rend {nom: {present, version}}. Ne modifie rien."""
+    """Mesure chaque outil. Rend {nom: {present, version[, raison][, chemin]}}, present
+    à None quand la sonde n'a pu ni prouver la présence ni l'absence. Ne modifie rien.
+    Un outil trouvé par son binaire est présent, sans sonde uvx (04-contrat H2 §2)."""
     systeme = systeme or os_courant()
+    bin_uv = dossier_outils_uv()
     etat = {}
     for nom, o in OUTILS.items():
-        if "uvx" in o:
-            etat[nom] = _uvx(o["uvx"])
-        elif "cmd" in o:
-            present = bool(shutil.which(o["cmd"]))
-            etat[nom] = {"present": present, "version": _version(o["cmd"]) if present else ""}
-        else:
-            present, version = _app(o["app"].get(systeme, ""), systeme)
+        if "app" in o:
+            present, version = _app(o["app"].get(systeme, ""), systeme, bin_uv)
             etat[nom] = {"present": present, "version": version}
+            continue
+        chemin = trouver(o.get("cmd", nom), bin_uv)
+        if chemin:
+            etat[nom] = {"present": True, "version": _version(chemin), "chemin": chemin}
+        elif "uvx" in o:
+            etat[nom] = _uvx(o["uvx"], trouver("uvx", bin_uv))
+        else:
+            etat[nom] = {"present": False, "version": ""}
     return etat
 
 
-def gh_connecte():
+def gh_connecte(gh="gh"):
+    """Rend (connecte, raison). « Not logged into any » prouve la déconnexion ; tout
+    autre échec (trousseau illisible dans un bac à sable, réseau) vaut None, raison dite."""
     try:
-        return subprocess.run(["gh", "auth", "status"], capture_output=True, timeout=15).returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+        r = subprocess.run([gh, "auth", "status"], capture_output=True, text=True, timeout=15)
+    except subprocess.TimeoutExpired:
+        return None, "gh auth status : délai de 15 s dépassé"
+    except OSError as e:
+        return None, _raison(str(e), "gh auth status impossible")
+    if r.returncode == 0:
+        return True, ""
+    sortie = r.stdout + r.stderr
+    if "not logged into any" in sortie.lower():
+        return False, ""
+    # La cause, sans la ligne qui nomme le compte : poste.json n'a pas à le porter.
+    causes = [l for l in sortie.splitlines() if "account" not in l.lower()
+              and re.search(r"token|keyring|error|denied|timeout|network", l, re.I)]
+    return None, _raison("\n".join(causes) or f"code {r.returncode}", "gh auth status illisible ici")
 
 
 def lignes_dry_run(etat, systeme):
-    return [f"{nom} : absent → {OUTILS[nom]['install'][systeme]}"
-            for nom in KIT if not etat[nom]["present"]]
+    """Une ligne par outil du kit absent, avec sa commande ; « à vérifier » pour un
+    outil que la sonde n'a pas pu mesurer : jamais d'installation sur un doute."""
+    lignes = []
+    for nom in KIT:
+        e = etat[nom]
+        if e["present"] is None:
+            lignes.append(f"{nom} : à vérifier ({e.get('raison') or 'sonde sans réponse'})")
+        elif not e["present"]:
+            lignes.append(f"{nom} : absent → {OUTILS[nom]['install'][systeme]}")
+    return lignes
 
 
 def installer(noms, systeme):
@@ -197,11 +264,25 @@ def voie(four, boites=1, admin=False, imap=False):
     return "mcp-email" if imap else "aucune"
 
 
-def bloc_mail(a):
+# Voies qui posent quelque chose sur le poste (un serveur local, node) : jamais sans accord.
+VOIES_QUI_INSTALLENT = ("softeria", "mcp-email")
+
+
+def bloc_mail(a, ancien=None):
+    """`voie` est ce qui s'écrit : la réponse de la personne (--voie), sinon celle déjà
+    écrite pour la même proposition (`ancien`, le bloc mail de poste.json), sinon la
+    voie calculée si elle n'installe rien, sinon « aucune ». `voie_proposee` garde la
+    voie calculée, pour que le skill sache quoi proposer (04-contrat H2 §2)."""
+    ancien = ancien or {}
+    if ancien and not (a.mail or a.fournisseur or a.voie):
+        return ancien          # rien de neuf sur le mail : la réponse acquise reste
     domaine = a.mail.rsplit("@", 1)[-1].strip().lower() if a.mail else ""
     hotes = mx(domaine) if domaine and not a.fournisseur else []
     four = a.fournisseur or (fournisseur(domaine, hotes) if domaine else "")
-    return {"fournisseur": four, "boites": a.boites, "voie": voie(four, a.boites, a.admin, a.imap),
+    proposee = voie(four, a.boites, a.admin, a.imap)
+    acquise = ancien.get("voie", "") if ancien.get("voie_proposee") == proposee else ""
+    retenue = a.voie or acquise or ("aucune" if proposee in VOIES_QUI_INSTALLENT else proposee)
+    return {"fournisseur": four, "boites": a.boites, "voie": retenue, "voie_proposee": proposee,
             "domaine": domaine, "mx": hotes[0] if hotes else ""}
 
 
@@ -265,29 +346,42 @@ def deja_par_cortex(ancien):
                   if isinstance(o, dict) and o.get("installe_par_cortex")}
 
 
+def options_choisies(texte):
+    """La liste passée par --options, telle quelle ; vide sur « aucune ». Sans --options,
+    ecrire() garde la liste déjà écrite."""
+    noms = [n.strip() for n in texte.split(",") if n.strip()]
+    return [] if noms == ["aucune"] else noms
+
+
 def ecrire(a, systeme, etat):
     atelier = Path(a.atelier).expanduser()
     atelier.mkdir(parents=True, exist_ok=True)
     chemin = atelier / "poste.json"
     ancien = json.loads(chemin.read_text(encoding="utf-8")) if chemin.is_file() else {}
     par_cortex = deja_par_cortex(ancien) | set(a.installes)
-    outils = {n: {"present": e["present"], "version": e["version"], "installe_par_cortex": n in par_cortex}
+    outils = {n: {"present": e["present"], "version": e["version"], "installe_par_cortex": n in par_cortex,
+                  **({"raison": e["raison"]} if e.get("raison") else {})}
               for n, e in etat.items()}
     if etat["gh"]["present"]:
-        outils["gh"]["connecte"] = gh_connecte()
+        connecte, raison = gh_connecte(etat["gh"].get("chemin") or "gh")
+        outils["gh"]["connecte"] = connecte
+        if raison:
+            outils["gh"]["raison"] = raison
     maintenant = datetime.now().isoformat(timespec="seconds")
     slug = slug_de(a, atelier) or (ancien.get("organisation") or {}).get("code", "")
     poste = {"format": "cortex/poste", "version": 1, "genere_le": maintenant, "os": systeme,
              "organisation": {"code": slug},
-             "outils": outils, "options_proposees": a.options.split(",") if a.options else OPTIONS,
-             "mail": bloc_mail(a), "notice_ouverte_le": maintenant}
+             "outils": outils,
+             "options_proposees": options_choisies(a.options) if a.options
+             else ancien.get("options_proposees", []),
+             "mail": bloc_mail(a, ancien.get("mail")), "notice_ouverte_le": maintenant}
     chemin.write_text(json.dumps(poste, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     config = atelier / "config.yaml"
     if slug:
         fusionner_bloc(config, "organisation", {"code": slug})
     fusionner_bloc(config, "poste", paires_poste(poste))
     print(f"OK — {chemin} et bloc poste de config.yaml écrits ; voie mail : {poste['mail']['voie']}")
-    if poste["mail"]["voie"] in ("softeria", "mcp-email") and not etat["node"]["present"]:
+    if poste["mail"]["voie"] in VOIES_QUI_INSTALLENT and not etat["node"]["present"]:
         print(f"node : absent → {OUTILS['node']['install'][systeme]} (requis par la voie {poste['mail']['voie']})")
     c4 = _cortex4()
     if c4 is None:
@@ -312,6 +406,8 @@ def _autotest():
     assert voie("m365", admin=True) == "connecteur" and voie("m365") == "softeria"
     assert voie("outlook_perso") == "softeria"
     assert voie("", imap=True) == "mcp-email" and voie("") == "aucune"
+    assert options_choisies("") == [] and options_choisies("aucune") == []
+    assert options_choisies("wispr-flow, noota") == ["wispr-flow", "noota"]
     etat = {n: {"present": n in ("git", "uv"), "version": ""} for n in OUTILS}
     lignes = lignes_dry_run(etat, "macos")
     assert len(lignes) == 6 and lignes[0] == "obsidian : absent → brew install --cask obsidian"
@@ -319,6 +415,31 @@ def _autotest():
     assert lignes[1] == 'markitdown : absent → uv tool install "markitdown[all]"'
     assert OUTILS["markitdown"]["uvx"] == ["--from", "markitdown[all]", "markitdown"]
     assert all(" : absent → " in l for l in lignes_dry_run(etat, "windows"))
+    # H2 défaut 7 : un outil non mesurable se dit « à vérifier », jamais une installation.
+    etat["markitdown"] = {"present": None, "version": "", "raison": "sonde uvx en échec : cache refusé"}
+    lignes = lignes_dry_run(etat, "macos")
+    assert "markitdown : à vérifier (sonde uvx en échec : cache refusé)" in lignes, lignes
+    assert not any(l.startswith("markitdown : absent") for l in lignes)
+    if os.name != "nt":                      # faux exécutables en shell : hors Windows
+        with tempfile.TemporaryDirectory() as tmp:
+            def faux(nom, corps):
+                f = Path(tmp) / nom
+                f.write_text("#!/bin/sh\n" + corps + "\n", encoding="utf-8")
+                f.chmod(0o755)
+                return str(f)
+            faux("cortex-outil-temoin", "exit 0")
+            assert trouver("cortex-outil-temoin", Path(tmp)), "dossier des outils de uv non lu"
+            assert not trouver("cortex-outil-temoin", Path(tmp) / "vide")
+            assert _uvx(["x"], None) == {"present": False, "version": ""}
+            refus = _uvx(["x"], faux("uvx-refus", "echo \"error: Failed to initialize cache\" >&2\n"
+                                                  "echo \"  Caused by: Permission denied (os error 13)\" >&2; exit 2"))
+            assert refus["present"] is None and "Permission denied" in refus["raison"], refus
+            assert _uvx(["x"], faux("uvx-ok", "echo markitdown 0.1.7")) == {"present": True, "version": "0.1.7"}
+            assert gh_connecte(faux("gh-ok", "exit 0")) == (True, "")
+            assert gh_connecte(faux("gh-non", "echo 'You are not logged into any GitHub hosts.' >&2; exit 1")) \
+                == (False, "")
+            illisible = gh_connecte(faux("gh-trousseau", "echo '- The token in keyring is invalid.' >&2; exit 1"))
+            assert illisible[0] is None and "illisible" in illisible[1], illisible
     with tempfile.TemporaryDirectory() as tmp:
         config = Path(tmp) / "config.yaml"
         config.write_text("version: 1\nprofil: employe\nposte:\n  os: linux\n  outils: []\n\nmode: solo\n",
@@ -344,19 +465,48 @@ def _autotest():
         atelier = Path(tmp) / "Cortex" / "acme" / "_cortex"
         faux = {n: {"present": n in ("git", "gh"), "version": ""} for n in OUTILS}
         faux["gh"]["present"] = False            # pas d'appel réseau à `gh auth status`
-        def args(installes):
+        def args(installes, fournisseur="gmail", voie=""):
             return argparse.Namespace(atelier=str(atelier), installes=installes, options="",
                                       mail="jane@exemple.test", boites=1, admin=False, imap=False,
-                                      fournisseur="gmail", no_open=True, slug="")
+                                      fournisseur=fournisseur, voie=voie, no_open=True, slug="")
         assert ecrire(args(["git"]), "macos", faux) == 0
         assert ecrire(args(["uv"]), "macos", faux) == 0
         poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
         par_cortex = sorted(n for n, o in poste["outils"].items() if o["installe_par_cortex"])
         assert par_cortex == ["git", "uv"], par_cortex
+        assert poste["options_proposees"] == []        # H2 : sans --options, aucune option inventée
         assert poste["organisation"]["code"] == "acme"        # slug déduit du chemin
         assert poste["notice_ouverte_le"]
         conf = cortex_config.charger(atelier / "config.yaml")
         assert conf["organisation"]["code"] == "acme" and conf["poste"]["outils"] == KIT
+        # H2 défaut 6 : Microsoft non administrateur, sans réponse de la personne, rien ne
+        # s'écrit qui installe ; la voie calculée reste proposée. Sa réponse, elle, s'écrit.
+        assert ecrire(args([], "m365"), "macos", faux) == 0
+        mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]
+        assert mail["voie"] == "aucune" and mail["voie_proposee"] == "softeria", mail
+        assert cortex_config.charger(atelier / "config.yaml")["poste"]["mail_voie"] == "aucune"
+        assert ecrire(args([], "m365", "softeria"), "macos", faux) == 0
+        mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]
+        assert mail["voie"] == "softeria" and mail["voie_proposee"] == "softeria", mail
+        # Reprise m5 : un second --ecrire sans --voie ni --options garde la réponse acquise.
+        a = args([], "m365")
+        a.options = "noota"
+        assert ecrire(a, "macos", faux) == 0
+        assert ecrire(args([], "m365"), "macos", faux) == 0
+        poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+        assert poste["mail"]["voie"] == "softeria" and poste["options_proposees"] == ["noota"], poste
+        assert cortex_config.charger(atelier / "config.yaml")["poste"]["mail_voie"] == "softeria"
+        a = args([], "")
+        a.mail = ""
+        assert ecrire(a, "macos", faux) == 0                            # sans --mail : bloc gardé
+        assert json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]["voie"] == "softeria"
+        a = args([], "m365", "aucune")
+        a.options = "aucune"
+        assert ecrire(a, "macos", faux) == 0                            # une réponse neuve l'emporte
+        poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+        assert poste["mail"]["voie"] == "aucune" and poste["options_proposees"] == [], poste
+        assert ecrire(args([], "gmail"), "macos", faux) == 0          # connecteur : rien à installer
+        assert json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]["voie"] == "connecteur"
     print("poste.py : auto-test OK")
     return 0
 
@@ -371,7 +521,11 @@ def main():
     p.add_argument("--imap", action="store_true", help="fournisseur autre, accès IMAP disponible")
     p.add_argument("--fournisseur", default="", choices=["", "gmail", "m365", "outlook_perso", "autre"],
                    help="réponse à la question à trois options quand le MX ne suffit pas")
-    p.add_argument("--options", default="", help="options proposées, séparées par des virgules")
+    p.add_argument("--voie", default="", choices=["", "connecteur", "softeria", "mcp-email", "imap", "aucune"],
+                   help="voie mail acceptée par la personne ; sans elle, la réponse déjà écrite pour la même "
+                        "proposition reste, sinon softeria et mcp-email s'écrivent « aucune »")
+    p.add_argument("--options", default="", help="options retenues par la personne, séparées par des virgules ; « aucune » : liste vide ; "
+                   "sans --options : la liste déjà écrite reste")
     p.add_argument("--ecrire", action="store_true", help="écrire poste.json et le bloc poste, ouvrir la notice")
     p.add_argument("--atelier", default="", help="chemin du dossier _cortex/")
     p.add_argument("--slug", default="", help="nom court du second cerveau (organisation.code) ; "

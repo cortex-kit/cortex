@@ -19,6 +19,7 @@ Usage (`py` sous Windows vaut `python3`) :
 
 import argparse
 import json
+import os
 import sys
 import tempfile
 from datetime import datetime, date
@@ -79,6 +80,8 @@ RAISON_TROU_03 = (
     "contrôle de santé qui sort sans une seule erreur.")
 
 RAISON_SOLO = "vault solo"
+RAISON_NON_INSCRIT = "groupe non inscrit"
+RAISON_SEUL = "en attente d'un second rédacteur"
 
 # Libellés d'affichage du rendu. Ils vivent ici, dans la source commune, pour
 # qu'aucun rendu n'invente les siens.
@@ -115,6 +118,54 @@ def _poste(atelier):
         return None, True
 
 
+def _remis(vault):
+    """Vrai quand le vault porte `remis_le` dans `_cortex/06-passation.md`, la ligne
+    que le maillon 7 y laisse, atelier dans le vault ou copie réduite."""
+    p = vault / "_cortex" / "06-passation.md"
+    fm = _frontmatter(p.read_text(encoding="utf-8", errors="replace")) if p.is_file() else None
+    return bool(str((fm or {}).get("remis_le", "") or "").strip())
+
+
+def attente_groupe(conf):
+    """Pourquoi l'étape 8 d'un groupe attend (04-contrat H2 §3), ou None quand
+    chaque membre de `federation.yaml` est remis. ValueError si le fichier est mal
+    formé, OSError s'il ne se lit pas (lui ou la passation d'un membre)."""
+    racine = str((conf.get("commun") or {}).get("racine", "") or "")
+    fy = Path(racine).expanduser() / "federation.yaml" if racine else None
+    if fy is None or not fy.is_file():
+        return RAISON_NON_INSCRIT
+    groupe = cortex_config.charger(fy)
+    attendus = groupe.get("attendus") or []
+    # Un seul nom écrit en scalaire reste un nom, pas une suite de lettres.
+    attendus = [str(a) for a in ([attendus] if isinstance(attendus, str) else attendus)]
+    if attendus:
+        return "en attente de " + ", ".join(attendus)
+    membres = groupe.get("membres") or []
+    if not isinstance(membres, list) or not all(isinstance(m, dict) and m.get("export") for m in membres):
+        raise ValueError("chaque membre doit porter slug et export")
+    # Le vault d'un membre : le parent de son dossier d'export (<vault>/_export/<slug>).
+    absents = [str(m.get("slug", "?")) for m in membres
+               if not _remis((fy.parent / Path(str(m.get("export", ""))).expanduser()).parent.parent)]
+    if absents:
+        return "en attente de " + ", ".join(absents)
+    return RAISON_SEUL if len(membres) < 2 else None
+
+
+def _groupe(e, conf):
+    """Étape 8 d'un groupe : arbitrée tant qu'un rédacteur n'est pas remis, pour que
+    la notice ne propose « relie les cerveaux » qu'une fois tout le monde remis."""
+    if e["numero"] != 8 or not conf or conf.get("mode") != "federe" or e["etat"] == "faite":
+        return e
+    try:
+        attente = attente_groupe(conf)
+    except (ValueError, OSError) as err:
+        e["etat"], e["raison"] = "illisible", f"federation.yaml illisible : {err}"
+        return e
+    if attente:
+        e["etat"], e["raison"] = "arbitre", attente
+    return e
+
+
 def _etape(numero, maillon, nom, artefact, atelier, conf):
     e = {"numero": numero, "maillon": maillon, "nom": nom, "artefact": artefact,
          "present": False, "statut": "", "etat": "a_faire", "controles": [],
@@ -145,19 +196,20 @@ def _etape(numero, maillon, nom, artefact, atelier, conf):
         e["etat"], e["raison"] = "arbitre", RAISON_SOLO
         return e
     if not chemin.is_file():
-        return e
+        return _groupe(e, conf)
     e["present"] = True
     e["modifie_le"] = date.fromtimestamp(chemin.stat().st_mtime).isoformat()
     fm = _frontmatter(chemin.read_text(encoding="utf-8", errors="replace"))
     if fm is None:
         e["etat"] = "illisible"
-        return e
+        return _groupe(e, conf)
     e["statut"] = str(fm.get("statut", ""))
     e["controles"] = [{"nom": k, "verdict": str(v)}
                       for k, v in (fm.get("controles") or {}).items()]
-    e["etat"] = {"brouillon": "en_cours", "valide": "faite",
+    # `en_cours` se lit comme `brouillon` (H2 §3) : le maillon 8 l'écrit ainsi.
+    e["etat"] = {"brouillon": "en_cours", "en_cours": "en_cours", "valide": "faite",
                  "arbitre": "arbitre"}.get(e["statut"], "illisible")
-    return e
+    return _groupe(e, conf)
 
 
 def suivante(etapes):
@@ -266,6 +318,58 @@ def _autotest():
         s2, _ = ecrire(atelier, atelier / "b.json")
         sans = lambda s: [l for l in s.read_text().splitlines() if "genere_le" not in l]
         assert sans(s1) == sans(s2)
+
+        # H2 §3 : l'étape 8 d'un groupe attend que chaque rédacteur soit remis.
+        racine = Path(tmp) / "groupe"
+        commun = racine / "commun"
+        (atelier / "config.yaml").write_text(
+            f'profil: societe\nmode: federe\ncommun:\n  racine: "{commun}"\n', encoding="utf-8")
+
+        def huit():
+            p = generer(atelier)
+            return p["etapes"][8]["etat"], p["etapes"][8].get("raison", ""), p["phrase_suivante"]
+        assert huit() == ("arbitre", RAISON_NON_INSCRIT, PHRASES["fin"]), huit()
+        commun.mkdir(parents=True)
+        fy = commun / "federation.yaml"
+
+        def membre(slug, remis):
+            v = racine / slug / "vault"
+            (v / "_export" / slug).mkdir(parents=True, exist_ok=True)
+            (v / "_cortex").mkdir(exist_ok=True)
+            (v / "_cortex" / "06-passation.md").write_text(
+                f"---\nremis_le: {'2026-09-27' if remis else ''}\n---\n", encoding="utf-8")
+            return f'  - {{ slug: {slug}, export: "{v / "_export" / slug}" }}\n'
+        fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + 'attendus: ["Karim B"]\n',
+                      encoding="utf-8")
+        assert huit() == ("arbitre", "en attente de Karim B", PHRASES["fin"]), huit()
+        fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + membre("karim", False)
+                      + "attendus: []\n", encoding="utf-8")
+        assert huit() == ("arbitre", "en attente de karim", PHRASES["fin"]), huit()
+        assert compte(generer(atelier)) == "8 faite(s) et 1 arbitrée(s) sur 9"
+        membre("karim", True)
+        assert huit() == ("a_faire", "", PHRASES[8]), huit()
+        (atelier / "07-federation.md").write_text("---\nstatut: en_cours\n---\n", encoding="utf-8")
+        assert huit() == ("en_cours", "", PHRASES[8]), huit()
+        assert LIBELLES[generer(atelier)["etapes"][8]["etat"]] == "En cours"
+        (atelier / "07-federation.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
+        assert huit() == ("faite", "", PHRASES["fin"]) and faites(generer(atelier)) == 9, huit()
+        fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + "attendus: []\n", encoding="utf-8")
+        (atelier / "07-federation.md").unlink()
+        assert huit() == ("arbitre", RAISON_SEUL, PHRASES["fin"]), huit()
+        # Reprise m1 à m3 : un federation.yaml mal formé ou illisible ne fait jamais planter
+        # etat.py ; l'étape 8 passe « illisible » avec la raison, la notice se régénère.
+        for mal in ("membres: [helene]\n", "membres:\n  - { slug: karim }\n", "membres: helene\n"):
+            fy.write_text("version: 1\n" + mal, encoding="utf-8")
+            etat, raison, _ = huit()
+            assert etat == "illisible" and raison.startswith("federation.yaml illisible : "), (mal, huit())
+        fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + "attendus: Karim B\n", encoding="utf-8")
+        assert huit()[1] == "en attente de Karim B", huit()
+        if hasattr(os, "geteuid") and os.geteuid() != 0:
+            fy.chmod(0)
+            try:
+                assert huit()[0] == "illisible" and "Permission" in huit()[1], huit()
+            finally:
+                fy.chmod(0o644)
     print("etat.py : auto-test OK")
     return 0
 

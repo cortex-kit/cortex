@@ -145,10 +145,10 @@ def _pastille(etat):
 def _detail(e):
     if e["artefact"] is None and e["etat"] == "faite_deduite":
         return html.escape(e["raison"])
-    if e["etat"] == "arbitre" and e.get("raison"):
+    if e["etat"] in ("arbitre", "illisible") and e.get("raison"):
         if e["raison"] == RAISON_SOLO:
             return "sans objet pour une personne seule"
-        return "sans objet : " + html.escape(e["raison"])
+        return html.escape(e["raison"])      # en groupe : « en attente de … », pas « sans objet »
     if not e["present"]:
         return html.escape(RESUMES.get(e["numero"], ""))
     passes = sum(1 for c in e["controles"] if c["verdict"] == "passe")

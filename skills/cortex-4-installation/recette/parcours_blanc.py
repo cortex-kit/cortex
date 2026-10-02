@@ -22,7 +22,9 @@ recette/fixtures/ (ignore par git), rien d'autre.
 """
 import hashlib
 import json
+import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -345,7 +347,7 @@ def poste_json(notice_ouverte=True):
     p = {"format": "cortex/poste", "version": 1, "genere_le": "2026-09-19T10:12:00", "os": "macos",
          "outils": {o: {"present": True, "version": "1", "installe_par_cortex": False}
                     for o in ("obsidian", "uv", "markitdown", "git", "gh")},
-         "options_proposees": ["wispr-flow", "superwhisper", "noota"],
+         "options_proposees": [],
          "mail": {"fournisseur": "gmail", "boites": 1, "voie": "connecteur",
                   "domaine": "exemple.test", "mx": "aspmx.l.google.com"},
          "notice_ouverte_le": "2026-09-19T10:12:03" if notice_ouverte else ""}
@@ -602,6 +604,54 @@ def c1_neuf_etapes(tmp, cfg):
     verifie("atelier fédéré complet : le compteur annonce 9 sur 9",
             m_etat.faites(pivot_federe) == 9, str([e["etat"] for e in pivot_federe["etapes"]]))
 
+    # H2 §3 : en groupe, l'étape 8 attend que chaque rédacteur soit remis.
+    groupe = tmp / "groupe-h2"
+    commun_g = groupe / "commun"
+    attend = tmp / "_cortex-groupe"
+    attend.mkdir()
+    (attend / "config.yaml").write_text(
+        cfg.read_text(encoding="utf-8").replace("mode: solo", "mode: federe")
+           .replace('racine: ""', f'racine: "{commun_g}"'), encoding="utf-8")
+    (attend / "poste.json").write_text(poste_json(), encoding="utf-8")
+    for nom, m, pr in ARTEFACTS_MD[:-1]:
+        (attend / f"{nom}.md").write_text(FM_ATELIER.format(m=m, p=pr, s="valide", v="passe"), encoding="utf-8")
+    commun_g.mkdir(parents=True)
+
+    def membre(slug, remis):
+        v = groupe / slug / "vault"
+        (v / "_cortex").mkdir(parents=True, exist_ok=True)
+        (v / "_cortex" / "06-passation.md").write_text(
+            "---\nremis_le: " + ("2026-09-27" if remis else '""') + "\n---\n", encoding="utf-8")
+        return f'  - {{ slug: {slug}, export: "{v / "_export" / slug}" }}\n'
+
+    def huit():
+        p = m_etat.generer(attend)
+        return p["etapes"][8], p["phrase_suivante"]
+    (commun_g / "federation.yaml").write_text(
+        "version: 1\nmembres:\n" + membre("helene", True) + 'attendus: ["Karim B"]\n', encoding="utf-8")
+    e8, phrase = huit()
+    verifie("H2 : un rédacteur remis, un autre attendu : étape 8 arbitrée en nommant l'attendu, pas « relie les cerveaux »",
+            e8["etat"] == "arbitre" and "Karim B" in e8.get("raison", "") and phrase != "relie les cerveaux",
+            f"{e8['etat']} / {e8.get('raison')} / {phrase}")
+    (commun_g / "federation.yaml").write_text(
+        "version: 1\nmembres:\n" + membre("helene", True) + membre("karim", False), encoding="utf-8")
+    e8, phrase = huit()
+    verifie("H2 : deux membres, un seul remis : étape 8 arbitrée en nommant le membre en attente",
+            e8["etat"] == "arbitre" and "karim" in e8.get("raison", "") and phrase != "relie les cerveaux",
+            f"{e8['etat']} / {e8.get('raison')} / {phrase}")
+    ligne8 = next((l for l in m_rend.rendre(m_etat.generer(attend)).splitlines() if "en attente de karim" in l), "")
+    verifie("H2 : la notice dit « en attente de karim », sans « sans objet » devant",
+            ligne8 != "" and "sans objet" not in ligne8, ligne8[:200] or "ligne absente de la notice")
+    membre("karim", True)
+    e8, phrase = huit()
+    verifie("H2 témoin : les deux membres remis, « relie les cerveaux »",
+            e8["etat"] == "a_faire" and phrase == "relie les cerveaux", f"{e8['etat']} / {phrase}")
+    (attend / "07-federation.md").write_text(FM_ATELIER.format(m=8, p="cortex-8-federation", s="en_cours", v="passe"),
+                                             encoding="utf-8")
+    e8, _ = huit()
+    verifie("H2 : un 07-federation.md en statut en_cours se lit « En cours », pas « Illisible »",
+            m_etat.LIBELLES.get(e8["etat"]) == "En cours", e8["etat"])
+
     vierge = tmp / "atelier-vierge"
     vierge.mkdir()
     html_vierge = m_rend.rendre(m_etat.generer(vierge))
@@ -621,12 +671,71 @@ def c1_neuf_etapes(tmp, cfg):
         r = lancer(POSTE, "--dry-run")
         lignes = [l for l in r.stdout.splitlines() if l.strip()]
         # La commande est libre : `uvx --from "markitdown[all]" markitdown` comme `brew install x` passent.
-        motif = re.compile(r"^\S.*? : absent → .+$")
-        verifie("poste.py --dry-run sort en 0 et n'imprime qu'une ligne par outil absent, avec sa commande",
+        # H2 : un outil que la sonde n'a pas pu mesurer sort en « à vérifier (raison) ».
+        motif = re.compile(r"^\S.*? : (absent → .+|à vérifier \(.+\))$")
+        verifie("poste.py --dry-run sort en 0 et n'imprime qu'une ligne par outil absent ou à vérifier",
                 r.returncode == 0 and all(motif.match(l) for l in lignes),
                 (r.stderr[:200] or str([l for l in lignes if not motif.match(l)][:3])))
+        c1_poste_h2(tmp)
     else:
         verifie("poste.py présent", False, "attendu au merge de la lane B")
+
+
+def poste_isole(tmp, *args, outils_uv=(), uvx=""):
+    """poste.py dans un dossier personnel neuf, PATH réduit au système : seuls les faux
+    exécutables posés dans ~/.local/bin (le dossier des outils de uv) existent."""
+    home = tmp / "home-poste"
+    shutil.rmtree(home, ignore_errors=True)
+    bin_uv = home / ".local" / "bin"
+    bin_uv.mkdir(parents=True)
+    for nom, corps in [(n, "exit 0") for n in outils_uv] + ([("uvx", uvx)] if uvx else []):
+        (bin_uv / nom).write_text("#!/bin/sh\n" + corps + "\n", encoding="utf-8")
+        (bin_uv / nom).chmod(0o755)
+    poses = sorted(f.name for f in bin_uv.iterdir() if os.access(f, os.X_OK))
+    env = dict(os.environ, HOME=str(home), PATH="/usr/bin:/bin")
+    r = subprocess.run([sys.executable, str(POSTE), *args], env=env, capture_output=True, text=True, timeout=120)
+    return r, poses
+
+
+def c1_poste_h2(tmp):
+    """Phase H2, défauts 6 et 7 : un outil posé par uv est vu, un outil non mesurable est
+    « à vérifier », une voie mail qui installe ne s'écrit que sur la réponse de la personne,
+    les options sont celles qu'elle a retenues."""
+    if sys.platform == "win32":
+        verifie("poste.py H2 : faux exécutables en shell, contrôle joué hors Windows", True)
+        return
+    r, poses = poste_isole(tmp, "--dry-run", outils_uv=["graphify"])
+    verifie("H2 : un outil posé par uv dans ~/.local/bin, hors PATH, est vu présent",
+            poses == ["graphify"] and r.returncode == 0 and "graphify" not in r.stdout, str(poses) + r.stdout[-300:])
+    r, poses = poste_isole(tmp, "--dry-run")
+    verifie("H2 témoin : sans le binaire, graphify est listé absent avec sa commande",
+            poses == [] and re.search(r"^graphify : absent → ", r.stdout, re.M) is not None, r.stdout[-300:])
+    refus = ("echo \"error: Failed to initialize cache at \\`$HOME/.cache/uv\\`\" >&2\n"
+             "echo \"  Caused by: Permission denied (os error 13)\" >&2\nexit 2")
+    r, poses = poste_isole(tmp, "--dry-run", uvx=refus)
+    ligne = next((l for l in r.stdout.splitlines() if l.startswith("markitdown")), "")
+    verifie("H2 : une sonde uvx refusée (cache) donne « markitdown : à vérifier », jamais une installation",
+            poses == ["uvx"] and ligne.startswith("markitdown : à vérifier (") and "Permission denied" in ligne,
+            ligne or r.stdout[-300:])
+    atelier = tmp / "home-poste-atelier" / "_cortex"
+    commun = ("--ecrire", "--atelier", str(atelier), "--mail", "dir@alcyon.test", "--fournisseur", "m365", "--no-open")
+    r, _ = poste_isole(tmp, *commun)
+    mail = (json.loads((atelier / "poste.json").read_text(encoding="utf-8")).get("mail", {})
+            if (atelier / "poste.json").is_file() else {})
+    verifie("H2 : Microsoft non administrateur sans --voie écrit « aucune », softeria seulement proposée",
+            r.returncode == 0 and mail.get("voie") == "aucune" and mail.get("voie_proposee") == "softeria",
+            str(mail) + r.stderr[-200:])
+    r, _ = poste_isole(tmp, *commun, "--voie", "softeria")
+    mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8")).get("mail", {})
+    verifie("H2 témoin : la réponse --voie softeria s'écrit telle quelle",
+            r.returncode == 0 and mail.get("voie") == "softeria", str(mail))
+    poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+    verifie("H2 : sans --options, options_proposees est vide (la personne n'a rien retenu)",
+            poste.get("options_proposees") == [], str(poste.get("options_proposees")))
+    r, _ = poste_isole(tmp, *commun, "--options", "noota")
+    poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
+    verifie("H2 témoin : --options noota donne exactement [noota]",
+            r.returncode == 0 and poste.get("options_proposees") == ["noota"], str(poste.get("options_proposees")))
 
 
 # ── C2 : trois profils ──────────────────────────────────────────────────────
@@ -725,6 +834,22 @@ def c3_inventaire(tmp, configs):
             verifie("employé : export-notion-*.csv apparaît comme signal de base déportée",
                     "export-notion" in texte and "base_deportee" in texte)
 
+    # H2 : un dossier de photos hors projets, trois fichiers, devient candidat ; trois
+    # documents hors projets restent sous le seuil de l'agent (témoin).
+    medias = tmp / "partage-h2"
+    for dossier, ext in (("Divers/Photos", "jpg"), ("Divers/Notes", "docx")):
+        (medias / dossier).mkdir(parents=True)
+        for i in range(1, 4):
+            (medias / dossier / f"f{i}.{ext}").write_text("x", encoding="utf-8")
+    poses = sorted(q.relative_to(medias).as_posix() for q in medias.rglob("*.*"))
+    out = tmp / "inv-medias.json"
+    r = lancer(SCAN, "--racine", str(medias), "--out", str(out))
+    sans = ([x.get("indice", "") for x in json.loads(out.read_text(encoding="utf-8")).get("ecarts_candidats", [])
+             if x.get("type") == "dossier_sans_domaine"] if out.is_file() else [])
+    verifie("H2 : trois .jpg dans Divers/Photos donnent un candidat dossier_sans_domaine, trois .docx aucun",
+            len(poses) == 6 and r.returncode == 0 and len(sans) == 1 and "Divers/Photos : 3 fichier(s)" in sans[0],
+            f"{len(poses)} fichiers posés, code {r.returncode}, {sans} {r.stderr[:200]}")
+
 
 # ── C4 et C5 : couche vault, regimes ────────────────────────────────────────
 
@@ -796,6 +921,29 @@ def c4_couche_vault(tmp, configs):
         r_hook = lancer(chemin, "--autotest")
         verifie(f"{nom}.py --autotest sort en 0",
                 r_hook.returncode == 0, f"code {r_hook.returncode}, {(r_hook.stderr or r_hook.stdout)[:200]}")
+    # H2 : une commande relative cassait après un `cd` de la session. La commande de
+    # settings.json, jouée depuis un autre dossier, doit trouver le hook et le lint.
+    commandes = {ev: ((hooks.get(ev) or [{}])[0].get("hooks") or [{}])[0].get("command", "")
+                 for ev in ("SessionStart", "Stop")}
+    verifie("H2 : les deux commandes de hook sont ancrées sur ${CLAUDE_PROJECT_DIR}",
+            all(c.startswith('python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/') for c in commandes.values()),
+            str(commandes))
+    ailleurs = tmp / "ailleurs-hooks"
+    ailleurs.mkdir(exist_ok=True)
+    argv = [x.replace("${CLAUDE_PROJECT_DIR}", str(vault)) for x in shlex.split(commandes["SessionStart"])]
+    r_ss = subprocess.run([sys.executable] + argv[1:], cwd=ailleurs, capture_output=True, text=True, timeout=120,
+                          env=dict(os.environ, CLAUDE_PROJECT_DIR=str(vault)))
+    verifie("H2 : la commande SessionStart lancée depuis un autre dossier lit le lint du vault",
+            r_ss.returncode == 0 and "Contrôle de santé" in r_ss.stdout, f"code {r_ss.returncode}, {(r_ss.stderr or r_ss.stdout)[:200]}")
+    sans_env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
+    r_ss = subprocess.run([sys.executable, str(scripts_hooks["session_start"])], cwd=ailleurs,
+                          capture_output=True, text=True, timeout=120, env=sans_env)
+    verifie("H2 : sans CLAUDE_PROJECT_DIR, le hook se repère sur son emplacement, pas sur le dossier courant",
+            r_ss.returncode == 0 and "Contrôle de santé" in r_ss.stdout, f"code {r_ss.returncode}, {(r_ss.stderr or r_ss.stdout)[:200]}")
+    r_stop = subprocess.run([sys.executable, str(scripts_hooks["stop"]), "--autotest"], cwd=ailleurs,
+                            capture_output=True, text=True, timeout=120, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(vault)))
+    verifie("H2 : stop.py --autotest lancé hors du vault sort en 0", r_stop.returncode == 0,
+            (r_stop.stderr or r_stop.stdout)[:200])
     skills_livrees = {p.name for p in (vault / ".claude" / "skills").iterdir() if p.is_dir()} \
         if (vault / ".claude" / "skills").is_dir() else set()
     attendues = set((conf.get("agents") or {}).get("skills") or [])
@@ -939,6 +1087,67 @@ def c6_federation(tmp):
     verifie("deux exports écrits par export.py se fédèrent, l'acteur commun en une note",
             r4.returncode == 0 and len(fusion) == 1 and not list(reel.rglob("*Banque*")),
             (r4.stderr or r4.stdout)[:300])
+
+    # H2 §4 : le groupe s'inscrit rédacteur par rédacteur, puis se fédère.
+    inscrit = ATELIER_RECETTE / "commun-inscrit"
+    shutil.rmtree(inscrit, ignore_errors=True)
+    fy = inscrit / "federation.yaml"
+
+    def inscrire(slug, nom, *attendus, config=fy):
+        return lancer(FEDERE, "--inscrire", slug, "--redacteur", nom, "--export", str(exports_reels[slug]),
+                      "--config", str(config), "--nom", "Chaîne réelle",
+                      *[x for a_ in attendus for x in ("--attendu", a_)])
+    r5, r6 = inscrire("helene", "Hélène V", "Karim B"), inscrire("helene", "Hélène V", "Karim B")
+    lu = cortex_config.charger(fy) if fy.is_file() else {}
+    verifie("H2 : --inscrire deux fois le même slug donne un seul membre, l'autre rédacteur attendu",
+            r5.returncode == r6.returncode == 0 and [m.get("slug") for m in lu.get("membres", [])] == ["helene"]
+            and lu.get("attendus") == ["Karim B"], (r5.stderr or r6.stderr)[:200] + str(lu))
+    r7 = inscrire("karim", "Karim B", "Hélène V")
+    lu = cortex_config.charger(fy) if fy.is_file() else {}
+    r8 = lancer(FEDERE, "--config", str(fy))
+    verifie("H2 : le second inscrit sort des attendus, un --attendu déjà membre est ignoré avec un message, "
+            "et federe.py fédère ce federation.yaml",
+            r7.returncode == 0 and lu.get("attendus") == [] and len(lu.get("membres", [])) == 2
+            and "Hélène V est déjà membre" in r7.stdout
+            and r8.returncode == 0 and (inscrit / ".cortex-genere").is_file(), (r7.stderr or r8.stderr)[:300])
+    etranger = vaults / "reel-helene"
+    avant = sorted((q.relative_to(etranger).as_posix(), sha256(q)) for q in etranger.rglob("*") if q.is_file())
+    r9 = inscrire("helene", "Hélène V", config=etranger / "federation.yaml")
+    apres = sorted((q.relative_to(etranger).as_posix(), sha256(q)) for q in etranger.rglob("*") if q.is_file())
+    verifie("H2 : --inscrire sur un dossier étranger non vide sort en 1 et n'y écrit rien",
+            r9.returncode == 1 and avant == apres and len(avant) > 0, f"code {r9.returncode}, {len(avant)} fichiers")
+
+    # H2 défaut 10 : une note du commun éditée en gardant son en-tête « généré ».
+    membre = vaults / "reel-helene"
+    cfg_membre = membre / "config-lint.yaml"
+    cfg_membre.write_text(
+        f'version: 1\norganisation:\n  nom: "Chaîne réelle"\n  code: helene\n  redacteur: "H"\n'
+        f'mode: federe\ncommun:\n  racine: "{tilde(reel)}"\nchemins:\n  dossiers_projets: ""\n'
+        f'donnees:\n  regime: pointeur\ndomaines:\n  - {{ code: ope, nom: "Opérations" }}\n'
+        f'cycles:\n  - {{ cycle: mission, phase: "Cadrage", progression: 20 }}\n', encoding="utf-8")
+
+    def commun_signale():
+        r = lint(membre, "--config", str(cfg_membre), "--json")
+        try:
+            return json.loads(r.stdout).get("commun_edite_main")
+        except ValueError:
+            return f"sortie illisible : {(r.stderr or r.stdout)[:200]}"
+    temoin = commun_signale()
+    verifie("H2 témoin : le commun tel que généré n'est pas signalé par le lint d'un membre", temoin == [], str(temoin))
+    for nom in (".DS_Store", "20 - Projets/.DS_Store", "Thumbs.db", "20 - Projets/desktop.ini"):
+        if (reel / nom).parent.is_dir():
+            (reel / nom).write_bytes(b"\x00\x00\x00\x01Bud1")
+    finder = commun_signale()
+    verifie("H2 reprise M1 : un .DS_Store du Finder (et Thumbs.db, desktop.ini) posé dans le commun n'est pas signalé",
+            finder == [] and (reel / "20 - Projets" / ".DS_Store").is_file(), str(finder))
+    belvedere = next(reel.rglob("20 - Projets/*Belvédère.md"), None)
+    if belvedere is not None:
+        avant = belvedere.read_text(encoding="utf-8")
+        belvedere.write_text(avant + "\nPrécision ajoutée à la main dans le commun.\n", encoding="utf-8")
+    signale = commun_signale() if belvedere is not None else []
+    verifie("H2 : une note du commun éditée en gardant son en-tête est signalée (empreinte)",
+            belvedere is not None and "<!-- généré" in belvedere.read_text(encoding="utf-8")[:400]
+            and any("empreinte" in str(it) for it in (signale or [])), str(signale))
 
 
 # ── C7 a C9 : manifestes, white-label, chemins absolus ──────────────────────
