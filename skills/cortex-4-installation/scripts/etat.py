@@ -19,6 +19,7 @@ Usage (`py` sous Windows vaut `python3`) :
 
 import argparse
 import json
+import os
 import sys
 import tempfile
 from datetime import datetime, date
@@ -127,16 +128,21 @@ def _remis(vault):
 
 def attente_groupe(conf):
     """Pourquoi l'étape 8 d'un groupe attend (04-contrat H2 §3), ou None quand
-    chaque membre de `federation.yaml` est remis. ValueError si le fichier est illisible."""
+    chaque membre de `federation.yaml` est remis. ValueError si le fichier est mal
+    formé, OSError s'il ne se lit pas (lui ou la passation d'un membre)."""
     racine = str((conf.get("commun") or {}).get("racine", "") or "")
     fy = Path(racine).expanduser() / "federation.yaml" if racine else None
     if fy is None or not fy.is_file():
         return RAISON_NON_INSCRIT
     groupe = cortex_config.charger(fy)
-    attendus = [str(a) for a in groupe.get("attendus") or []]
+    attendus = groupe.get("attendus") or []
+    # Un seul nom écrit en scalaire reste un nom, pas une suite de lettres.
+    attendus = [str(a) for a in ([attendus] if isinstance(attendus, str) else attendus)]
     if attendus:
         return "en attente de " + ", ".join(attendus)
     membres = groupe.get("membres") or []
+    if not isinstance(membres, list) or not all(isinstance(m, dict) and m.get("export") for m in membres):
+        raise ValueError("chaque membre doit porter slug et export")
     # Le vault d'un membre : le parent de son dossier d'export (<vault>/_export/<slug>).
     absents = [str(m.get("slug", "?")) for m in membres
                if not _remis((fy.parent / Path(str(m.get("export", ""))).expanduser()).parent.parent)]
@@ -152,7 +158,7 @@ def _groupe(e, conf):
         return e
     try:
         attente = attente_groupe(conf)
-    except ValueError as err:
+    except (ValueError, OSError) as err:
         e["etat"], e["raison"] = "illisible", f"federation.yaml illisible : {err}"
         return e
     if attente:
@@ -350,6 +356,20 @@ def _autotest():
         fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + "attendus: []\n", encoding="utf-8")
         (atelier / "07-federation.md").unlink()
         assert huit() == ("arbitre", RAISON_SEUL, PHRASES["fin"]), huit()
+        # Reprise m1 à m3 : un federation.yaml mal formé ou illisible ne fait jamais planter
+        # etat.py ; l'étape 8 passe « illisible » avec la raison, la notice se régénère.
+        for mal in ("membres: [helene]\n", "membres:\n  - { slug: karim }\n", "membres: helene\n"):
+            fy.write_text("version: 1\n" + mal, encoding="utf-8")
+            etat, raison, _ = huit()
+            assert etat == "illisible" and raison.startswith("federation.yaml illisible : "), (mal, huit())
+        fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + "attendus: Karim B\n", encoding="utf-8")
+        assert huit()[1] == "en attente de Karim B", huit()
+        if hasattr(os, "geteuid") and os.geteuid() != 0:
+            fy.chmod(0)
+            try:
+                assert huit()[0] == "illisible" and "Permission" in huit()[1], huit()
+            finally:
+                fy.chmod(0o644)
     print("etat.py : auto-test OK")
     return 0
 

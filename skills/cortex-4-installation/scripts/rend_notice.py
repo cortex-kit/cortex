@@ -145,7 +145,7 @@ def _pastille(etat):
 def _detail(e):
     if e["artefact"] is None and e["etat"] == "faite_deduite":
         return html.escape(e["raison"])
-    if e["etat"] == "arbitre" and e.get("raison"):
+    if e["etat"] in ("arbitre", "illisible") and e.get("raison"):
         if e["raison"] == RAISON_SOLO:
             return "sans objet pour une personne seule"
         return html.escape(e["raison"])      # en groupe : « en attente de … », pas « sans objet »
