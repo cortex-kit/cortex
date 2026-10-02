@@ -7,6 +7,8 @@ description: Réflexe de micro-clôture du vault. À déclencher dès la fin d'u
 
 C'est **la** skill du produit. Un vault sans clôture se remplit une fois, à l'installation, puis meurt : personne ne retourne écrire ce qui s'est décidé. Avec elle, il se remplit tout seul, un bloc de travail à la fois.
 
+**Devant la personne** : ses mots, jamais ceux de l'outil (ni « écart », ni « régime », ni une clé de `config.yaml`, ni le nom d'un script ou d'un contrôle) ; et tout ce qu'on lui demande de valider s'affiche en entier avant la question, jamais « ci-dessus » vers un texte qui n'a pas été écrit.
+
 ## Positionnement
 
 - **Réflexe haute fréquence.** Plusieurs déclenchements par jour, pas un rituel de fin de semaine.
@@ -117,7 +119,7 @@ find "<dossier résolu>" -name "CLAUDE.md" -type f 2>/dev/null | wc -l
 
 **1** : silencieux. **0** : « aucun CLAUDE.md à la racine, projet créé sans `nouveau-projet` ? ». **Plus de 1** : « N CLAUDE.md détectés, attendu 1. Règle cardinale violée ».
 
-Best-effort strict : aucun effet de bord, jamais d'arrêt. Le dossier de travail est en lecture seule pour l'agent, et c'est voulu.
+Best-effort strict : aucun effet de bord, jamais d'arrêt. L'avertissement se dit au récap, en phrase ordinaire, et ne devient jamais une question à valider : il n'y a rien à « accepter », c'est un constat. Le dossier de travail est en lecture seule pour l'agent, et c'est voulu.
 
 ## 6. Vérifier la santé
 

@@ -7,6 +7,8 @@ description: Rend en une page ce que le vault a vécu sur une période : notes t
 
 Un second cerveau meurt en silence : rien ne casse, on cesse seulement d'y écrire. Le bilan rend ce silence visible, en chiffres, sur une période.
 
+**Devant la personne** : ses mots, jamais ceux de l'outil (ni « écart », ni « régime », ni une clé de `config.yaml`, ni le nom d'un script ou d'un contrôle) ; et tout ce qu'on lui demande de valider s'affiche en entier avant la question, jamais « ci-dessus » vers un texte qui n'a pas été écrit.
+
 ## 0. La période
 
 Par défaut, **depuis la dernière remise** (`_cortex/06-passation.md`, clé `remis_le`), ou sept jours si l'atelier n'est pas dans le vault. La personne peut donner une autre période : « bilan du mois », « depuis lundi ».
