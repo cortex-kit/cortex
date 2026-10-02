@@ -639,6 +639,9 @@ def c1_neuf_etapes(tmp, cfg):
     verifie("H2 : deux membres, un seul remis : étape 8 arbitrée en nommant le membre en attente",
             e8["etat"] == "arbitre" and "karim" in e8.get("raison", "") and phrase != "relie les cerveaux",
             f"{e8['etat']} / {e8.get('raison')} / {phrase}")
+    ligne8 = next((l for l in m_rend.rendre(m_etat.generer(attend)).splitlines() if "en attente de karim" in l), "")
+    verifie("H2 : la notice dit « en attente de karim », sans « sans objet » devant",
+            ligne8 != "" and "sans objet" not in ligne8, ligne8[:200] or "ligne absente de la notice")
     membre("karim", True)
     e8, phrase = huit()
     verifie("H2 témoin : les deux membres remis, « relie les cerveaux »",

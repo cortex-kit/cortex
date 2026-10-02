@@ -1,6 +1,6 @@
 # Rapport : lane A (code), Phase H2
 
-Worktree `~/Dev/cortex--h2a`, branche `lane/h2a`, partie de `fix/phase-h` (`158d6c0`). Exécutant Opus 5.5. Rien de poussé, mergé ni rebasé. Recette : 117 contrôles avant la lane, 138 après, sortie 0.
+Worktree `~/Dev/cortex--h2a`, branche `lane/h2a`, partie de `fix/phase-h` (`158d6c0`). Exécutant Opus 5.5. Rien de poussé, mergé ni rebasé. Recette : 117 contrôles avant la lane, 139 après, sortie 0.
 
 ## Commits
 
@@ -16,7 +16,7 @@ Worktree `~/Dev/cortex--h2a`, branche `lane/h2a`, partie de `fix/phase-h` (`158d
 | A7 | `72ed49a` | hooks ancrés sur `${CLAUDE_PROJECT_DIR}` |
 | A8 | `cc28331` | `scan.py` : dossier de médias seuls hors projets |
 | A8 bis | `2e2253b` | retour silent-failure : l'écart du scan se retire au rejeu |
-| A9 | aucun | non nécessaire, voir plus bas |
+| A9 | commit de clôture | `rend_notice.py` : « sans objet » réservé au solo, sur accord d'Evrard |
 | A10, A11 | ce commit | recette, contre-épreuves, `05-execution.md` coché, ce rapport |
 
 ## Fichiers touchés
@@ -35,7 +35,7 @@ chantiers/cortex-v2/phase-h2-majeurs/05-execution.md        (cases de la lane A)
 chantiers/cortex-v2/phase-h2-majeurs/rapport-A.md
 ```
 
-Tous dans la liste de la lane A de `03-backlog-technique.md`. `rend_notice.py` non touché.
+Tous dans la liste de la lane A de `03-backlog-technique.md`, plus `skills/cortex-4-installation/scripts/rend_notice.py` (une ligne), ouvert à la lane par Evrard le 2026-10-02 pour le libellé de l'étape 8 en groupe.
 
 ## Ce qui change, correctif par correctif
 
@@ -55,7 +55,7 @@ Tous dans la liste de la lane A de `03-backlog-technique.md`. `rend_notice.py` n
 
 **A8, médias.** `ecarts()` pose `dossier_sans_domaine` pour un dossier dont toutes les extensions sont des images ou des vidéos, hors de `chemins.dossiers_projets`, quel que soit le nombre de fichiers. Indice : `<chemin> : 3 fichier(s), photos ou vidéos seulement`. Au rejeu, les écarts de médias posés par le scan (reconnus à la fin de leur indice) se reposent en entier : un dossier qui a reçu un `.docx` sort de la liste ; un `dossier_sans_domaine` dérivé par l'agent reste, sauf s'il porte le même `source_id` qu'un écart reposé.
 
-**A9.** Aucun lecteur du `present` des outils dans la notice : le `present` de `rend_notice.py` l. 152 est celui de l'étape, toujours booléen. Rien à faire.
+**A9.** Aucun lecteur du `present` des outils dans la notice : le `present` de `rend_notice.py` l. 152 est celui de l'étape, toujours booléen. Rien à faire pour `null`. Sur accord d'Evrard (point 1 ci-dessous, tranché), `_detail` ne préfixe plus « sans objet : » une raison de groupe : la notice dit « en attente de karim ». Le solo garde « sans objet pour une personne seule » (vérifié : `solo : True`). Contrôle C1 ajouté ; contre-épreuve, ancien `rend_notice.py` : `[XX] H2 : la notice dit « en attente de karim », sans « sans objet » devant`.
 
 ## Commandes d'acceptation (06-verification, lane A), sur `lane/h2a`
 
@@ -63,7 +63,7 @@ Recette complète :
 
 ```
 $ python3 skills/cortex-4-installation/recette/parcours_blanc.py      # sortie=0
-  C1   Neuf étapes, maillon 0, notice          28/28 VERT
+  C1   Neuf étapes, maillon 0, notice          29/29 VERT
   C2   Trois profils, régime, section Notice   12/12 VERT
   C3   Inventaire outillé sur les fixtures     17/17 VERT
   C4   Couche vault                            22/22 VERT
@@ -73,7 +73,7 @@ $ python3 skills/cortex-4-installation/recette/parcours_blanc.py      # sortie=0
   C8   White-label                              1/1  VERT
   C9   Zéro chemin absolu                       2/2  VERT
   C10  Paquet, notice hors ligne, README       10/10 VERT
-138 contrôle(s) passé(s), 0 en échec.
+139 contrôle(s) passé(s), 0 en échec.
 ```
 
 Auto-tests, sortie 0 chacun :
@@ -89,7 +89,7 @@ session_start.py --autotest  : OK session_start.py
 stop.py --autotest           : OK stop.py
 ```
 
-Vingt et un contrôles de recette ajoutés, tous préfixés « H2 » : C1 (11), C3 (1), C4 (4), C6 (5).
+Vingt-deux contrôles de recette ajoutés, tous préfixés « H2 » : C1 (12), C3 (1), C4 (4), C6 (5).
 
 **A1 détection**, joué à la main (`HOME` temporaire, `PATH=/usr/bin:/bin`) :
 
@@ -186,7 +186,7 @@ Agent `silent-failure-hunter` sur les sept fichiers du critère, diff `fix/phase
 
 Aucun point ne bloque la lane. Ceux qui suivent relèvent d'une décision ou d'un fichier hors lane A.
 
-1. **Libellé de l'étape 8 dans la notice (décision).** `rend_notice.py` l. 151 rend toute étape arbitrée par « sans objet : <raison> ». En groupe, la notice affichera donc « Arbitré, sans objet : en attente de karim », là où le produit attend « arbitrée, en attente de Karim ». Le §1 n'ouvre `rend_notice.py` à la lane A que pour `present: null`. Options : autoriser une ligne dans `rend_notice.py` (ne préfixer « sans objet » que pour la raison solo) ; ou laisser ainsi pour le parcours C.
+1. **Libellé de l'étape 8 dans la notice : tranché et appliqué.** `rend_notice.py` préfixait toute étape arbitrée par « sans objet : ». Evrard a choisi le 2026-10-02 de corriger : une ligne, « sans objet » réservé au solo, contrôle C1 et contre-épreuve consignés (A9).
 2. **Nom de skill visible dans la notice (constat, hors lane).** Chaque ligne du tableau de bord porte en petit le nom du maillon (`cortex-8-federation`), mot proscrit par le §5. Ni le contrat ni le backlog ne le traitent.
 3. **Lane B, `skills/cortex-2-inventaire/SKILL.md`.** Le tableau des écarts dit `dossier_sans_domaine` « plus de 5 fichiers », dérivé par l'agent. Le scan pré-remplit désormais les dossiers de médias seuls hors projets, quel que soit leur nombre ; le SKILL.md peut le dire, comme il le dit pour les deux autres écarts du scan.
 4. **Interprétations du §3, à confirmer par l'audit.** Un `07-federation.md` en `brouillon` ou `en_cours` donne l'état « En cours » (la règle générale et la dernière ligne du §3), et non `a_faire` ; la phrase suivante vaut « relie les cerveaux » dans les deux cas. Ajout hors texte : un groupe à un seul membre inscrit, sans attendu, reste arbitré (« en attente d'un second rédacteur »), parce que `federe.py` refuse moins de deux membres et la notice ne doit pas proposer une commande vouée au refus.

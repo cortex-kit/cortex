@@ -20,7 +20,7 @@ Commits sur `lane/h2a`, messages « Lane H2A : … ». Un correctif, un commit, 
 - [x] A6. (`2a11809`) `etat.py` étape 8 (§3) et statut `en_cours`. Auto-test : groupe non inscrit, un attendu restant, un membre non remis, tous remis, commun validé.
 - [x] A7. (`72ed49a`) Hooks (§10) : `HOOKS` de `scaffold.py`, `session_start.py` et `stop.py`. Recette : `settings.json` porte `${CLAUDE_PROJECT_DIR}` ; `stop.py --autotest` lancé depuis un autre dossier que le vault sort en 0.
 - [x] A8. (`cc28331`, puis `2e2253b` : retrait au rejeu, retour du contrôle silent-failure) `scan.py` : dossier de médias seuls hors projets en `dossier_sans_domaine`. Auto-test ou recette C3 : trois `.jpg` dans `Divers/Photos` donnent le candidat.
-- [x] A9. (sans commit : aucun lecteur du `present` des outils dans la notice, voir `rapport-A.md`) `rend_notice.py` seulement si nécessaire pour `present: null`.
+- [x] A9. (rien pour `present: null`, aucun lecteur dans la notice ; commit de clôture : libellé de l'étape 8 en groupe, sur accord d'Evrard du 2026-10-02) `rend_notice.py` seulement si nécessaire pour `present: null`.
 - [x] A10. (recette 138/138, contre-épreuves dans `rapport-A.md`, commit de clôture) Recette complète verte, puis contre-épreuves de `06-verification.md` (lane A) jouées et consignées.
 - [x] A11. (`rapport-A.md`, commit de clôture) `rapport-A.md` : fichiers touchés, hashes, sortie de chaque commande d'acceptation, contre-épreuves, points en attente.
 
