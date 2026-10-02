@@ -51,6 +51,9 @@ EXT_LIEN = {".url", ".webloc"}      # `.lnk` exclu : un raccourci Windows n'est 
 # soit son nombre de fichiers : trois photos d'anniversaire passaient sous le seuil de l'agent.
 EXT_MEDIAS = {"jpg", "jpeg", "png", "gif", "heic", "heif", "webp", "tif", "tiff", "bmp", "dng", "cr2", "nef",
               "mov", "mp4", "m4v", "avi", "mkv", "3gp", "wmv"}
+# Fin d'indice de cet écart quand le scan le pose : la seule marque qui le distingue, au
+# rejeu, d'un `dossier_sans_domaine` que l'agent a dérivé du cadrage.
+INDICE_MEDIAS = "photos ou vidéos seulement"
 LANGAGES = {"py": "python", "js": "javascript", "ts": "typescript", "sh": "shell", "rb": "ruby",
             "go": "go", "rs": "rust", "java": "java", "php": "php", "swift": "swift", "kt": "kotlin",
             "c": "c", "h": "c", "cpp": "cpp", "cs": "csharp", "sql": "sql", "html": "html", "css": "css"}
@@ -344,7 +347,7 @@ def ecarts(disque, depots, base_declaree, projets="", racines=()):
     for e in disque:
         if e["fichiers"] and set(e["extensions"]) <= EXT_MEDIAS and not sous_projets(e["chemin"], projets, racines):
             out.append({"type": "dossier_sans_domaine",
-                        "indice": f"{e['chemin']} : {e['fichiers']} fichier(s), photos ou vidéos seulement",
+                        "indice": f"{e['chemin']} : {e['fichiers']} fichier(s), {INDICE_MEDIAS}",
                         "source_id": e["source_id"]})
     if not base_declaree:
         for e in disque:
@@ -408,10 +411,15 @@ def fusionner(neuf, ancien):
             e["preuve_de"] = vieux.get("preuve_de", [])
     out = dict(ancien)
     out.update({k: neuf[k] for k in CLES_REJEU})
-    # Un écart que le scan vient de reposer remplace son homonyme : pas de doublon au rejeu.
+    # Les écarts du scan se reposent en entier : un dossier de médias qui ne l'est plus sort
+    # de la liste, et un écart reposé remplace son homonyme posé par l'agent.
     neufs = {(x["type"], x["source_id"]) for x in neuf["ecarts_candidats"]}
+
+    def du_scan(x):
+        return x.get("type") in ECARTS_DU_DISQUE or (x.get("type") == "dossier_sans_domaine"
+                                                     and str(x.get("indice", "")).endswith(INDICE_MEDIAS))
     out["ecarts_candidats"] = [x for x in (ancien.get("ecarts_candidats") or [])
-                               if not (isinstance(x, dict) and (x.get("type") in ECARTS_DU_DISQUE
+                               if not (isinstance(x, dict) and (du_scan(x)
                                                                 or (x.get("type"), x.get("source_id")) in neufs))]
     out["ecarts_candidats"] += neuf["ecarts_candidats"]
     return out
@@ -518,6 +526,15 @@ def _autotest():
         ecrire(inv_m, sortie_m)
         rejoue = ecrire(inventaire(conf_m, [str(m)], Extracteur(actif=False)), sortie_m)
         assert [x["type"] for x in rejoue["ecarts_candidats"]].count("dossier_sans_domaine") == 1, rejoue
+        # Le dossier n'est plus de médias seuls : son écart sort au rejeu ; celui de l'agent reste.
+        pose = json.loads(sortie_m.read_text(encoding="utf-8"))
+        pose["ecarts_candidats"].append({"type": "dossier_sans_domaine", "indice": "Divers/Notes : 3 fichiers",
+                                         "source_id": "partage-divers-notes"})
+        sortie_m.write_text(json.dumps(pose, ensure_ascii=False), encoding="utf-8")
+        (m / "Divers/Photos/legende.docx").write_text("x")
+        rejoue = ecrire(inventaire(conf_m, [str(m)], Extracteur(actif=False)), sortie_m)
+        assert [x["source_id"] for x in rejoue["ecarts_candidats"]
+                if x["type"] == "dossier_sans_domaine"] == ["partage-divers-notes"], rejoue["ecarts_candidats"]
 
         try:
             ecrire({"disque": [{"contenu": "x"}]}, sortie)
