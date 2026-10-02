@@ -1000,6 +1000,33 @@ def c6_federation(tmp):
             r4.returncode == 0 and len(fusion) == 1 and not list(reel.rglob("*Banque*")),
             (r4.stderr or r4.stdout)[:300])
 
+    # H2 §4 : le groupe s'inscrit rédacteur par rédacteur, puis se fédère.
+    inscrit = ATELIER_RECETTE / "commun-inscrit"
+    shutil.rmtree(inscrit, ignore_errors=True)
+    fy = inscrit / "federation.yaml"
+
+    def inscrire(slug, nom, *attendus, config=fy):
+        return lancer(FEDERE, "--inscrire", slug, "--redacteur", nom, "--export", str(exports_reels[slug]),
+                      "--config", str(config), "--nom", "Chaîne réelle",
+                      *[x for a_ in attendus for x in ("--attendu", a_)])
+    r5, r6 = inscrire("helene", "Hélène V", "Karim B"), inscrire("helene", "Hélène V", "Karim B")
+    lu = cortex_config.charger(fy) if fy.is_file() else {}
+    verifie("H2 : --inscrire deux fois le même slug donne un seul membre, l'autre rédacteur attendu",
+            r5.returncode == r6.returncode == 0 and [m.get("slug") for m in lu.get("membres", [])] == ["helene"]
+            and lu.get("attendus") == ["Karim B"], (r5.stderr or r6.stderr)[:200] + str(lu))
+    r7 = inscrire("karim", "Karim B", "Hélène V")
+    lu = cortex_config.charger(fy) if fy.is_file() else {}
+    r8 = lancer(FEDERE, "--config", str(fy))
+    verifie("H2 : le second inscrit sort des attendus, et federe.py fédère ce federation.yaml",
+            r7.returncode == 0 and lu.get("attendus") == [] and len(lu.get("membres", [])) == 2
+            and r8.returncode == 0 and (inscrit / ".cortex-genere").is_file(), (r7.stderr or r8.stderr)[:300])
+    etranger = vaults / "reel-helene"
+    avant = sorted((q.relative_to(etranger).as_posix(), sha256(q)) for q in etranger.rglob("*") if q.is_file())
+    r9 = inscrire("helene", "Hélène V", config=etranger / "federation.yaml")
+    apres = sorted((q.relative_to(etranger).as_posix(), sha256(q)) for q in etranger.rglob("*") if q.is_file())
+    verifie("H2 : --inscrire sur un dossier étranger non vide sort en 1 et n'y écrit rien",
+            r9.returncode == 1 and avant == apres and len(avant) > 0, f"code {r9.returncode}, {len(avant)} fichiers")
+
     # H2 défaut 10 : une note du commun éditée en gardant son en-tête « généré ».
     membre = vaults / "reel-helene"
     cfg_membre = membre / "config-lint.yaml"

@@ -17,6 +17,9 @@ son `index.json`. Elle n'est jamais copiée ; l'export du membre est périmé.
 
 Usage :
     python3 federe.py --config <commun>/federation.yaml
+    python3 federe.py --inscrire <slug> --redacteur "<Prénom Nom>" --export <vault>/_export/<slug> \
+                      --config <commun>/federation.yaml [--nom "<organisation>"] [--attendu "<Prénom Nom>" ...]
+                                               # inscrit un rédacteur au groupe, n'écrit que federation.yaml
     python3 federe.py --fixtures <dossier>     # trois exports fictifs + federation.yaml
     python3 federe.py --autotest
 """
@@ -357,6 +360,68 @@ def generer(conf, commun, quand):
             "hors_index": hors_index, "empreinte": sceau}
 
 
+# ── Inscription d'un rédacteur (H2, 04-contrat §4) ─────────────────────────
+
+
+def _tilde(chemin):
+    """Forme ~ d'un chemin sous le dossier personnel ; tout autre chemin tel quel."""
+    try:
+        return "~/" + Path(chemin).expanduser().relative_to(Path.home()).as_posix()
+    except ValueError:
+        return str(chemin)
+
+
+def _cite(valeur):
+    """Valeur entre guillemets pour federation.yaml. cortex_config ne lit pas les
+    échappements : un guillemet ou un saut de ligne se refuse plutôt que de se tordre."""
+    valeur = str(valeur)
+    if '"' in valeur or "\n" in valeur:
+        raise Refus(f"{valeur!r} : un guillemet ou un saut de ligne ne s'écrit pas dans federation.yaml")
+    return f'"{valeur}"'
+
+
+def _nom_cle(nom):
+    return " ".join(str(nom).split()).casefold()
+
+
+def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
+    """Inscrit un rédacteur dans <commun>/federation.yaml, crée le dossier et le
+    fichier s'il le faut, n'écrit rien d'autre. Idempotent. Un --attendu déjà
+    membre (même rédacteur) n'est pas ajouté ; l'inscription retire le sien."""
+    cfg = Path(cfg).expanduser()
+    commun = cfg.parent
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug or ""):
+        raise Refus(f"slug {slug!r} : minuscules, chiffres et tirets seulement")
+    if (commun.is_dir() and any(commun.iterdir()) and not cfg.is_file()
+            and not (commun / lint_sante.SCEAU_COMMUN).is_file()):
+        raise Refus(f"{commun} n'est pas vide et ne porte ni federation.yaml ni {lint_sante.SCEAU_COMMUN} : "
+                    "ce n'est pas un commun, rien n'est écrit")
+    conf = cortex_config.charger(cfg) if cfg.is_file() else {"version": VERSION_FEDERATION}
+    if conf.get("version") != VERSION_FEDERATION:
+        raise Refus(f"federation.yaml est en version {conf.get('version')!r}, "
+                    f"cette inscription écrit la version {VERSION_FEDERATION}")
+    membres = [dict(m) for m in conf.get("membres") or []]
+    moi = next((m for m in membres if str(m.get("slug")) == slug), None)
+    if moi is None:
+        moi = {"slug": slug}
+        membres.append(moi)
+    moi["redacteur"], moi["export"] = redacteur, _tilde(export)
+    deja = {_nom_cle(m.get("redacteur", "")) for m in membres if m.get("redacteur")}
+    liste = [str(a) for a in conf.get("attendus") or []]
+    for a in attendus:
+        if _nom_cle(a) not in deja and _nom_cle(a) not in {_nom_cle(x) for x in liste}:
+            liste.append(a)
+    liste = [a for a in liste if _nom_cle(a) not in deja]
+    lignes = [f"version: {VERSION_FEDERATION}", f"nom: {_cite(conf.get('nom') or nom)}", "membres:"]
+    for m in membres:
+        champs = [f"slug: {m['slug']}"] + ([f"redacteur: {_cite(m['redacteur'])}"] if m.get("redacteur") else [])
+        lignes.append("  - { " + ", ".join(champs + [f"export: {_cite(m['export'])}"]) + " }")
+    lignes.append("attendus: [" + ", ".join(_cite(a) for a in liste) + "]")
+    commun.mkdir(parents=True, exist_ok=True)
+    cfg.write_text("\n".join(lignes) + "\n", encoding="utf-8")
+    return {"membres": [str(m["slug"]) for m in membres], "attendus": liste}
+
+
 # ── Exports fictifs (recette) ───────────────────────────────────────────────
 
 
@@ -520,6 +585,42 @@ def _autotest():
         except Refus:
             pass
         assert (autre / "travail.md").is_file()
+
+        # H2 §4 : inscription d'un rédacteur dans federation.yaml.
+        groupe = Path(tmp) / "groupe" / "commun" / "federation.yaml"
+        exp_h = Path.home() / "Cortex" / "helene" / "vault" / "_export" / "helene"
+        b = inscrire(groupe, "helene", "Hélène Vasseur", exp_h, nom="Alcyon Promotion",
+                     attendus=["Karim Benali", "Hélène Vasseur"])
+        assert b == {"membres": ["helene"], "attendus": ["Karim Benali"]}, b
+        assert sorted(q.name for q in groupe.parent.iterdir()) == ["federation.yaml"]
+        c = cortex_config.charger(groupe)
+        assert c["nom"] == "Alcyon Promotion" and c["attendus"] == ["Karim Benali"], c
+        assert c["membres"] == [{"slug": "helene", "redacteur": "Hélène Vasseur",
+                                 "export": "~/Cortex/helene/vault/_export/helene"}], c["membres"]
+        premier = groupe.read_bytes()
+        inscrire(groupe, "helene", "Hélène Vasseur", exp_h, nom="Alcyon Promotion", attendus=["Karim Benali"])
+        assert groupe.read_bytes() == premier, "inscription non idempotente"
+        inscrire(groupe, "helene", "Hélène Vasseur", "~/Ailleurs/_export/helene")
+        assert [m["export"] for m in cortex_config.charger(groupe)["membres"]] == ["~/Ailleurs/_export/helene"]
+        b = inscrire(groupe, "karim", "Karim  Benali", "~/Cortex/karim/vault/_export/karim",
+                     attendus=["Hélène Vasseur"])
+        assert b == {"membres": ["helene", "karim"], "attendus": []}, b
+        c = cortex_config.charger(groupe)
+        assert c["attendus"] == [] and c["nom"] == "Alcyon Promotion" and len(c["membres"]) == 2, c
+        # Un dossier étranger non vide : refus, rien d'écrit.
+        try:
+            inscrire(autre / "federation.yaml", "x", "X", "~/x")
+            raise AssertionError("un dossier étranger aurait dû être refusé")
+        except Refus:
+            pass
+        assert sorted(q.name for q in autre.iterdir()) == ["travail.md"]
+        for mauvais in ({"slug": "Hé lène"}, {"redacteur": 'A "B"'}):
+            try:
+                inscrire(groupe, **dict({"slug": "z", "redacteur": "Z", "export": "~/z"}, **mauvais))
+                raise AssertionError(f"{mauvais} aurait dû être refusé")
+            except Refus:
+                pass
+        assert len(cortex_config.charger(groupe)["membres"]) == 2
     print(f"OK : commun de {b2['projets']} projets, {b2['acteurs']} acteurs ({b2['fusionnes']} fusionnés), "
           f"{b2['domaines']} domaines, identique sur deux générations, lint v1 vert")
     return 0
@@ -529,6 +630,12 @@ def main():
     p = argparse.ArgumentParser(description="Régénère un vault commun depuis les exports de ses membres.")
     p.add_argument("--config", help="<commun>/federation.yaml")
     p.add_argument("--fixtures", help="écrit trois exports fictifs et un federation.yaml dans ce dossier")
+    p.add_argument("--inscrire", metavar="SLUG", help="inscrit ce rédacteur dans --config (federation.yaml)")
+    p.add_argument("--redacteur", default="", help="avec --inscrire : prénom et nom du rédacteur")
+    p.add_argument("--export", default="", help="avec --inscrire : <vault>/_export/<slug> du rédacteur")
+    p.add_argument("--nom", default="", help="avec --inscrire : nom de l'organisation, à la création")
+    p.add_argument("--attendu", action="append", default=[],
+                   help="avec --inscrire : un autre rédacteur annoncé, pas encore cadré (répétable)")
     p.add_argument("--autotest", action="store_true")
     a = p.parse_args()
     if a.autotest:
@@ -538,6 +645,19 @@ def main():
         return 0
     if not a.config:
         p.error("--config, --fixtures ou --autotest")
+    if a.inscrire:
+        if not (a.redacteur.strip() and a.export.strip()):
+            p.error("--inscrire exige --redacteur et --export")
+        try:
+            b = inscrire(a.config, a.inscrire, a.redacteur.strip(), a.export.strip(), a.nom.strip(),
+                         [x.strip() for x in a.attendu if x.strip()])
+        except (Refus, ValueError) as e:
+            print(f"[X] {e}", file=sys.stderr)
+            return 1
+        print(f"Inscrit : {a.inscrire} dans {_tilde(a.config)}\n"
+              f"  membres  : {', '.join(b['membres'])}\n"
+              f"  attendus : {', '.join(b['attendus']) or 'aucun'}")
+        return 0
     cfg = Path(a.config).expanduser().resolve()
     try:
         conf = cortex_config.charger(cfg)
