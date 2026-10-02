@@ -16,8 +16,8 @@ Worktree `~/Dev/cortex--h2a`, branche `lane/h2a`, partie de `fix/phase-h` (`158d
 | A7 | `72ed49a` | hooks ancrés sur `${CLAUDE_PROJECT_DIR}` |
 | A8 | `cc28331` | `scan.py` : dossier de médias seuls hors projets |
 | A8 bis | `2e2253b` | retour silent-failure : l'écart du scan se retire au rejeu |
-| A9 | commit de clôture | `rend_notice.py` : « sans objet » réservé au solo, sur accord d'Evrard |
-| A10, A11 | ce commit | recette, contre-épreuves, `05-execution.md` coché, ce rapport |
+| A9 | `e6a8350` | `rend_notice.py` : « sans objet » réservé au solo, sur accord d'Evrard |
+| A10, A11 | `383f0b9` | recette, contre-épreuves, `05-execution.md` coché, ce rapport |
 
 ## Fichiers touchés
 
@@ -195,3 +195,67 @@ Aucun point ne bloque la lane. Ceux qui suivent relèvent d'une décision ou d'u
 7. **Restes de la Phase H.** `~/Cortex/:memory:.ses` (2026-09-27 18:19) vient de la sonde markitdown lancée depuis `~/Cortex` ; corrigé à la source (A1), le fichier reste à supprimer lors de la préparation de la lane C, hors périmètre ici.
 8. **`recette/rejeu_profil.py`** (hors lane) lit `present` comme un booléen : un outil `null` y compte comme absent de la liste `outils`. Sans effet sur la chaîne, à savoir.
 9. **Windows.** Les contrôles de recette à faux exécutables (C1, A1 à A3) se jouent hors Windows ; sous Windows ils rendent une ligne verte explicite « contrôle joué hors Windows ». Le contrôle manuel M3 reste le seul témoin Windows.
+
+## Reprise après audit à froid (2026-10-02)
+
+Consignes : `consignes-A-reprise.md`, audit : `audit-A.md`. Base de la reprise `e6a8350`.
+
+| Point | Commit | Correctif | Témoin, rouge sur l'ancien code |
+|---|---|---|---|
+| M1 | `2f0d4bc` | `empreinte_commun` ignore tout nom caché (`.DS_Store`, `.git`, `.obsidian`, le sceau) et `Thumbs.db`, `desktop.ini`. `federe.py` appelle la même fonction pour écrire le sceau : une seule règle, deux empreintes égales | auto-test du lint (`.DS_Store`, `Thumbs.db`, `desktop.ini` posés : empreinte et verdict inchangés) et recette C6 « H2 reprise M1 » sur le commun réel. Ancienne exclusion remise : auto-test `AssertionError`, recette 139 passés, 1 en échec |
+| m1, m2, m3 | `a522a44` | `attente_groupe` refuse en `ValueError` des membres hors liste ou sans `export` ; `_groupe` rattrape `ValueError` et `OSError` ; étape 8 « illisible », raison `federation.yaml illisible : …`. Un `attendus` scalaire reste un nom. `rend_notice.py` affiche la raison d'une étape illisible | auto-test d'`etat.py` : `membres: [helene]`, membre sans `export`, `membres: helene`, fichier en `chmod 0`, `attendus: Karim B`. Ancien `attente_groupe` : `AttributeError: 'str' object has no attribute 'get'`. Bout en bout : `etat.py` sortie 0, notice écrite avec « federation.yaml illisible : chaque membre doit porter slug et export » |
+| m5 | `b9bfcbc` | sans `--voie`, la voie déjà écrite reste si la voie proposée n'a pas changé ; sans `--mail` ni `--fournisseur`, le bloc mail entier reste ; sans `--options`, la liste déjà écrite reste. Une réponse neuve (`--voie aucune`, `--options aucune`) l'emporte | auto-test de `poste.py` : `--voie softeria --options noota`, puis `--ecrire` sans les deux, voie `softeria` et options `[noota]` dans `poste.json` et `config.yaml`. Ancien `bloc_mail` : voie `aucune` |
+| m10 | `b9bfcbc` | les sondes `--version` et `uvx` tournent dans un `TemporaryDirectory`, supprimé avec son `:memory:.ses` | aucun témoin automatique |
+| m4 | `0dc4cab` | `--inscrire` écrit l'export en absolu (depuis le dossier courant) avant la forme `~` | auto-test de `federe.py` : `rel/_export/helene` écrit sous le dossier courant |
+| m6 | `2f0d4bc` | un commun qui contient des notes sans `.cortex-genere` est signalé (`commun_edite_main`, raison « .cortex-genere absent : … ») | auto-test du lint, sceau supprimé |
+| m7 | `2f0d4bc` | une lecture du commun en échec donne un constat « commun illisible : … » au lieu d'un traceback | aucun témoin automatique |
+| m8 | `af800cb` | `dossiers_projets` non scalaire : `ValueError` avec le chemin lu, sortie 1 par le `except` existant de `main` | aucun témoin automatique |
+| m9 | `2f0d4bc` | libellé « constat(s) sur le vault commun (note editee a la main ou commun a regenerer) » ; le chemin du commun reste affiché | |
+| m11 | ce commit | `05-execution.md` A9 à A11 et le tableau des commits portent `e6a8350` et `383f0b9`, recette 139/139 | |
+| Consigne du chef | `9fd6342` | `scaffold.py` : le commentaire sur `mentions_interdites` dit « marques et outils du consultant » (décision 6) au lieu des autres clients | |
+
+Tous les mineurs de l'audit sont traités, chacun sous dix lignes. Les informations i1 à i10 restent en l'état.
+
+### Sorties
+
+Recette, `/usr/bin/python3 skills/cortex-4-installation/recette/parcours_blanc.py` : sortie 0, 140 contrôles (139 avant reprise, plus le contrôle M1).
+
+```
+  [ok] H2 reprise M1 : un .DS_Store du Finder (et Thumbs.db, desktop.ini) posé dans le commun n'est pas signalé
+140 contrôle(s) passé(s), 0 en échec.
+Recette verte.
+```
+
+Auto-tests, `/usr/bin/python3 <script> --autotest` :
+
+```
+poste.py : code 0 ; poste.py : auto-test OK
+etat.py : code 0 ; etat.py : auto-test OK
+lint_sante.py : code 0 ; OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, lettre de lecteur, empreinte du commun
+federe.py : code 0 ; OK : commun de 14 projets, 11 acteurs (2 fusionnés), 2 domaines, identique sur deux générations, lint v1 vert
+scaffold.py : code 0 ; OK scaffold.py : forme ~, settings.json, hooks, skills parle, bilan et ingest, .pyc ignore, depot prive propose
+scan.py : code 0 ; OK scan.py : bornes en entiers, `depassement` booléen, base déportée, dépôt, profondeur, rejeu non destructif, `source_id` unique entre racines, refus de `contenu`, dossier de médias seuls
+session_start.py : code 0 ; OK session_start.py
+stop.py : code 0 ; OK stop.py
+rend_notice.py : code 0 ; rend_notice.py : auto-test OK
+```
+
+`ast.parse` sous `/usr/bin/python3` (3.9.6), les dix `.py` du diff `fix/phase-h..lane/h2a` :
+
+```
+ast OK skills/cortex-0-poste/scripts/poste.py
+ast OK skills/cortex-2-inventaire/scripts/scan.py
+ast OK skills/cortex-4-installation/recette/parcours_blanc.py
+ast OK skills/cortex-4-installation/scripts/etat.py
+ast OK skills/cortex-4-installation/scripts/lint_sante.py
+ast OK skills/cortex-4-installation/scripts/rend_notice.py
+ast OK skills/cortex-4-installation/scripts/scaffold.py
+ast OK skills/cortex-4-installation/template/vault/.claude/hooks/session_start.py
+ast OK skills/cortex-4-installation/template/vault/.claude/hooks/stop.py
+ast OK skills/cortex-8-federation/scripts/federe.py
+```
+
+### Points en attente de la reprise
+
+1. **Texte du §9 de `04-contrat.md`.** Il liste encore les seules exclusions `.cortex-genere`, `.git`, `.obsidian`. Le code suit l'amendement acté par le chef ; le fichier du pack n'appartient pas à la lane A et reste à amender.
+2. **`template/vault/.claude/skills/lint/SKILL.md` (lane B).** La ligne `commun_edite_main` dit « note du vault commun modifiée à la main » ; le constat couvre désormais aussi un commun sans sceau ou illisible.
