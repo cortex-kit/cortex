@@ -99,7 +99,7 @@ Une question qui demande de valider, signer ou confirmer un contenu (récapitula
 - **Accord.** Rien ne s'installe ni ne se branche sans une question qui dit ce que cela pose sur le poste. La voie softeria se propose ainsi : un petit serveur local, l'outil node, l'accès à la boîte sans passer par l'administrateur. Un refus écrit `--voie aucune`.
 - **Réponse acquise.** Une réponse donnée ne se repose pas, même pour recommander l'inverse. Une conséquence se signale une fois, dans le récapitulatif, sans question.
 - **Marque.** La liste des mentions interdites proposée au consultant ne contient que ses marques ; il la complète lui-même. Aucun nom d'un autre client ne s'y propose, aucun ne se cherche sur le poste. En groupe, la liste est une décision de groupe : fixée au premier cadrage, reprise telle quelle et annoncée aux suivants.
-- **Atelier existant.** Au maillon 0, dès qu'un atelier existe sur le poste, la première question demande le nom court ; les ateliers existants y figurent comme options, avec « nouveau nom ».
+- **Atelier existant.** Au maillon 0, la première question demande le nom court, sans jamais lister les dossiers de `~/Cortex/` (sur le poste d'un consultant, ce sont d'autres clients) ; le maillon ne reconnaît que l'atelier dont le nom est donné, et propose « nouveau nom » sinon. (Amendé le 2026-10-02 après l'audit de la lane B, défaut D10.)
 
 ## §9 Lint : le commun et son empreinte
 

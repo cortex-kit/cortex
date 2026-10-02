@@ -66,12 +66,12 @@ donnees:
 # `mentions_interdites` est la liste que le grep de recette fait échouer, et le
 # contrôle est bloquant à la remise.
 #
-# Y mettre, dans cet ordre d'importance :
-#   1. les CLIENTS déjà servis — c'est la fuite qui coûte le plus cher, et la
-#      plus discrète : un exemple oublié dans un gabarit, un identifiant de page
-#      dans une note de méthode, un registre dans un fichier d'agent ;
-#   2. la marque du prestataire et ses déclinaisons ;
-#   3. ses outils internes et ses noms propres.
+# Y mettre, dans cet ordre d'importance (décision 6 de la Phase H2 : jamais le
+# nom d'un autre client, qui ne doit pas voyager dans ce fichier) :
+#   1. la marque du prestataire et ses déclinaisons ;
+#   2. ses outils internes et ses noms propres.
+# Les autres clients sont protégés par la lecture bornée des maillons et par le
+# contrôle white-label de la recette, pas par cette liste.
 #
 # Cette liste est VIDE dans l'exemple, délibérément. La remplir avec de vraies
 # marques ici les ferait voyager dans chaque config client — c'est-à-dire dans
