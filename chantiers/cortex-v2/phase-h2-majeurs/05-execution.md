@@ -28,17 +28,17 @@ Commits sur `lane/h2a`, messages « Lane H2A : … ». Un correctif, un commit, 
 
 Commits sur `lane/h2b`, messages « Lane H2B : … ».
 
-- [ ] B1. `doctrine.md` : sections §5 (mots), §6 (lecture), §7 (validation visible), §8 (accord, réponse acquise, marque, atelier existant), en prose de la doctrine, sans recopier le contrat mot pour mot.
-- [ ] B2. Chaque SKILL.md des maillons 0 à 8 renvoie à ces sections dans ses règles, en une ligne.
-- [ ] B3. Maillon 0 : nom court demandé dès qu'un atelier existe ; question softeria avec ce qu'elle pose, `--voie` selon la réponse ; `--options` porte le choix de la personne ; outil « à vérifier » dit comme tel, sans question de développeur (pas de proposition de modifier un script ou la configuration du shell).
-- [ ] B4. Maillon 1 : aucune phrase avec un mot du §5 ; racines demandées, jamais proposées depuis le disque ; liste de marque sans nom de client, décision de groupe reprise et annoncée chez le second rédacteur ; récapitulatif affiché avant chaque validation ; `federe.py --inscrire` en fin de cadrage en groupe, avec `--redacteur` et un `--attendu` par autre rédacteur nommé (`04-contrat.md` §4).
-- [ ] B5. Maillons 2 à 7 : chaque phrase fautive relevée au parcours corrigée (liste dans `06-verification.md`, lane B) ; tout « … est-il juste ? » précédé du contenu ou porté par un aperçu.
-- [ ] B6. Maillon 7 : la limite Windows dans le guide de remise.
-- [ ] B7. Maillon 8 : lancement depuis l'atelier ; depuis un vault, commun généré et commande `notice.py` donnée ; contrôle 3 qui exclut la ligne « Généré par ».
-- [ ] B8. `README.md` et `outils/OUTILS.md` : la limite Windows, WSL2 recommandé pour un poste sensible.
-- [ ] B8bis. Skills du vault (`template/vault/.claude/skills/*/SKILL.md`) : une ligne par skill pour les mots (§5) et la validation visible (§7), sans renvoi à la doctrine, absente du vault.
-- [ ] B9. Recette complète verte sur `lane/h2b` (elle vérifie tailles, Notice, marques, chemins), plus les greps de `06-verification.md`, lane B.
-- [ ] B10. `rapport-B.md`.
+- [x] B1. `doctrine.md` : sections §5 (mots), §6 (lecture), §7 (validation visible), §8 (accord, réponse acquise, marque, atelier existant), en prose de la doctrine, sans recopier le contrat mot pour mot. Fait : `69b87fe`.
+- [x] B2. Chaque SKILL.md des maillons 0 à 8 renvoie à ces sections dans ses règles, en une ligne. Fait : `0b9562d`.
+- [x] B3. Maillon 0 : nom court demandé dès qu'un atelier existe ; question softeria avec ce qu'elle pose, `--voie` selon la réponse ; `--options` porte le choix de la personne ; outil « à vérifier » dit comme tel, sans question de développeur (pas de proposition de modifier un script ou la configuration du shell). Fait : `96bbf21`, `bc51816`.
+- [x] B4. Maillon 1 : aucune phrase avec un mot du §5 ; racines demandées, jamais proposées depuis le disque ; liste de marque sans nom de client, décision de groupe reprise et annoncée chez le second rédacteur ; récapitulatif affiché avant chaque validation ; `federe.py --inscrire` en fin de cadrage en groupe, avec `--redacteur` et un `--attendu` par autre rédacteur nommé (`04-contrat.md` §4). Fait : `b4b331e`.
+- [x] B5. Maillons 2 à 7 : chaque phrase fautive relevée au parcours corrigée (liste dans `06-verification.md`, lane B) ; tout « … est-il juste ? » précédé du contenu ou porté par un aperçu. Fait : `4c9d8fd`, `bc51816`.
+- [x] B6. Maillon 7 : la limite Windows dans le guide de remise. Fait : `2885e04`.
+- [x] B7. Maillon 8 : lancement depuis l'atelier ; depuis un vault, commun généré et commande `notice.py` donnée ; contrôle 3 qui exclut la ligne « Généré par ». Fait : `836ad9b`.
+- [x] B8. `README.md` et `outils/OUTILS.md` : la limite Windows, WSL2 recommandé pour un poste sensible. Fait : `b515da2`.
+- [x] B8bis. Skills du vault (`template/vault/.claude/skills/*/SKILL.md`) : une ligne par skill pour les mots (§5) et la validation visible (§7), sans renvoi à la doctrine, absente du vault. Fait : `fd5d932`.
+- [x] B9. Recette complète verte sur `lane/h2b` (elle vérifie tailles, Notice, marques, chemins), plus les greps de `06-verification.md`, lane B. Fait : `45a2da9` (recette 117 verts sur `bc51816`, sorties dans `rapport-B.md`).
+- [x] B10. `rapport-B.md`. Fait : `45a2da9`.
 
 ## Points d'arrêt
 
