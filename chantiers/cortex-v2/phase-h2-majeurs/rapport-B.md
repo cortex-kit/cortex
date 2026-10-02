@@ -1,6 +1,6 @@
 # Rapport de la lane B : Phase H2, conduite
 
-Branche `lane/h2b`, partie de `fix/phase-h` (`158d6c0`). Dix commits « Lane H2B », aucun push, aucun merge, aucun rebase. Aucun `.py` touché.
+Branche `lane/h2b`, partie de `fix/phase-h` (`158d6c0`). Douze commits « Lane H2B » avant l'audit, dix-sept après la reprise, aucun push, aucun merge, aucun rebase. Aucun `.py` touché.
 
 ## Tâches et commits
 
@@ -325,3 +325,124 @@ Autres défauts majeurs de conduite, et où ils sont tenus :
 4. **Maillon 8, condition 4.** Le skill refuse désormais de relier les cerveaux tant qu'un membre n'est pas remis ou qu'un attendu reste, pour s'aligner sur la règle d'`etat.py` (§3 du contrat). C'est une condition d'étape 0, pas une étape nouvelle ; l'audit dira si elle reste dans le périmètre.
 5. **Dépendance à la lane A.** Le texte cite `--voie`, `voie_proposee`, `--options` vide, `present: null` et « à vérifier », `--inscrire`, l'empreinte du lint (`skills/lint/SKILL.md` du vault) tels que le contrat les fige. Ils ne valent qu'une fois `lane/h2a` mergée.
 6. **Mineurs non traités, hors périmètre** (`01-cadrage.md`, Exclus) : tutoiement « Pour toi » des messages du consultant, question Sitadel au maillon 2, emplacement du vault absent du skill 4, notice à 4/9 après installation, conflit de porteur.
+
+## Reprise après audit à froid (2026-10-02)
+
+Consignes : `consignes-B-reprise.md`, défauts de `audit-B.md`. Quatre commits sur `e824037` : `2aa4002`, `93ac582`, `7fe28e0`, `2caf485`. 10 fichiers `.md`, 39 lignes changées, aucun `.py`. Correction de la ligne 3 de ce rapport (D11) : la lane comptait 12 commits avant la reprise, pas dix ; 17 après, ce rapport compris.
+
+### Défauts traités
+
+| Défaut | Fichier | Correction |
+|---|---|---|
+| D1 | `doctrine.md` §2 | white-label = la marque et les outils internes du consultant ; les autres clients restent dehors par la lecture bornée (§9), jamais par une liste (§11) |
+| D2 | `cloture/SKILL.md` §5, §2, §9 | récap sans « Lint », « solo », « Export », « remote », nom de skill ; lignes « Dossiers », « Santé », « Partage », « Historique » ; avertissements en phrase (« le dossier <nom> n'a pas de fichier d'instructions pour l'assistant ») ; document périmé dit sans `ingest` |
+| D3 | `cortex-1-cadrage` §1, `cortex-2-inventaire` étape 0 | la section « En mode solo » devient « Dans les deux modes » et dit « consultant compris » ; les intitulés du niveau 1 et 2 sont le pense-bête de l'agent, jamais le texte posé ; l'inventaire s'adresse « vos dossiers » dans les deux modes |
+| D10 | `cortex-0-poste` étape 0, `doctrine.md` §9 et §11 | `~/Cortex/` ne se liste plus ; seul l'atelier dont le nom est donné se teste ; s'il existe, la session le dit sans le décrire et demande s'il faut le reprendre ou choisir un autre nom |
+| D4 | maillons 2, 3, 4, 5, 7, 8 (messages de clôture) | « lint : vert » devient « contrôle de santé : vert » ; « skills, sous-agents, hooks » devient « savoir-faire, assistants, automatismes » ; `cloture` et `bilan` deviennent les phrases « clôture », « bilan » ; « Ontologie arrêtée », « matrice d'ownership », « structurants », « rédacteur », « remis_le » réécrits |
+| D5 | `cortex-7-passation` | le contrôle 1 dit ce qu'il attrape (marques et outils du consultant) et renvoie le nom d'un autre client à la lecture bornée |
+| D6 | `doctrine.md` §9 | la lecture de `federation.yaml` au cadrage en groupe est dite seule lecture du commun hors maillon 8 ; la lecture de la date de remise des membres au maillon 8 est dite aussi |
+| D7 | `cortex-1-cadrage` §5 | `--inscrire` « une fois les blocs validés (§6) et l'atelier écrit » |
+| D8 | `cortex-8-federation` contrôle 3 | motif ancré `'^[<>] Généré par `federe.py` le '` ; commentaire de `regeneration_identique` aligné |
+| D9 | `cortex-1-cadrage` §5 | `--redacteur` écrit exactement comme dans la liste du groupe |
+| D12 | `cortex-5-ingest` | exemple `--source "<racine déclarée>/…"` |
+| D13 | `cortex-0-poste` §2 | la commande de connexion `gh` se donne dans le message, sans question de plus |
+
+Non traités : D11 (corrigé ci-dessus, en texte), D14 (ordre de merge, A avant B, inchangé).
+
+### Points ouverts pour le chef d'orchestre
+
+1. **`04-contrat.md` §8 contredit D10.** Le contrat dit encore « les ateliers existants y figurent comme options ». Les skills et la doctrine suivent la consigne de reprise ; le contrat n'est pas un fichier de la lane.
+2. **`template/config.example.yaml:70`** (« 1. les CLIENTS déjà servis ») et le commentaire de `scaffold.py:533` portent encore l'ancienne définition (D5). Hors fichiers de la lane B : le premier pour le chef, le second pour la lane A.
+3. D6, deuxième moitié : `cortex-1-cadrage` étape 0 fait lire l'atelier du premier rédacteur sans dire comment le trouver. Laissé tel quel : le trouver par son nom court, donné par la personne, suffit avec la règle du maillon 0 ; à observer au parcours C.
+
+### Recette sur `2caf485`
+
+```
+$ python3 skills/cortex-4-installation/recette/parcours_blanc.py
+  C1   Neuf étapes, maillon 0, notice                     §3 §5 §10    lane B       17/17 VERT
+  C2   Trois profils, régime, section Notice              §2 §10       lane C       12/12 VERT
+  C3   Inventaire outillé sur les fixtures                §4           lane D       16/16 VERT
+  C4   Couche vault : permissions, hooks, skills, agents  §9           lane E       18/18 VERT
+  C5   Régimes pointeur et copie, structurant périmé      §2           lane E        4/4  VERT
+  C6   Fédération sur trois exports fictifs               §6           lane F       10/10 VERT
+  C7   Manifestes plugin                                  §11          lane chef     4/4  VERT
+  C8   White-label                                        01-cadrage   lane toutes   1/1  VERT
+  C9   Zéro chemin absolu                                 I2, §11      lane toutes   2/2  VERT
+  C10  Paquet, notice hors ligne, README                  §11          lane B       10/10 VERT
+117 contrôle(s) passé(s), 0 en échec.
+Recette verte.
+(sortie 0)
+```
+
+### Greps de `06-verification.md`, lane B, et sondes de la reprise
+
+Chaque sonde qui attend zéro porte son témoin : la même sonde sur `e824037` (avant reprise) ou `158d6c0` (base) rend non-zéro.
+
+```
+$ grep -n "^## " skills/cortex-1-cadrage/references/doctrine.md | tail -4
+113:## 8. Les mots qui ne se disent pas
+129:## 9. Ce que la chaîne lit
+139:## 10. Ce qui se valide se voit
+145:## 11. Accord, réponse acquise, marque, atelier existant
+
+$ grep -L "doctrine.md` §8 à §11" skills/cortex-[0-8]-*/SKILL.md ; echo "(liste vide si rien au-dessus)"
+(fin)
+
+$ grep -L "Devant la personne" skills/cortex-4-installation/template/vault/.claude/skills/*/SKILL.md
+(fin)
+
+$ grep -n -i windows README.md outils/OUTILS.md skills/cortex-7-passation/SKILL.md | grep -i wsl | cut -c1-90
+skills/cortex-7-passation/SKILL.md:38:**Sous Windows natif, une limite de plus, écrite dan
+README.md:12:Sous Windows natif, les commandes que lance l'assistant ne sont pas confinées
+outils/OUTILS.md:5:Sous Windows, `py` vaut `python3` et `winget` est fourni avec le systèm
+
+$ git diff --name-only 158d6c0 -- . | grep -v "\.md$"
+rc=1
+
+$ git diff 158d6c0 | grep "^+" | grep -c $'\xe2\x80\x94'
+0
+
+$ wc -l skills/cortex-[0-8]-*/SKILL.md | tail -1
+     239 skills/cortex-1-cadrage/SKILL.md
+    1686 total
+
+## Sondes de la reprise (attendu 0, témoin sur e824037)
+D1 « clients que tu as déjà servis » : HEAD=0, témoin e824037=1
+D2 « Lint : » : HEAD=0, témoin e824037=1
+D2 « « solo » » : HEAD=0, témoin e824037=1
+D2 « Règle cardinale violée » : HEAD=0, témoin e824037=1
+D2 « sans `nouveau-projet` » : HEAD=0, témoin e824037=1
+D3 « ### En mode solo » : HEAD=0, témoin e824037=1
+D3 « En `solo`, le fond ne change pas. Changent l'adresse » : HEAD=0, témoin e824037=1
+D10 « Lister les noms des dossiers de » : HEAD=0, témoin e824037=1
+D10 « ateliers existants comme options » : HEAD=0, témoin e824037=1
+D10 « les ateliers existants y figurent comme options » : HEAD=0, témoin e824037=1
+D12 « ~/Documents/.../PROCESS » : HEAD=0, témoin e824037=1
+D4 « lint : vert|Lint vert » skills/cortex-4-installation/SKILL.md : HEAD=0, témoin e824037=1
+D4 « lint : vert|Lint vert » skills/cortex-5-ingest/SKILL.md : HEAD=0, témoin e824037=1
+D4 « lint : vert|Lint vert » skills/cortex-8-federation/SKILL.md : HEAD=0, témoin e824037=1
+témoin renvois sur 158d6c0 : 9 des 9 maillons sans renvoi ; skills du vault : 6 des 6 sans la ligne
+```
+
+### Contrôle 3 du maillon 8, motif ancré (D8)
+
+Montage dans le scratchpad : deux exports `export_fictif` (camille, yasmine), `federation.yaml` à deux membres, `federe.py --config` joué deux fois à 2 s d'écart, 16 notes dans le commun vérifiées avant lecture.
+
+```
+$ diff -r "$C-temoin" "$C" | grep "^[<>]"
+< genere_le: 2026-10-02T23:19:40
+> genere_le: 2026-10-02T23:19:42
+< Généré par `federe.py` le 2026-10-02T23:19:40, ne pas éditer.
+> Généré par `federe.py` le 2026-10-02T23:19:42, ne pas éditer.
+# motif non ancré (avant reprise)
+$ ... | grep -v genere_le | grep -vc "Généré par"
+0
+# motif ancré (après reprise)
+$ ... | grep -v genere_le | grep -vc '^[<>] Généré par `federe.py` le '
+0
+# témoin de l'angle mort : « Généré par erreur, corrigé à la main » ajouté dans une note de 20 - Projets
+$ ... | grep -v genere_le | grep -vc "Généré par"                              # ancien : aveugle
+0
+$ ... | grep -v genere_le | grep -vc '^[<>] Généré par `federe.py` le '         # repris : voit l'édition
+1
+```
