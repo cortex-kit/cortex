@@ -1102,8 +1102,10 @@ def c6_federation(tmp):
     r7 = inscrire("karim", "Karim B", "Hélène V")
     lu = cortex_config.charger(fy) if fy.is_file() else {}
     r8 = lancer(FEDERE, "--config", str(fy))
-    verifie("H2 : le second inscrit sort des attendus, et federe.py fédère ce federation.yaml",
+    verifie("H2 : le second inscrit sort des attendus, un --attendu déjà membre est ignoré avec un message, "
+            "et federe.py fédère ce federation.yaml",
             r7.returncode == 0 and lu.get("attendus") == [] and len(lu.get("membres", [])) == 2
+            and "Hélène V est déjà membre" in r7.stdout
             and r8.returncode == 0 and (inscrit / ".cortex-genere").is_file(), (r7.stderr or r8.stderr)[:300])
     etranger = vaults / "reel-helene"
     avant = sorted((q.relative_to(etranger).as_posix(), sha256(q)) for q in etranger.rglob("*") if q.is_file())

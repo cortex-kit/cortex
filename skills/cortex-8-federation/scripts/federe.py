@@ -387,7 +387,8 @@ def _nom_cle(nom):
 def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
     """Inscrit un rédacteur dans <commun>/federation.yaml, crée le dossier et le
     fichier s'il le faut, n'écrit rien d'autre. Idempotent. Un --attendu déjà
-    membre (même rédacteur) n'est pas ajouté ; l'inscription retire le sien."""
+    membre (même rédacteur) est ignoré et rendu dans `ignores`, pour que l'étape 8
+    n'attende jamais quelqu'un d'inscrit ; l'inscription d'un rédacteur l'en retire."""
     cfg = Path(cfg).expanduser()
     commun = cfg.parent
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug or ""):
@@ -408,6 +409,7 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
     moi["redacteur"], moi["export"] = redacteur, _tilde(export)
     deja = {_nom_cle(m.get("redacteur", "")) for m in membres if m.get("redacteur")}
     liste = [str(a) for a in conf.get("attendus") or []]
+    ignores = [a for a in attendus if _nom_cle(a) in deja]
     for a in attendus:
         if _nom_cle(a) not in deja and _nom_cle(a) not in {_nom_cle(x) for x in liste}:
             liste.append(a)
@@ -419,7 +421,7 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
     lignes.append("attendus: [" + ", ".join(_cite(a) for a in liste) + "]")
     commun.mkdir(parents=True, exist_ok=True)
     cfg.write_text("\n".join(lignes) + "\n", encoding="utf-8")
-    return {"membres": [str(m["slug"]) for m in membres], "attendus": liste}
+    return {"membres": [str(m["slug"]) for m in membres], "attendus": liste, "ignores": ignores}
 
 
 # ── Exports fictifs (recette) ───────────────────────────────────────────────
@@ -591,7 +593,7 @@ def _autotest():
         exp_h = Path.home() / "Cortex" / "helene" / "vault" / "_export" / "helene"
         b = inscrire(groupe, "helene", "Hélène Vasseur", exp_h, nom="Alcyon Promotion",
                      attendus=["Karim Benali", "Hélène Vasseur"])
-        assert b == {"membres": ["helene"], "attendus": ["Karim Benali"]}, b
+        assert b == {"membres": ["helene"], "attendus": ["Karim Benali"], "ignores": ["Hélène Vasseur"]}, b
         assert sorted(q.name for q in groupe.parent.iterdir()) == ["federation.yaml"]
         c = cortex_config.charger(groupe)
         assert c["nom"] == "Alcyon Promotion" and c["attendus"] == ["Karim Benali"], c
@@ -604,7 +606,9 @@ def _autotest():
         assert [m["export"] for m in cortex_config.charger(groupe)["membres"]] == ["~/Ailleurs/_export/helene"]
         b = inscrire(groupe, "karim", "Karim  Benali", "~/Cortex/karim/vault/_export/karim",
                      attendus=["Hélène Vasseur"])
-        assert b == {"membres": ["helene", "karim"], "attendus": []}, b
+        # Témoin : un --attendu qui nomme un membre déjà inscrit est ignoré, sans erreur,
+        # et l'étape 8 n'aura personne à attendre.
+        assert b == {"membres": ["helene", "karim"], "attendus": [], "ignores": ["Hélène Vasseur"]}, b
         c = cortex_config.charger(groupe)
         assert c["attendus"] == [] and c["nom"] == "Alcyon Promotion" and len(c["membres"]) == 2, c
         # Un dossier étranger non vide : refus, rien d'écrit.
@@ -657,6 +661,8 @@ def main():
         print(f"Inscrit : {a.inscrire} dans {_tilde(a.config)}\n"
               f"  membres  : {', '.join(b['membres'])}\n"
               f"  attendus : {', '.join(b['attendus']) or 'aucun'}")
+        for nom in b["ignores"]:
+            print(f"  [i] {nom} est déjà membre du groupe : non ajouté aux attendus")
         return 0
     cfg = Path(a.config).expanduser().resolve()
     try:
