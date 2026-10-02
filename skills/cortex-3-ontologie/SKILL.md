@@ -192,6 +192,7 @@ Si la carte n'est pas confirmée : s'arrêter et dire ce qui reste en suspens. R
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais un domaine sans preuve chiffrée.**
 - **Jamais un domaine parce que le client l'a nommé** au cadrage. Il l'a nommé avant qu'on regarde ; l'inventaire prime.
 - **Jamais le découpage par organigramme.** Il décrit qui rapporte à qui, pas où le travail se fait — et il change tous les dix-huit mois.

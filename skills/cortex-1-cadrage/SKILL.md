@@ -203,6 +203,7 @@ Si un accès manque (un mot de passe à retrouver, un compte à réactiver), s'a
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`references/doctrine.md` §8 à §11).
 - **Ne jamais décider des domaines ici.** Ils se déduisent de l'inventaire, avec preuve. Un domaine proposé au cadrage sera adopté par politesse et jamais réexaminé.
 - **Ne jamais promettre la reprise du contenu.** Le vault pointe.
 - **Ne jamais inventer** une valeur manquante : `_Non renseigné — à compléter_` est toujours préférable. Halluciner une décision de cadrage est pire que laisser un trou visible.

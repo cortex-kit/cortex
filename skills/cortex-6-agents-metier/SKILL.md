@@ -143,6 +143,7 @@ S'il manque un jalon, c'est-à-dire un fichier d'atelier ni validé ni arbitré,
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais un agent par métier ou par service.** C'est la demande la plus fréquente et le plus sûr moyen de produire une bibliothèque morte au deuxième trimestre.
 - **Jamais un agent sans date de revue.**
 - **Jamais un agent qui écrit.**

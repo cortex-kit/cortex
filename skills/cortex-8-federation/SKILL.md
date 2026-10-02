@@ -145,6 +145,7 @@ rédacteur peut passer en visibilite: commun s'il veut qu'elle voyage.
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais écrire dans le commun autrement que par `federe.py`.**
 - **Jamais copier une note d'un vault membre à la main dans un autre.** Le seul chemin entre deux rédacteurs passe par l'export et le commun.
 - **Jamais forcer une génération refusée.** Un refus nomme sa cause ; la corriger chez le membre, puis relancer.

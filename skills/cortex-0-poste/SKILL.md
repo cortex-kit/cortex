@@ -122,6 +122,7 @@ Forme `~` pour tout chemin, jamais un chemin absolu. Le bloc `poste` est le miro
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Ne jamais installer ce qui n'a pas été coché.** Le choix dans la question vaut accord, il n'y a pas de seconde confirmation ; `--installer` ne reçoit que des noms cochés par la personne. Jamais de `--installer` déduit d'un `--dry-run`.
 - **Ne jamais lancer une installation en dehors du script**, ni `brew`, ni `winget`, ni `curl | sh` à la main : la commande vient de `poste.py`, pour qu'elle soit la même partout et tracée.
 - **Ne jamais lire la messagerie ici.** Le MX est une requête DNS sur le domaine, pas une lecture de courrier.

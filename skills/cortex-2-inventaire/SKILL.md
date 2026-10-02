@@ -184,6 +184,7 @@ Puis la section Notice ci-dessous. Si un endroit déclaré n'a pas pu être parc
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais de contenu rapatrié.** Le schéma l'interdit ; ne pas le contourner par un champ ajouté.
 - **Jamais la messagerie sans opt-in tracé.** Jamais un corps, jamais une adresse en clair hors `acteurs`.
 - **Jamais d'inventaire partiel présenté comme complet.**

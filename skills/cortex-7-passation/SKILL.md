@@ -178,6 +178,7 @@ Puis la notice (section ci-dessous) : c'est elle qui montre l'installation finie
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais remettre avec le contrôle de white-label en échec.**
 - **Jamais livrer `_cortex/`.** L'atelier contient l'inventaire brut, les hypothèses écartées et les constats sur l'organisation du client. Il reste chez le consultant.
 - **Jamais produire un support de formation** : hors périmètre par décision. Le suivi, lui, existe et tient en une skill, `bilan`, à J+7 et J+30 ; pas un protocole de plus.

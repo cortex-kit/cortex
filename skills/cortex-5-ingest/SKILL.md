@@ -171,6 +171,7 @@ Vérifier les trois fiches avant de proposer la suite : c'est le geste qui ne se
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Jamais plus que le plafond de lignes** dans un résumé.
 - **Jamais de note sans pointeur canonique ni lien sortant.**
 - **Jamais écraser une note sans marqueur de provenance.**

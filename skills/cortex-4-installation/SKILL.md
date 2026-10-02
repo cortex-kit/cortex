@@ -153,6 +153,7 @@ Quand vous voulez continuer, dites « remplis mon second cerveau ».
 
 ## Interdits
 
+- **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Ne jamais modifier le gabarit pour un client.** Ce qui varie va dans `config.yaml`. Un gabarit forké par client cesse d'être un produit au deuxième client.
 - **Ne jamais installer sur une ontologie non validée.**
 - **Ne jamais laisser une moustache** non substituée : le client lirait `{{ORGANISATION}}` dans sa propre doctrine.
