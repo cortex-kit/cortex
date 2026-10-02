@@ -1000,6 +1000,32 @@ def c6_federation(tmp):
             r4.returncode == 0 and len(fusion) == 1 and not list(reel.rglob("*Banque*")),
             (r4.stderr or r4.stdout)[:300])
 
+    # H2 défaut 10 : une note du commun éditée en gardant son en-tête « généré ».
+    membre = vaults / "reel-helene"
+    cfg_membre = membre / "config-lint.yaml"
+    cfg_membre.write_text(
+        f'version: 1\norganisation:\n  nom: "Chaîne réelle"\n  code: helene\n  redacteur: "H"\n'
+        f'mode: federe\ncommun:\n  racine: "{tilde(reel)}"\nchemins:\n  dossiers_projets: ""\n'
+        f'donnees:\n  regime: pointeur\ndomaines:\n  - {{ code: ope, nom: "Opérations" }}\n'
+        f'cycles:\n  - {{ cycle: mission, phase: "Cadrage", progression: 20 }}\n', encoding="utf-8")
+
+    def commun_signale():
+        r = lint(membre, "--config", str(cfg_membre), "--json")
+        try:
+            return json.loads(r.stdout).get("commun_edite_main")
+        except ValueError:
+            return f"sortie illisible : {(r.stderr or r.stdout)[:200]}"
+    temoin = commun_signale()
+    verifie("H2 témoin : le commun tel que généré n'est pas signalé par le lint d'un membre", temoin == [], str(temoin))
+    belvedere = next(reel.rglob("20 - Projets/*Belvédère.md"), None)
+    if belvedere is not None:
+        avant = belvedere.read_text(encoding="utf-8")
+        belvedere.write_text(avant + "\nPrécision ajoutée à la main dans le commun.\n", encoding="utf-8")
+    signale = commun_signale() if belvedere is not None else []
+    verifie("H2 : une note du commun éditée en gardant son en-tête est signalée (empreinte)",
+            belvedere is not None and "<!-- généré" in belvedere.read_text(encoding="utf-8")[:400]
+            and any("empreinte" in str(it) for it in (signale or [])), str(signale))
+
 
 # ── C7 a C9 : manifestes, white-label, chemins absolus ──────────────────────
 

@@ -69,6 +69,13 @@ ANTI_PATTERN_TAGS_PREFIX = (
     "domaine-", "domaine/", "cycle-", "cycle/", "phase-", "phase/",
 )
 
+# Le commun fédéré (contrat 04 §6, H2 §9) : son sceau, et la seule autre ligne
+# générée qui porte une date, celle du README.
+SCEAU_COMMUN = ".cortex-genere"
+PREFIXE_README_COMMUN = "Généré par `federe.py` le "
+MESSAGE_EMPREINTE = ("le commun ne correspond plus à son empreinte : une note a été éditée à la main "
+                     "ou le commun est périmé ; relancer la fédération depuis l'atelier")
+
 # Contrôles durs : leur présence met le code de retour à 1.
 # `journal_entree_obese` et `pointeur_canonique_absent` sont ici alors qu'ils
 # étaient informatifs dans l'original. C'est le changement le plus important
@@ -273,6 +280,30 @@ def derniere_cloture(vault):
 # ── Le lint ────────────────────────────────────────────────────────────────
 
 
+def ligne_horodatee(ligne):
+    """Vrai pour les deux lignes générées qui portent la date, reconnues par leur
+    début. Pas pour un corps de note qui prononce le mot `genere_le` : sinon la
+    note sortirait du sceau sans bruit."""
+    return ligne.lstrip().startswith("genere_le:") or ligne.startswith(PREFIXE_README_COMMUN)
+
+
+def empreinte_commun(racine):
+    """sha256 de tous les fichiers du commun, hors le sceau, .git, .obsidian et les
+    lignes horodatées. Seule définition : federe.py l'écrit dans .cortex-genere,
+    le lint la recalcule pour la comparer."""
+    racine = Path(racine)
+    h = hashlib.sha256()
+    for p in sorted(racine.rglob("*")):
+        if not p.is_file() or p.name == SCEAU_COMMUN or {".git", ".obsidian"} & set(p.parts):
+            continue
+        h.update(str(p.relative_to(racine)).encode("utf-8") + b"\0")
+        for ligne in p.read_bytes().splitlines(keepends=True):
+            if not ligne_horodatee(ligne.decode("utf-8", "replace")):
+                h.update(ligne)
+        h.update(b"\0")
+    return h.hexdigest()
+
+
 def lint(vault, conf):
     sante = conf.get("sante", {})
     seuil_entree = sante.get("max_lignes_entree_journal", 10)
@@ -442,11 +473,16 @@ def lint(vault, conf):
 
     # Le vault commun est GÉNÉRÉ : y écrire à la main casse le modèle fédéré,
     # où chaque fait n'a qu'un propriétaire.
+    # Une note éditée qui garde son en-tête passe la marque : l'empreinte la voit.
     racine = (conf.get("commun") or {}).get("racine", "")
     if conf.get("mode") == "federe" and racine:
-        for md in Path(racine).expanduser().rglob("*.md"):
+        commun = Path(racine).expanduser()
+        for md in commun.rglob("*.md"):
             if "<!-- généré" not in md.read_text(encoding="utf-8", errors="replace")[:400]:
                 f["commun_edite_main"].append(str(md))
+        sceau = commun / SCEAU_COMMUN
+        if sceau.is_file() and sceau.read_text(encoding="utf-8").strip() != empreinte_commun(commun):
+            f["commun_edite_main"].append({"file": racine, "raison": MESSAGE_EMPREINTE})
 
     return f
 
@@ -648,7 +684,28 @@ def _autotest():
         assert [c for c in vus if c["file"] == "10 - Domaines/Windows.md"
                 and c["extrait"] == "C:\\"], vus
         temoin.unlink()
-    print("OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, lettre de lecteur")
+
+        # H2 défaut 10 : une note du commun éditée en gardant son en-tête est vue par l'empreinte.
+        commun = Path(tmp) / "commun"
+        (commun / "20 - Projets").mkdir(parents=True)
+        note = commun / "20 - Projets" / "A.md"
+        note.write_text("---\n# <!-- généré par federe.py, ne pas éditer -->\ntype: projet\n---\n# A\n",
+                        encoding="utf-8")
+        marque = "---\n# <!-- généré par federe.py, ne pas éditer -->\n---\n"
+        (commun / "README.md").write_text(f"{marque}{PREFIXE_README_COMMUN}2026-01-01T00:00:00, ne pas éditer.\n",
+                                          encoding="utf-8")
+        (commun / SCEAU_COMMUN).write_text(empreinte_commun(commun) + "\n", encoding="utf-8")
+        cf = dict(conf, mode="federe", commun={"racine": str(commun)})
+        assert lint(v, cf)["commun_edite_main"] == [], "témoin : un commun intact ne se signale pas"
+        (commun / "README.md").write_text(f"{marque}{PREFIXE_README_COMMUN}2026-02-02T00:00:00, ne pas éditer.\n",
+                                          encoding="utf-8")
+        assert lint(v, cf)["commun_edite_main"] == [], "une régénération (date seule) ne se signale pas"
+        note.write_text(note.read_text(encoding="utf-8") + "Ajout à la main.\n", encoding="utf-8")
+        assert lint(v, cf)["commun_edite_main"] == [{"file": str(commun), "raison": MESSAGE_EMPREINTE}], \
+            lint(v, cf)["commun_edite_main"]
+        assert "commun_edite_main" in DURS
+    print("OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, "
+          "lettre de lecteur, empreinte du commun")
     return 0
 
 

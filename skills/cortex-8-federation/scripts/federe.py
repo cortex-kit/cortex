@@ -47,8 +47,8 @@ VERSION_FEDERATION = 1
 VERSION_EXPORT = 1
 
 # Libellé du README, contrat 04 §6. Le préfixe sert aussi au sceau : c'est la
-# seule autre ligne générée qui porte la date.
-PREFIXE_README = "Généré par `federe.py` le "
+# seule autre ligne générée qui porte la date. Défini avec l'empreinte, dans lint_sante.
+PREFIXE_README = lint_sante.PREFIXE_README_COMMUN
 
 
 class Refus(Exception):
@@ -172,27 +172,6 @@ def vider(commun):
                     "ce n'est pas un commun généré, rien n'est effacé")
     for p in contenu:
         shutil.rmtree(p) if p.is_dir() else p.unlink()
-
-
-def _horodate(ligne):
-    """Vrai pour les deux lignes générées qui portent la date, reconnues par leur
-    début. Pas pour un corps de note qui prononce le mot `genere_le` : sinon la
-    note sortirait du sceau sans bruit."""
-    return ligne.lstrip().startswith("genere_le:") or ligne.startswith(PREFIXE_README)
-
-
-def empreinte(commun):
-    """sha256 de tous les fichiers, hors .cortex-genere et hors la clé genere_le."""
-    h = hashlib.sha256()
-    for p in sorted(commun.rglob("*")):
-        if not p.is_file() or p.name == ".cortex-genere" or {".git", ".obsidian"} & set(p.parts):
-            continue
-        h.update(str(p.relative_to(commun)).encode("utf-8") + b"\0")
-        for ligne in p.read_bytes().splitlines(keepends=True):
-            if not _horodate(ligne.decode("utf-8", "replace")):
-                h.update(ligne)
-        h.update(b"\0")
-    return h.hexdigest()
 
 
 def config_commun(nom, domaines, cycles):
@@ -367,8 +346,8 @@ def generer(conf, commun, quand):
         "on l'édite dans le vault qui le possède, on clôture, puis on relance la fédération. "
         "Toute modification faite ici disparaît au passage suivant.\n\n"
         "Membres : " + ", ".join(str(m["slug"]) for m in membres) + ".\n", encoding="utf-8")
-    sceau = empreinte(commun)
-    (commun / ".cortex-genere").write_text(sceau + "\n", encoding="utf-8")
+    sceau = lint_sante.empreinte_commun(commun)
+    (commun / lint_sante.SCEAU_COMMUN).write_text(sceau + "\n", encoding="utf-8")
     return {"membres": [str(m["slug"]) for m in membres], "notes": len(notes),
             "journal": len(par_type["60 - Journal"]), "domaines": len(domaines),
             "projets": len(par_type["20 - Projets"]), "acteurs": len(acteurs), "fusionnes": fusionnes,
@@ -449,7 +428,7 @@ def fixtures(dossier):
 
 def _instantane(commun):
     return {str(p.relative_to(commun)): "\n".join(l for l in p.read_text(encoding="utf-8").splitlines()
-                                                 if not _horodate(l))
+                                                 if not lint_sante.ligne_horodatee(l))
             for p in commun.rglob("*") if p.is_file()}
 
 
