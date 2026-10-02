@@ -27,13 +27,13 @@ Le script du maillon : `${CLAUDE_SKILL_DIR}/scripts/poste.py`, stdlib pure, `py`
 
 ## Étape 0 : rien n'est requis
 
-C'est le point d'entrée. Si `_cortex/poste.json` existe déjà avec `notice_ouverte_le` renseigné, le maillon est fait : le dire, proposer de rouvrir la notice, et s'arrêter.
-
-Le dossier d'atelier n'existe pas encore. Poser une seule question, en langage ordinaire :
+C'est le point d'entrée. Lister les noms des dossiers de `~/Cortex/`, leurs noms seuls, sans rien ouvrir dedans. Puis poser une seule question, en langage ordinaire, toujours la première :
 
 > « Quel nom court voulez-vous donner à votre second cerveau ? Un mot, sans espace : votre prénom, votre société, ce que vous voulez. »
 
-La réponse, en minuscules, devient `<slug>`. L'atelier vit dans `~/Cortex/<slug>/_cortex/`, hors de tout dossier synchronisé. Le slug est `organisation.code` : `poste.py` l'écrit dans `config.yaml` et dans `poste.json`, et c'est lui que reprendront `_export/<slug>/`, le dépôt `cortex-<slug>` et `federation.yaml`. Le maillon 1 y trouvera `config.yaml` avec le bloc `poste` déjà écrit.
+Si un atelier existe déjà sur le poste, la même question porte les ateliers existants comme options, à côté de « un nouveau nom ». Un atelier trouvé n'est jamais présumé celui de la personne qui parle, et ne se décrit pas d'après son contenu (`cortex-1-cadrage/references/doctrine.md` §11).
+
+La réponse, en minuscules, devient `<slug>`. Si `~/Cortex/<slug>/_cortex/poste.json` existe déjà avec `notice_ouverte_le` renseigné, le maillon est fait pour cet atelier : le dire, proposer de rouvrir la notice, et s'arrêter. L'atelier vit dans `~/Cortex/<slug>/_cortex/`, hors de tout dossier synchronisé. Le slug est `organisation.code` : `poste.py` l'écrit dans `config.yaml` et dans `poste.json`, et c'est lui que reprendront `_export/<slug>/`, le dépôt `cortex-<slug>` et `federation.yaml`. Le maillon 1 y trouvera `config.yaml` avec le bloc `poste` déjà écrit.
 
 ## 1. Détecter
 
@@ -41,7 +41,7 @@ Toujours en premier, jamais rien d'autre avant :
 
     python3 "${CLAUDE_SKILL_DIR}/scripts/poste.py" --dry-run
 
-Une ligne par outil du kit absent, avec la commande de l'OS courant : `<outil> : absent → <commande>`. Aucune ligne : le poste est équipé, passer au mail. Sur Mac sans Homebrew, une ligne de prérequis sort sur la sortie d'erreur : il passe en premier.
+Une ligne par outil du kit absent, avec la commande de l'OS courant : `<outil> : absent → <commande>`. Une ligne `<outil> : à vérifier (<raison>)` dit que la sonde n'a pas pu mesurer, sans prouver l'absence : l'outil se dit « à vérifier » à la personne, jamais « absent », ne se propose pas à l'installation et ne déclenche aucune question technique. On ne propose jamais de corriger un script, le `PATH` ou la configuration du shell : c'est une affaire de fabricant, pas de la personne. Aucune ligne : le poste est équipé, passer au mail. Sur Mac sans Homebrew, une ligne de prérequis sort sur la sortie d'erreur : il passe en premier.
 
 Le kit, dans cet ordre : lecteur de notes (`obsidian`), `uv` et Python, `markitdown`, `git`, `gh`, `github-desktop`, transcripteur audio (`buzz`). `node` n'en fait pas partie : il ne se propose que si la voie mail l'exige (voir §3).
 
@@ -69,9 +69,9 @@ Le script exécute la commande de chaque outil nommé, rien d'autre, et mémoris
 Ensuite, deux gestes qui demandent la personne :
 
 - **Les core plugins du lecteur de notes.** Bases, Daily notes, Templates, Graph, Properties. Ils s'activent dans les réglages du lecteur, une fois le vault ouvert au maillon 4 : le dire ici, ne rien faire maintenant.
-- **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra le maillon 4 : le noter, continuer.
+- **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra le maillon 4 : le noter, continuer. Une connexion illisible d'ici (`connecte: null`) n'est pas une connexion expirée : la dire « à vérifier », et ne proposer la connexion que si la personne dit ne pas l'avoir faite.
 
-Proposer enfin, sans insister, les options que le script n'installe pas : dictée vocale (`wispr-flow`, `superwhisper`) et prise de notes de réunion (`noota`), chacune depuis le site de l'éditeur. Leur liste va dans `options_proposees`.
+Proposer enfin, sans insister, les options que le script n'installe pas : dictée vocale (`wispr-flow`, `superwhisper`) et prise de notes de réunion (`noota`), chacune depuis le site de l'éditeur. Ce que la personne retient part dans `--options` au §4, et `options_proposees` vaut exactement cette liste. Une réponse « aucune » ou un silence : pas de `--options`, la liste reste vide.
 
 ## 3. Brancher le mail
 
@@ -90,19 +90,21 @@ Deux compléments à demander quand ils changent la voie :
 - `gmail` : combien de boîtes brancher ? Une seule → connecteur claude.ai ; deux ou plus → `mcp-email` (`--boites 2`).
 - `m365` : la personne administre-t-elle son compte Microsoft 365 ? Oui → connecteur (`--admin`) ; non → `softeria`.
 
-La voie retenue va dans `poste.json` et dans le bloc `poste`. Si la voie est `softeria` ou `mcp-email`, le script signale `node` absent avec sa commande : le proposer comme un outil de plus, sur accord. Le branchement lui-même (connecteur, serveur MCP) se fait au maillon 2, avec `collecte.mail_optin` tracé au cadrage : ici on décide de la voie, on ne lit rien.
+`softeria` et `mcp-email` installent quelque chose : elles ne s'écrivent que sur accord (`cortex-1-cadrage/references/doctrine.md` §11). Les proposer par une question qui dit ce qu'elles posent sur le poste. Pour `softeria` : un petit serveur local et l'outil node, qui donnent accès à la boîte sans passer par l'administrateur du compte. Pour `mcp-email` : le même petit serveur et node, avec un accès IMAP par boîte. Oui → `--voie softeria` ou `--voie mcp-email` au §4 ; non → `--voie aucune`, et la messagerie restera hors de l'inventaire. Sans `--voie`, `poste.py` n'écrit jamais une voie qui installe : il écrit `aucune` et garde la voie calculée dans `mail.voie_proposee`.
+
+La voie retenue va dans `poste.json` et dans le bloc `poste`. Si la personne a accepté `softeria` ou `mcp-email`, le script signale `node` absent avec sa commande : le proposer comme un outil de plus, sur accord. Le branchement lui-même (connecteur, serveur MCP) se fait au maillon 2, avec `collecte.mail_optin` tracé au cadrage : ici on décide de la voie, on ne lit rien.
 
 Une personne sans adresse de travail répond « aucune » : `--fournisseur autre` sans `--imap` donne la voie `aucune`.
 
 ## 4. Écrire l'atelier et ouvrir la notice
 
-    python3 "${CLAUDE_SKILL_DIR}/scripts/poste.py" --ecrire --atelier ~/Cortex/<slug>/_cortex --slug <slug> --mail <adresse> [--fournisseur X] [--boites N] [--admin] [--imap] [--options wispr-flow,noota]
+    python3 "${CLAUDE_SKILL_DIR}/scripts/poste.py" --ecrire --atelier ~/Cortex/<slug>/_cortex --slug <slug> --mail <adresse> [--fournisseur X] [--boites N] [--admin] [--imap] [--voie connecteur|softeria|mcp-email|imap|aucune] [--options wispr-flow,noota]
 
 Le script mesure une dernière fois les outils, écrit `_cortex/poste.json` (schéma du contrat : `os`, `organisation.code`, `outils` avec `present`, `version`, `installe_par_cortex`, `connecte` pour `gh`, `options_proposees`, `mail`, `notice_ouverte_le`), fusionne les blocs `organisation` et `poste` dans `_cortex/config.yaml` (créé s'il manque, les clés filles déjà posées sont conservées), puis régénère et ouvre la notice. `notice_ouverte_le` est posé à ce moment : c'est lui qui marque l'étape 0 faite. `--slug` omis, le script le déduit du chemin de l'atelier.
 
 Ce que le script a installé lui-même reste tracé d'une écriture à l'autre : relancer `--ecrire` après un second lot ne perd pas le premier.
 
-Dire à la personne, en une phrase, ce qui est en place, ce qui a été refusé, et la phrase suivante que la notice affiche : « faisons le cadrage ».
+Dire à la personne, en une phrase, ce qui est en place, ce qui a été refusé, et la phrase suivante que la notice affiche : « faisons le cadrage ». Jamais le numéro de l'étape ni le nom d'un skill : « passe au maillon 1 (cortex-1-cadrage) » est exactement ce qui ne se dit pas.
 
 ## Sortie : `_cortex/poste.json` et le bloc `poste`
 
@@ -125,6 +127,9 @@ Forme `~` pour tout chemin, jamais un chemin absolu. Le bloc `poste` est le miro
 - **Ne jamais parler, lire ni faire valider hors de la doctrine** : les mots devant la personne, ce que la chaîne lit, ce qui se valide à l'écran, ce qui demande un accord (`cortex-1-cadrage/references/doctrine.md` §8 à §11).
 - **Ne jamais installer ce qui n'a pas été coché.** Le choix dans la question vaut accord, il n'y a pas de seconde confirmation ; `--installer` ne reçoit que des noms cochés par la personne. Jamais de `--installer` déduit d'un `--dry-run`.
 - **Ne jamais lancer une installation en dehors du script**, ni `brew`, ni `winget`, ni `curl | sh` à la main : la commande vient de `poste.py`, pour qu'elle soit la même partout et tracée.
+- **Ne jamais écrire une voie mail qui installe sans accord.** `--voie softeria` ou `--voie mcp-email` ne part qu'après un oui à la question qui dit ce qu'elles posent ; un refus écrit `--voie aucune`.
+- **Ne jamais dire « absent » d'un outil « à vérifier »**, ni proposer de modifier un script, le `PATH` ou la configuration du shell.
+- **Ne jamais présumer qu'un atelier existant est celui de la personne.** Le nom court se demande, toujours.
 - **Ne jamais lire la messagerie ici.** Le MX est une requête DNS sur le domaine, pas une lecture de courrier.
 - **Ne jamais se connecter à un compte à la place de la personne** (`gh auth login`, connecteurs, éditeurs d'options).
 - **Ne jamais écrire hors de `~/Cortex/<slug>/_cortex/`.** Le poste se mesure, il ne se range pas.
