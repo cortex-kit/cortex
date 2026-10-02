@@ -58,7 +58,7 @@ En langage ordinaire, jamais « quel mode ». « Pour quelqu'un d'autre » ⇒ `
 
 ## 1. Collecte, à trois niveaux, en une seule passe
 
-Poser sous forme de liste compacte. Question par question, un cadrage prend une heure et le client décroche.
+Poser sous forme de liste compacte, dans les mots du quotidien (plus bas) : les intitulés qui suivent sont le pense-bête de l'agent, jamais le texte posé. Question par question, un cadrage prend une heure et le client décroche.
 
 ### Niveau 1 — bloquant
 
@@ -90,14 +90,14 @@ Axes commerciaux (`vehicules`, `payeurs`), identité légale, échéance souhait
 
 **Les domaines de départ du profil ne s'écrivent pas dans `config.yaml`.** Ils vont dans `00-cadrage.md`, section « Domaines de départ (hypothèses du profil) », pour que le maillon 3 les teste en premier contre l'inventaire. Un domaine écrit dans la config avant l'inventaire serait adopté par politesse (§Interdits).
 
-### En mode solo — les mêmes questions, dans les mots du quotidien
+### Dans les deux modes, les mêmes questions dans les mots du quotidien
 
-Le fond ne change pas : mêmes trois niveaux, mêmes informations, même passe unique, mêmes confirmations actives au niveau 2. Seul le vocabulaire change — la personne n'a pas à apprendre le jargon de la chaîne pour répondre.
+Que la personne installe pour elle ou pour quelqu'un d'autre, consultant compris, la traduction vaut (`references/doctrine.md` §8). Le fond ne change pas : mêmes trois niveaux, mêmes informations, même passe unique, mêmes confirmations actives au niveau 2. Seul le vocabulaire change : la personne n'a pas à apprendre le jargon de la chaîne pour répondre.
 
 - « Déclarez vos substrats » devient **« où sont vos dossiers de travail ? »**, puis, si elle en a : où suit-elle l'état de ses projets, où vit son code.
 - « Qui porte ce vault » devient **« c'est bien vous, et personne d'autre, qui écrirez dedans ? »** — la règle du rédacteur unique ne se relâche pas, elle se dit autrement.
 - Le secteur et l'effectif se demandent comme on demande « que faites-vous, et à combien ? » — ils orientent le vocabulaire et les plafonds sans qu'il soit besoin de le dire.
-- La messagerie ne se mentionne que si la personne souhaite l'inventorier. La question d'autorisation du §3 se pose alors dans les mêmes termes qu'en consultant : c'est la seule question réglementaire de la chaîne, elle ne se simplifie pas.
+- La messagerie ne se mentionne que si la personne souhaite l'inventorier. La question d'autorisation du §3 se pose alors dans les termes du §3, pour tous : c'est la seule question réglementaire de la chaîne, elle ne se simplifie pas.
 
 ## 2. Le white-label
 
@@ -160,14 +160,14 @@ Le corps porte, en plus des réponses : « Domaines de départ (hypothèses du p
 
 **Un fichier dont un contrôle n'est ni `passé` ni explicitement `arbitré` ne peut pas être consommé** par le maillon suivant. C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne : le maillon 2 s'arrête en étape 0, sans repli.
 
-**En groupe, inscrire le rédacteur au commun**, une fois l'atelier écrit. `federation.yaml` vit dans le commun et porte les membres du groupe ; c'est lui que le tableau de bord lit pour savoir qui reste à remettre avant de relier les cerveaux.
+**En groupe, inscrire le rédacteur au commun**, une fois les blocs validés (§6) et l'atelier écrit. `federation.yaml` vit dans le commun et porte les membres du groupe ; c'est lui que le tableau de bord lit pour savoir qui reste à remettre avant de relier les cerveaux.
 
     python3 "${CLAUDE_SKILL_DIR}/../cortex-8-federation/scripts/federe.py" --inscrire <slug> --redacteur "<Prénom Nom>" \
         --export "~/Cortex/<slug>/vault/_export/<slug>" \
         --config "<commun.racine>/federation.yaml" --nom "<organisation>" \
         [--attendu "<Prénom Nom>" ...]
 
-`--redacteur` est la personne qui porte ce vault. `--export` est le chemin que son vault aura, en forme `~`. Un `--attendu` par autre rédacteur nommé dans la liste du groupe et pas encore membre de `federation.yaml` ; aucun s'il n'en reste pas. Le script crée le commun et le fichier s'ils manquent, ajoute ou met à jour le membre, retire son nom des attendus, et n'écrit rien d'autre. Il refuse, sans rien toucher, un dossier commun non vide qui n'en est pas un : le dire, et faire choisir un autre emplacement.
+`--redacteur` est la personne qui porte ce vault, son nom écrit exactement comme dans la liste du groupe : un attendu ne se retire que par la même orthographe. `--export` est le chemin que son vault aura, en forme `~`. Un `--attendu` par autre rédacteur nommé dans la liste du groupe et pas encore membre de `federation.yaml` ; aucun s'il n'en reste pas. Le script crée le commun et le fichier s'ils manquent, ajoute ou met à jour le membre, retire son nom des attendus, et n'écrit rien d'autre. Il refuse, sans rien toucher, un dossier commun non vide qui n'en est pas un : le dire, et faire choisir un autre emplacement.
 
 ## 6. Validation — par bloc
 

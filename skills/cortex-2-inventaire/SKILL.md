@@ -29,7 +29,7 @@ Trois acteurs se partagent le travail :
 
 Si un substrat ne répond pas : **s'arrêter et le dire.** Ne pas inventorier les autres « en attendant ». Un inventaire partiel est pire qu'absent : le maillon 3 déduirait une ontologie d'un corpus troué en le croyant complet, et le trou deviendrait un domaine oublié.
 
-Lire la clé `conduite` du `config.yaml` : absente, elle vaut `consultant`. En `solo`, le fond ne change pas. Changent l'adresse (« vos dossiers », pas « les substrats du client ») et le message de clôture, qui propose la suite au lieu de rendre la main.
+Lire la clé `conduite` du `config.yaml` : absente, elle vaut `consultant`. Dans les deux modes, l'adresse se fait dans les mots de la personne (« vos dossiers », jamais « les substrats du client », `cortex-1-cadrage/references/doctrine.md` §8). En `solo`, le fond ne change pas ; seul le message de clôture change, il propose la suite au lieu de rendre la main.
 
 ## Le piège, et sa parade structurelle
 
@@ -153,7 +153,7 @@ Le rapport lisible reprend, par substrat : ce qui a été parcouru, les chiffres
 Inventaire terminé pour <organisation>.
 
 - <N> dossiers et outils parcourus, <M> entrées cataloguées
-- disque : <dossiers_vus> dossiers, <fichiers_vus> fichiers, <extractions> structurants lus en mots
+- disque : <dossiers_vus> dossiers, <fichiers_vus> fichiers, <extractions> documents de fond lus
 - schémas relevés : <K> bases, <P> propriétés distinctes
 - messagerie : <en_tetes_lus> en-têtes sur <periode_mois> mois, <N domaines agrégés | hors périmètre>
 - <E> points à éclaircir avec vous à l'étape suivante
