@@ -4,7 +4,9 @@
 Quatre gestes, tous explicites :
   --dry-run                    une ligne par outil du kit absent, avec la commande de l'OS courant
   --installer a,b              installe CES outils, et seulement ceux-là (l'accord a été donné avant)
-  --mail adresse [...]         reconnaît le fournisseur (MX) et propose la voie de branchement
+  --mail adresse [...]         reconnaît le fournisseur (MX) et propose la voie de branchement ;
+                               --voie porte la réponse de la personne : sans elle, une voie qui
+                               installe quelque chose (softeria, mcp-email) s'écrit « aucune »
   --ecrire --atelier <_cortex> écrit _cortex/poste.json, le bloc `poste` et organisation.code
                                (le slug, --slug ou déduit du chemin) de config.yaml, puis
                                régénère et ouvre la notice. notice_ouverte_le est posé ici : la
@@ -262,11 +264,20 @@ def voie(four, boites=1, admin=False, imap=False):
     return "mcp-email" if imap else "aucune"
 
 
+# Voies qui posent quelque chose sur le poste (un serveur local, node) : jamais sans accord.
+VOIES_QUI_INSTALLENT = ("softeria", "mcp-email")
+
+
 def bloc_mail(a):
+    """`voie` est ce qui s'écrit : la réponse de la personne (--voie), sinon la voie
+    calculée si elle n'installe rien, sinon « aucune ». `voie_proposee` garde la voie
+    calculée, pour que le skill sache quoi proposer (04-contrat H2 §2)."""
     domaine = a.mail.rsplit("@", 1)[-1].strip().lower() if a.mail else ""
     hotes = mx(domaine) if domaine and not a.fournisseur else []
     four = a.fournisseur or (fournisseur(domaine, hotes) if domaine else "")
-    return {"fournisseur": four, "boites": a.boites, "voie": voie(four, a.boites, a.admin, a.imap),
+    proposee = voie(four, a.boites, a.admin, a.imap)
+    retenue = a.voie or ("aucune" if proposee in VOIES_QUI_INSTALLENT else proposee)
+    return {"fournisseur": four, "boites": a.boites, "voie": retenue, "voie_proposee": proposee,
             "domaine": domaine, "mx": hotes[0] if hotes else ""}
 
 
@@ -356,7 +367,7 @@ def ecrire(a, systeme, etat):
         fusionner_bloc(config, "organisation", {"code": slug})
     fusionner_bloc(config, "poste", paires_poste(poste))
     print(f"OK — {chemin} et bloc poste de config.yaml écrits ; voie mail : {poste['mail']['voie']}")
-    if poste["mail"]["voie"] in ("softeria", "mcp-email") and not etat["node"]["present"]:
+    if poste["mail"]["voie"] in VOIES_QUI_INSTALLENT and not etat["node"]["present"]:
         print(f"node : absent → {OUTILS['node']['install'][systeme]} (requis par la voie {poste['mail']['voie']})")
     c4 = _cortex4()
     if c4 is None:
@@ -438,10 +449,10 @@ def _autotest():
         atelier = Path(tmp) / "Cortex" / "acme" / "_cortex"
         faux = {n: {"present": n in ("git", "gh"), "version": ""} for n in OUTILS}
         faux["gh"]["present"] = False            # pas d'appel réseau à `gh auth status`
-        def args(installes):
+        def args(installes, fournisseur="gmail", voie=""):
             return argparse.Namespace(atelier=str(atelier), installes=installes, options="",
                                       mail="jane@exemple.test", boites=1, admin=False, imap=False,
-                                      fournisseur="gmail", no_open=True, slug="")
+                                      fournisseur=fournisseur, voie=voie, no_open=True, slug="")
         assert ecrire(args(["git"]), "macos", faux) == 0
         assert ecrire(args(["uv"]), "macos", faux) == 0
         poste = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))
@@ -451,6 +462,17 @@ def _autotest():
         assert poste["notice_ouverte_le"]
         conf = cortex_config.charger(atelier / "config.yaml")
         assert conf["organisation"]["code"] == "acme" and conf["poste"]["outils"] == KIT
+        # H2 défaut 6 : Microsoft non administrateur, sans réponse de la personne, rien ne
+        # s'écrit qui installe ; la voie calculée reste proposée. Sa réponse, elle, s'écrit.
+        assert ecrire(args([], "m365"), "macos", faux) == 0
+        mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]
+        assert mail["voie"] == "aucune" and mail["voie_proposee"] == "softeria", mail
+        assert cortex_config.charger(atelier / "config.yaml")["poste"]["mail_voie"] == "aucune"
+        assert ecrire(args([], "m365", "softeria"), "macos", faux) == 0
+        mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]
+        assert mail["voie"] == "softeria" and mail["voie_proposee"] == "softeria", mail
+        assert ecrire(args([], "gmail"), "macos", faux) == 0          # connecteur : rien à installer
+        assert json.loads((atelier / "poste.json").read_text(encoding="utf-8"))["mail"]["voie"] == "connecteur"
     print("poste.py : auto-test OK")
     return 0
 
@@ -465,6 +487,8 @@ def main():
     p.add_argument("--imap", action="store_true", help="fournisseur autre, accès IMAP disponible")
     p.add_argument("--fournisseur", default="", choices=["", "gmail", "m365", "outlook_perso", "autre"],
                    help="réponse à la question à trois options quand le MX ne suffit pas")
+    p.add_argument("--voie", default="", choices=["", "connecteur", "softeria", "mcp-email", "imap", "aucune"],
+                   help="voie mail acceptée par la personne ; sans elle, softeria et mcp-email s'écrivent « aucune »")
     p.add_argument("--options", default="", help="options proposées, séparées par des virgules")
     p.add_argument("--ecrire", action="store_true", help="écrire poste.json et le bloc poste, ouvrir la notice")
     p.add_argument("--atelier", default="", help="chemin du dossier _cortex/")

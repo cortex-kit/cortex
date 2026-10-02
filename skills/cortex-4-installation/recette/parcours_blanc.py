@@ -649,7 +649,8 @@ def poste_isole(tmp, *args, outils_uv=(), uvx=""):
 
 
 def c1_poste_h2(tmp):
-    """Phase H2, défaut 7 : un outil posé par uv est vu, un outil non mesurable est « à vérifier »."""
+    """Phase H2, défauts 6 et 7 : un outil posé par uv est vu, un outil non mesurable est
+    « à vérifier », une voie mail qui installe ne s'écrit que sur la réponse de la personne."""
     if sys.platform == "win32":
         verifie("poste.py H2 : faux exécutables en shell, contrôle joué hors Windows", True)
         return
@@ -666,6 +667,18 @@ def c1_poste_h2(tmp):
     verifie("H2 : une sonde uvx refusée (cache) donne « markitdown : à vérifier », jamais une installation",
             poses == ["uvx"] and ligne.startswith("markitdown : à vérifier (") and "Permission denied" in ligne,
             ligne or r.stdout[-300:])
+    atelier = tmp / "home-poste-atelier" / "_cortex"
+    commun = ("--ecrire", "--atelier", str(atelier), "--mail", "dir@alcyon.test", "--fournisseur", "m365", "--no-open")
+    r, _ = poste_isole(tmp, *commun)
+    mail = (json.loads((atelier / "poste.json").read_text(encoding="utf-8")).get("mail", {})
+            if (atelier / "poste.json").is_file() else {})
+    verifie("H2 : Microsoft non administrateur sans --voie écrit « aucune », softeria seulement proposée",
+            r.returncode == 0 and mail.get("voie") == "aucune" and mail.get("voie_proposee") == "softeria",
+            str(mail) + r.stderr[-200:])
+    r, _ = poste_isole(tmp, *commun, "--voie", "softeria")
+    mail = json.loads((atelier / "poste.json").read_text(encoding="utf-8")).get("mail", {})
+    verifie("H2 témoin : la réponse --voie softeria s'écrit telle quelle",
+            r.returncode == 0 and mail.get("voie") == "softeria", str(mail))
 
 
 # ── C2 : trois profils ──────────────────────────────────────────────────────
