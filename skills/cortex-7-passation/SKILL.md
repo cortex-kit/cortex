@@ -35,6 +35,8 @@ C'est le seul geste qui compte, et c'est celui sur lequel tout repose. Un vault 
 
 **« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault.
 
+**Sous Windows natif, une limite de plus, écrite dans le guide.** `os: windows` dans `_cortex/poste.json` : le guide le dit en clair. Sous Windows sans WSL2, les commandes que lance l'assistant ne sont pas confinées au vault ; seules les règles de lecture et d'édition protègent les dossiers de travail. Pour un poste qui porte des données sensibles, recommander Claude Code dans WSL2 (le sous-système Linux de Windows), où le confinement s'applique. L'installation n'en est pas bloquée.
+
 ## 2. La fiche de reprise à froid
 
 `90 - Meta/Reprise.md`. Pour le jour où le client rouvre son vault après trois semaines et ne sait plus par où entrer.
