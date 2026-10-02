@@ -287,14 +287,22 @@ def ligne_horodatee(ligne):
     return ligne.lstrip().startswith("genere_le:") or ligne.startswith(PREFIXE_README_COMMUN)
 
 
+# Déposés par le système d'exploitation à l'ouverture d'un dossier : jamais une
+# édition. Les noms cachés (`.DS_Store`, `.git`, `.obsidian`, le sceau) sortent aussi.
+FICHIERS_SYSTEME = {"Thumbs.db", "desktop.ini"}
+
+
 def empreinte_commun(racine):
-    """sha256 de tous les fichiers du commun, hors le sceau, .git, .obsidian et les
-    lignes horodatées. Seule définition : federe.py l'écrit dans .cortex-genere,
-    le lint la recalcule pour la comparer."""
+    """sha256 de tous les fichiers du commun, hors le sceau, .git, .obsidian, les
+    fichiers cachés et ceux que le système dépose (.DS_Store du Finder, Thumbs.db,
+    desktop.ini), et hors les lignes horodatées. Seule définition : federe.py
+    l'écrit dans .cortex-genere, le lint la recalcule pour la comparer."""
     racine = Path(racine)
     h = hashlib.sha256()
     for p in sorted(racine.rglob("*")):
-        if not p.is_file() or p.name == SCEAU_COMMUN or {".git", ".obsidian"} & set(p.parts):
+        parts = p.relative_to(racine).parts
+        if (not p.is_file() or p.name in FICHIERS_SYSTEME
+                or any(x.startswith(".") for x in parts)):
             continue
         h.update(str(p.relative_to(racine)).encode("utf-8") + b"\0")
         for ligne in p.read_bytes().splitlines(keepends=True):
@@ -477,12 +485,19 @@ def lint(vault, conf):
     racine = (conf.get("commun") or {}).get("racine", "")
     if conf.get("mode") == "federe" and racine:
         commun = Path(racine).expanduser()
-        for md in commun.rglob("*.md"):
-            if "<!-- généré" not in md.read_text(encoding="utf-8", errors="replace")[:400]:
-                f["commun_edite_main"].append(str(md))
         sceau = commun / SCEAU_COMMUN
-        if sceau.is_file() and sceau.read_text(encoding="utf-8").strip() != empreinte_commun(commun):
-            f["commun_edite_main"].append({"file": racine, "raison": MESSAGE_EMPREINTE})
+        try:
+            mds = list(commun.rglob("*.md"))
+            for md in mds:
+                if "<!-- généré" not in md.read_text(encoding="utf-8", errors="replace")[:400]:
+                    f["commun_edite_main"].append(str(md))
+            if sceau.is_file() and sceau.read_text(encoding="utf-8").strip() != empreinte_commun(commun):
+                f["commun_edite_main"].append({"file": racine, "raison": MESSAGE_EMPREINTE})
+            elif mds and not sceau.is_file():
+                # Fédération interrompue entre le vidage et le sceau, ou sceau supprimé.
+                f["commun_edite_main"].append({"file": racine, "raison": f"{SCEAU_COMMUN} absent : {MESSAGE_EMPREINTE}"})
+        except OSError as err:
+            f["commun_edite_main"].append({"file": racine, "raison": f"commun illisible : {err}"})
 
     return f
 
@@ -501,7 +516,7 @@ LIBELLES = {
     "journal_entree_obese": "fiche(s) avec une entree de journal trop longue",
     "moustaches_residuelles": "fichier(s) avec une moustache {{ }} non substituee",
     "chemins_absolus": "fichier(s) avec un chemin absolu",
-    "commun_edite_main": "note(s) du vault commun editee(s) a la main",
+    "commun_edite_main": "constat(s) sur le vault commun (note editee a la main ou commun a regenerer)",
     "visibilite_hors_enum": "note(s) avec visibilite hors de prive | commun",
     "journal_total_long": "fiche(s) au journal long",
     "dernier_journal_perime": "projet(s) actif(s) au dernier_journal perime",
@@ -700,10 +715,17 @@ def _autotest():
         (commun / "README.md").write_text(f"{marque}{PREFIXE_README_COMMUN}2026-02-02T00:00:00, ne pas éditer.\n",
                                           encoding="utf-8")
         assert lint(v, cf)["commun_edite_main"] == [], "une régénération (date seule) ne se signale pas"
+        avant = empreinte_commun(commun)
+        for nom in ("20 - Projets/.DS_Store", ".DS_Store", "Thumbs.db", "20 - Projets/desktop.ini"):
+            (commun / nom).write_bytes(b"\x00\x01Bud1")
+        assert empreinte_commun(commun) == avant, "M1 : un fichier du système ne change pas l'empreinte"
+        assert lint(v, cf)["commun_edite_main"] == [], "M1 : un .DS_Store du Finder n'est pas une édition"
         note.write_text(note.read_text(encoding="utf-8") + "Ajout à la main.\n", encoding="utf-8")
         assert lint(v, cf)["commun_edite_main"] == [{"file": str(commun), "raison": MESSAGE_EMPREINTE}], \
             lint(v, cf)["commun_edite_main"]
         assert "commun_edite_main" in DURS
+        (commun / SCEAU_COMMUN).unlink()
+        assert lint(v, cf)["commun_edite_main"][-1]["raison"].startswith(SCEAU_COMMUN), "m6 : sceau absent signalé"
     print("OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, "
           "lettre de lecteur, empreinte du commun")
     return 0

@@ -1134,6 +1134,12 @@ def c6_federation(tmp):
             return f"sortie illisible : {(r.stderr or r.stdout)[:200]}"
     temoin = commun_signale()
     verifie("H2 témoin : le commun tel que généré n'est pas signalé par le lint d'un membre", temoin == [], str(temoin))
+    for nom in (".DS_Store", "20 - Projets/.DS_Store", "Thumbs.db", "20 - Projets/desktop.ini"):
+        if (reel / nom).parent.is_dir():
+            (reel / nom).write_bytes(b"\x00\x00\x00\x01Bud1")
+    finder = commun_signale()
+    verifie("H2 reprise M1 : un .DS_Store du Finder (et Thumbs.db, desktop.ini) posé dans le commun n'est pas signalé",
+            finder == [] and (reel / "20 - Projets" / ".DS_Store").is_file(), str(finder))
     belvedere = next(reel.rglob("20 - Projets/*Belvédère.md"), None)
     if belvedere is not None:
         avant = belvedere.read_text(encoding="utf-8")
