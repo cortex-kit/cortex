@@ -603,6 +603,51 @@ def c1_neuf_etapes(tmp, cfg):
     verifie("atelier fédéré complet : le compteur annonce 9 sur 9",
             m_etat.faites(pivot_federe) == 9, str([e["etat"] for e in pivot_federe["etapes"]]))
 
+    # H2 §3 : en groupe, l'étape 8 attend que chaque rédacteur soit remis.
+    groupe = tmp / "groupe-h2"
+    commun_g = groupe / "commun"
+    attend = tmp / "_cortex-groupe"
+    attend.mkdir()
+    (attend / "config.yaml").write_text(
+        cfg.read_text(encoding="utf-8").replace("mode: solo", "mode: federe")
+           .replace('racine: ""', f'racine: "{commun_g}"'), encoding="utf-8")
+    (attend / "poste.json").write_text(poste_json(), encoding="utf-8")
+    for nom, m, pr in ARTEFACTS_MD[:-1]:
+        (attend / f"{nom}.md").write_text(FM_ATELIER.format(m=m, p=pr, s="valide", v="passe"), encoding="utf-8")
+    commun_g.mkdir(parents=True)
+
+    def membre(slug, remis):
+        v = groupe / slug / "vault"
+        (v / "_cortex").mkdir(parents=True, exist_ok=True)
+        (v / "_cortex" / "06-passation.md").write_text(
+            "---\nremis_le: " + ("2026-09-27" if remis else '""') + "\n---\n", encoding="utf-8")
+        return f'  - {{ slug: {slug}, export: "{v / "_export" / slug}" }}\n'
+
+    def huit():
+        p = m_etat.generer(attend)
+        return p["etapes"][8], p["phrase_suivante"]
+    (commun_g / "federation.yaml").write_text(
+        "version: 1\nmembres:\n" + membre("helene", True) + 'attendus: ["Karim B"]\n', encoding="utf-8")
+    e8, phrase = huit()
+    verifie("H2 : un rédacteur remis, un autre attendu : étape 8 arbitrée en nommant l'attendu, pas « relie les cerveaux »",
+            e8["etat"] == "arbitre" and "Karim B" in e8.get("raison", "") and phrase != "relie les cerveaux",
+            f"{e8['etat']} / {e8.get('raison')} / {phrase}")
+    (commun_g / "federation.yaml").write_text(
+        "version: 1\nmembres:\n" + membre("helene", True) + membre("karim", False), encoding="utf-8")
+    e8, phrase = huit()
+    verifie("H2 : deux membres, un seul remis : étape 8 arbitrée en nommant le membre en attente",
+            e8["etat"] == "arbitre" and "karim" in e8.get("raison", "") and phrase != "relie les cerveaux",
+            f"{e8['etat']} / {e8.get('raison')} / {phrase}")
+    membre("karim", True)
+    e8, phrase = huit()
+    verifie("H2 témoin : les deux membres remis, « relie les cerveaux »",
+            e8["etat"] == "a_faire" and phrase == "relie les cerveaux", f"{e8['etat']} / {phrase}")
+    (attend / "07-federation.md").write_text(FM_ATELIER.format(m=8, p="cortex-8-federation", s="en_cours", v="passe"),
+                                             encoding="utf-8")
+    e8, _ = huit()
+    verifie("H2 : un 07-federation.md en statut en_cours se lit « En cours », pas « Illisible »",
+            m_etat.LIBELLES.get(e8["etat"]) == "En cours", e8["etat"])
+
     vierge = tmp / "atelier-vierge"
     vierge.mkdir()
     html_vierge = m_rend.rendre(m_etat.generer(vierge))
