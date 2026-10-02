@@ -67,7 +67,7 @@ En régime `copie`, le vault garde une copie markdown des documents **structuran
 
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/copie_structurant.py" --vault <vault> \
-    --source "~/Documents/.../PROCESS-affaire.md" --type process --domaine "Ops"
+    --source "<racine déclarée>/.../PROCESS-affaire.md" --type process --domaine "Ops"
 ```
 
 Il convertit le document (`uvx --from "markitdown[all]" markitdown` pour les formats bureautiques, depuis un dossier temporaire ; lecture directe pour le texte), écrit `50 - Ressources/Structurants/<type>/<nom>.md` avec le frontmatter du contrat (`type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` sha256 de la source, `copie_le`) et un marqueur de provenance. Rejoué, il ne duplique pas : même hash, rien ; source changée, copie rafraîchie ; note écrite à la main, refus. Le lint suspend le plafond de lignes sur ce dossier et lève `structurant_perime` dès que la source diverge de la copie.
@@ -130,13 +130,13 @@ Vault peuplé pour <organisation>.
 - <N> projets, <M> acteurs, <K> ressources
 - documents de fond recopiés : <N> sur <plafond>, ou « aucun, vos outils restent la référence »
 - écartés : <N> entrées, motifs dans 04-ingest.md
-- lint : vert
+- contrôle de santé : vert
 - conflits arbitrés : <N ou aucun>
 
 Pour toi :
 1. Ouvre le vault et vérifie trois notes au hasard : le lien mène-t-il
    au bon endroit ?
-2. Fais tourner `cloture` sur une vraie session de travail.
+2. Dis « clôture » à la fin d'une vraie session de travail.
 3. Puis dis « voyons mes assistants métier », si le cadrage a identifié un besoin.
 4. Enfin « prépare la remise ».
 

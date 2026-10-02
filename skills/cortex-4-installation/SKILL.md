@@ -119,8 +119,8 @@ Le vault de <organisation> est installé.
 
 - <N> notes, <M> domaines, <pour une personne seule | relié au commun de l'équipe>
 - <vos outils restent la référence | documents de fond recopiés un par un>
-- lint : vert
-- couche d'agents : 6 skills, 2 sous-agents, 2 hooks
+- contrôle de santé : vert
+- assistants livrés : 6 savoir-faire, 2 assistants, 2 automatismes
 - <K> dossier(s) de travail en lecture seule
 - dépôt privé : <créé | refusé, le vault reste local>
 

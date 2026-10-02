@@ -88,7 +88,7 @@ test ! -f "$V/.obsidian/community-plugins.json"
 # 6. Pointeurs vivants : trois au hasard, vérifiés à la main
 ```
 
-**Le contrôle 1 est bloquant et sans exception.** Un vault livré chez un client qui contient le nom d'un autre client n'est pas un défaut de finition : c'est une fuite, et elle ne se rattrape pas après remise. Une trace dans l'historique git se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
+**Le contrôle 1 est bloquant et sans exception.** Il attrape les marques et les outils du consultant restés dans le vault livré : ce n'est pas un défaut de finition, c'est une fuite, et elle ne se rattrape pas après remise. Le nom d'un autre client ne figure pas dans sa liste (`cortex-1-cadrage/references/doctrine.md` §11) : il reste dehors par la lecture bornée (§9), pas par ce contrôle. Une trace dans l'historique git se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
 
 **Le contrôle 6 est le seul manuel, et il est irremplaçable.** Le lint vérifie qu'un pointeur est présent, jamais qu'il mène quelque part. Un pointeur faux est invisible pour la machine et ne se découvre qu'à l'usage, des semaines plus tard, au pire moment.
 
@@ -135,15 +135,15 @@ Vault remis à <organisation>.
 
 Recette : <N>/6 contrôles passés<, arbitrages : …>
 Livré : guide d'usage, fiche de reprise, runbook des 4 opérations
-        <N> notes, <M> domaines, kit de 6 skills, <K> sous-agents, 2 hooks
+        <N> notes, <M> domaines, 6 savoir-faire, <K> assistants, 2 automatismes
 Remise datée du <remis_le> : bilan proposé à J+7 et J+30.
 
 Pour toi :
-1. Fais la remise en montrant UN geste : `cloture` sur une vraie session.
+1. Fais la remise en montrant UN geste : « clôture » sur une vraie session.
    Pas une visite guidée du vault.
-2. Archive _cortex/ de ton côté. Il ne part pas chez le client, sauf la
-   ligne remis_le (§6).
-3. À J+7 et J+30, demande le `bilan`.
+2. Archive ton dossier de travail de ton côté. Il ne part pas chez le
+   client, sauf la date de remise.
+3. À J+7 et J+30, dis « bilan ».
 
 La remise se relance quand tu veux : si le vault évolue, la documentation
 se régénère. C'est pour ça qu'elle n'est pas écrite à la main.

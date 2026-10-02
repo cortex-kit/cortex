@@ -152,11 +152,11 @@ controles:
 ## Message de clôture
 
 ```
-Ontologie arrêtée pour <organisation>.
+Domaines arrêtés pour <organisation>.
 
 - points à éclaircir : <N> relevés, <M> répondus, <K> laissés en [?]
 - <N> domaines, chacun avec sa preuve
-- matrice d'ownership : <M> types de faits, <K> lien(s) INTERDIT déclaré(s)
+- qui fait foi : <M> types de faits avec leur outil de référence, <K> lien(s) interdit(s)
 - cycles : <liste>
 - points incertains à challenger : <N>
 

@@ -93,7 +93,7 @@ grep -rl "visibilite: prive" "$C"                                               
 
 # 3. Deux générations identiques hors genere_le
 cp -R "$C" "$C-temoin" && python3 "${CLAUDE_SKILL_DIR}/scripts/federe.py" --config "$C/federation.yaml"
-diff -r "$C-temoin" "$C" | grep "^[<>]" | grep -v genere_le | grep -vc "Généré par"          # attendu : 0
+diff -r "$C-temoin" "$C" | grep "^[<>]" | grep -v genere_le | grep -vc '^[<>] Généré par `federe.py` le '   # attendu : 0
 rm -r "$C-temoin"
 
 # 4. Le sceau
@@ -128,7 +128,7 @@ controles:
   exports_coherents: passe          # hash de chaque note conforme à index.json
   aucune_note_privee: passe
   lint_vert_sur_commun: passe
-  regeneration_identique: passe     # diff -r hors genere_le vide
+  regeneration_identique: passe     # diff -r hors genere_le et ligne datée du README : vide
   readme_et_sceau_presents: passe
   aucune_note_hors_index: passe     # sinon, relancer la cloture du membre
 ```
@@ -141,14 +141,14 @@ Sous le frontmatter, trois lignes suffisent : le nombre de projets, d'acteurs (d
 
 ```
 Commun régénéré pour <nom> : <M> membres, <P> projets, <A> acteurs
-(dont <F> fusionnés), <D> domaines, <J> décisions partagées. Lint vert, empreinte <8 premiers
+(dont <F> fusionnés), <D> domaines, <J> décisions partagées. Contrôle de santé vert, empreinte <8 premiers
 caractères>.
 
 Le commun se lit, ne s'édite pas. Pour changer un fait : le vault qui
 le possède, une clôture, puis « regénère le commun ».
 
-Liens neutralisés : <liste ou aucun>. Chacun désigne une note qu'un
-rédacteur peut rendre visible à l'équipe s'il veut qu'elle voyage.
+Liens neutralisés : <liste ou aucun>. Chacun désigne une note que son
+auteur peut rendre visible à l'équipe s'il veut qu'elle voyage.
 ```
 
 ## Interdits
