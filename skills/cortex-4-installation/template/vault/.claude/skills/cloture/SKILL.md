@@ -66,7 +66,7 @@ Au-delà, ce n'est plus une décision : c'est un compte rendu, et un compte rend
 
 ### En régime copie
 
-`donnees.regime: copie` ne change rien à la clôture : **elle ne copie jamais un document**. Les structurants entrent par `ingest`, un par un, sur accord. Si le lint de l'étape 6 signale un `structurant_perime`, le dire au récap et proposer `ingest` pour rafraîchir la copie ; ne pas le faire ici.
+`donnees.regime: copie` ne change rien à la clôture : **elle ne copie jamais un document**. Les structurants entrent par `ingest`, un par un, sur accord. Si le lint de l'étape 6 signale un `structurant_perime`, le dire au récap en phrase ordinaire (« le document <nom> a changé depuis sa copie ») et proposer de le recopier ; ne pas le faire ici.
 
 ## 3. Valider, conditionnellement
 
@@ -117,7 +117,7 @@ Pour chaque projet retenu ayant un `dossier_local`, compter les `CLAUDE.md` :
 find "<dossier résolu>" -name "CLAUDE.md" -type f 2>/dev/null | wc -l
 ```
 
-**1** : silencieux. **0** : « aucun CLAUDE.md à la racine, projet créé sans `nouveau-projet` ? ». **Plus de 1** : « N CLAUDE.md détectés, attendu 1. Règle cardinale violée ».
+**1** : silencieux. **0** : « le dossier <nom> n'a pas de fichier d'instructions pour l'assistant ». **Plus de 1** : « le dossier <nom> a N fichiers d'instructions pour l'assistant, un seul est attendu ».
 
 Best-effort strict : aucun effet de bord, jamais d'arrêt. L'avertissement se dit au récap, en phrase ordinaire, et ne devient jamais une question à valider : il n'y a rien à « accepter », c'est un constat. Le dossier de travail est en lecture seule pour l'agent, et c'est voulu.
 
@@ -158,14 +158,14 @@ git remote | grep -q . && git push    # seulement si un remote existe
 ```
 ✓ Fait : <ce qui a été synthétisé>
 ✎ Modifié : <fiches patchées>
-✎ Périmètre : <warning CLAUDE.md, ou rien>
-⚠ Lint : <contrôles durs en échec, structurants périmés, ou rien>
-↻ Export : <N notes, ou « solo »>
-↻ Commit : <empreinte, push fait ou « aucun remote », ou raison de l'absence>
+✎ Dossiers : <constat de l'étape 5 en phrase ordinaire, ou rien>
+⚠ Santé : <en phrase ordinaire (« 2 notes sans dossier », « document recopié périmé »), ou rien>
+↻ Partage : <N notes partagées avec l'équipe, ou « vault personnel, rien à partager »>
+↻ Historique : <enregistré ; sauvegarde en ligne faite, ou « sauvegarde en ligne absente », ou raison>
 → Suite : <prochaine action, ou rien>
 ```
 
-Ne pas dépasser. Un récap long ne sera pas lu, et un récap non lu ne permet pas de rattraper une erreur d'écriture, ce qui est sa seule fonction.
+Chaque ligne s'écrit dans les mots de la personne : aucun nom de contrôle, de skill ou de clé. Ne pas dépasser. Un récap long ne sera pas lu, et un récap non lu ne permet pas de rattraper une erreur d'écriture, ce qui est sa seule fonction.
 
 ## Interdits
 
