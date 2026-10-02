@@ -831,6 +831,22 @@ def c3_inventaire(tmp, configs):
             verifie("employé : export-notion-*.csv apparaît comme signal de base déportée",
                     "export-notion" in texte and "base_deportee" in texte)
 
+    # H2 : un dossier de photos hors projets, trois fichiers, devient candidat ; trois
+    # documents hors projets restent sous le seuil de l'agent (témoin).
+    medias = tmp / "partage-h2"
+    for dossier, ext in (("Divers/Photos", "jpg"), ("Divers/Notes", "docx")):
+        (medias / dossier).mkdir(parents=True)
+        for i in range(1, 4):
+            (medias / dossier / f"f{i}.{ext}").write_text("x", encoding="utf-8")
+    poses = sorted(q.relative_to(medias).as_posix() for q in medias.rglob("*.*"))
+    out = tmp / "inv-medias.json"
+    r = lancer(SCAN, "--racine", str(medias), "--out", str(out))
+    sans = ([x.get("indice", "") for x in json.loads(out.read_text(encoding="utf-8")).get("ecarts_candidats", [])
+             if x.get("type") == "dossier_sans_domaine"] if out.is_file() else [])
+    verifie("H2 : trois .jpg dans Divers/Photos donnent un candidat dossier_sans_domaine, trois .docx aucun",
+            len(poses) == 6 and r.returncode == 0 and len(sans) == 1 and "Divers/Photos : 3 fichier(s)" in sans[0],
+            f"{len(poses)} fichiers posés, code {r.returncode}, {sans} {r.stderr[:200]}")
+
 
 # ── C4 et C5 : couche vault, regimes ────────────────────────────────────────
 
