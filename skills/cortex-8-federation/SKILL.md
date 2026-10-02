@@ -15,34 +15,40 @@ Une société, ce sont plusieurs personnes, donc plusieurs vaults : un vault, un
 
 ## Étape 0 : quand la fédération commence
 
-Trois conditions, toutes vérifiables :
+Quatre conditions, toutes vérifiables :
 
 1. Le profil est `societe` : chaque rédacteur a un vault installé (maillon 4) avec `mode: federe` et le même `commun.racine` dans son `config.yaml`, en forme `~`.
 2. **Au moins deux vaults membres sont remplis** et ont fait une clôture : `<vault>/_export/<slug>/index.json` existe chez chacun. L'export est écrit par la skill `cloture`, jamais à la main.
 3. Le dossier commun est accessible en lecture par tous les membres : dossier synchronisé, ou dépôt git privé (federe.py conserve `.git` et `.obsidian` quand il vide le dossier).
+4. **Tout le groupe est remis** : chaque membre de `federation.yaml` porte `remis_le` dans `<vault>/_cortex/06-passation.md`, et la liste `attendus` est vide. C'est la règle du tableau de bord : tant qu'un rédacteur manque, l'étape vaut « arbitrée, en attente de <noms> » et la notice ne propose pas « relie les cerveaux ».
 
-Sans la condition 2, s'arrêter et le dire : une fédération à un seul membre n'est qu'une copie, et `federe.py` la refuse.
+Sans la condition 2 ou la condition 4, s'arrêter et dire, en mots ordinaires, qui manque encore : une fédération à un seul membre n'est qu'une copie, et `federe.py` la refuse ; un commun relié avant que tout le groupe soit remis montre une équipe incomplète comme si elle était entière.
+
+**Où se lance ce maillon.** Depuis la session de l'atelier, dans `~/Cortex/<slug>/` de la personne qui tient le commun : c'est là que vivent `_cortex/07-federation.md` et la notice. Une session ouverte dans un vault est confinée en écriture au vault et au commun ; elle ne peut pas écrire l'atelier, et son confinement ne s'élargit pas pour ça. Lancé depuis un vault, le maillon génère le commun (§2), le vérifie (§3), rend le résumé, puis s'arrête sans écrire l'état : il dit de relancer « relie les cerveaux » depuis la session de l'atelier, où la régénération est identique à `genere_le` près et où l'état s'écrit, et il donne la commande de la notice à jouer côté atelier, chemin du plugin résolu :
+
+    python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/notice.py" --atelier ~/Cortex/<slug>/_cortex
 
 En mode `solo`, ce maillon ne s'exécute pas. L'étape 8 du tableau de bord vaut `arbitre` avec la raison « vault solo » ; rien d'autre à faire.
 
-## 1. Créer `federation.yaml` dans le commun
+## 1. Relire `federation.yaml` dans le commun
 
-C'est le seul fichier du commun qui s'écrit à la main, et il vit là parce qu'il n'appartient à aucun rédacteur (contrat 04 §6). Créer le dossier `commun.racine` s'il n'existe pas, y déposer :
+C'est le seul fichier du commun qui ne se régénère pas, et il vit là parce qu'il n'appartient à aucun rédacteur (contrat 04 §6). Il existe déjà : le cadrage de chaque rédacteur l'a créé ou complété par `federe.py --inscrire` (`cortex-1-cadrage` §5). Le relire et vérifier qu'il nomme tout le groupe ; un rédacteur absent s'inscrit par la même commande, jamais à la main. Sa forme :
 
 ```yaml
 version: 1
 nom: "Ateliers Roumier"
 membres:
-  - { slug: camille, export: "~/Cortex/camille/_export/camille" }
-  - { slug: yasmine, export: "~/Cortex/yasmine/_export/yasmine" }
-  - { slug: marc,    export: "~/Cortex/marc/_export/marc" }
+  - { slug: camille, redacteur: "Camille Roumier", export: "~/Cortex/camille/vault/_export/camille" }
+  - { slug: yasmine, redacteur: "Yasmine Haddad", export: "~/Cortex/yasmine/vault/_export/yasmine" }
+attendus: ["Marc Lefort"]
 ```
 
 Règles :
 
 - `slug` est le code du rédacteur, identique au nom de son dossier d'export. Il devient le préfixe des projets et des notes de journal dans le commun : `20 - Projets/<SLUG> - <titre>.md`, `60 - Journal/<SLUG> - <titre>.md`.
 - `export` pointe le dossier `_export/<slug>/` du membre, en forme `~`. Un chemin relatif se lit depuis le dossier du commun.
-- Un membre s'ajoute par une ligne, une fois sa première clôture faite. Un membre se retire par la suppression de sa ligne : ses notes disparaissent du commun au passage suivant.
+- `redacteur` et `attendus` servent au tableau de bord : un nom dans `attendus` est un rédacteur annoncé au cadrage et pas encore cadré. `federe.py --config` les ignore pour générer le commun.
+- Un membre s'ajoute par `federe.py --inscrire`, au cadrage. Un membre se retire par la suppression de sa ligne : ses notes disparaissent du commun au passage suivant.
 - Le fichier se lit avec le même parseur que `config.yaml` : une ligne par membre, dict inline, pas de commentaire en fin de ligne.
 
 Ne rien mettre d'autre dans le commun. Tout ce qui n'est pas `federation.yaml`, `.git` ou `.obsidian` est effacé à chaque génération.
@@ -87,14 +93,16 @@ grep -rl "visibilite: prive" "$C"                                               
 
 # 3. Deux générations identiques hors genere_le
 cp -R "$C" "$C-temoin" && python3 "${CLAUDE_SKILL_DIR}/scripts/federe.py" --config "$C/federation.yaml"
-diff -r "$C-temoin" "$C" | grep "^[<>]" | grep -vc genere_le                                 # attendu : 0
+diff -r "$C-temoin" "$C" | grep "^[<>]" | grep -v genere_le | grep -vc "Généré par"          # attendu : 0
 rm -r "$C-temoin"
 
 # 4. Le sceau
 test -f "$C/.cortex-genere" && test -f "$C/README.md"
 ```
 
-Chez chaque membre, le lint en `mode: federe` ajoute un contrôle : toute note du commun sans la marque « généré » est signalée comme éditée à la main. C'est le filet contre la dérive la plus tentante, corriger sur place.
+Le contrôle 3 ignore les deux lignes datées, `genere_le` et « Généré par … le <date> » du `README.md` : elles changent à chaque passage par construction.
+
+Chez chaque membre, le lint en `mode: federe` ajoute un contrôle : toute note du commun sans la marque « généré » est signalée comme éditée à la main, et un commun qui ne correspond plus à son empreinte `.cortex-genere` aussi, même quand l'en-tête est resté en place. C'est le filet contre la dérive la plus tentante, corriger sur place.
 
 ## 4. Ce que le commun ne fait jamais
 
@@ -105,7 +113,7 @@ Chez chaque membre, le lint en `mode: federe` ajoute un contrôle : toute note d
 
 ## 5. Écrire l'état
 
-`_cortex/07-federation.md`, dans l'atelier de la personne qui tient le commun :
+`_cortex/07-federation.md`, dans l'atelier de la personne qui tient le commun, depuis la session de cet atelier (Étape 0, « Où se lance ce maillon ») :
 
 ```yaml
 maillon: 8
@@ -140,7 +148,7 @@ Le commun se lit, ne s'édite pas. Pour changer un fait : le vault qui
 le possède, une clôture, puis « regénère le commun ».
 
 Liens neutralisés : <liste ou aucun>. Chacun désigne une note qu'un
-rédacteur peut passer en visibilite: commun s'il veut qu'elle voyage.
+rédacteur peut rendre visible à l'équipe s'il veut qu'elle voyage.
 ```
 
 ## Interdits
