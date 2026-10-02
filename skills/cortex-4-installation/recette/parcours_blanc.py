@@ -22,6 +22,7 @@ recette/fixtures/ (ignore par git), rien d'autre.
 """
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -621,12 +622,50 @@ def c1_neuf_etapes(tmp, cfg):
         r = lancer(POSTE, "--dry-run")
         lignes = [l for l in r.stdout.splitlines() if l.strip()]
         # La commande est libre : `uvx --from "markitdown[all]" markitdown` comme `brew install x` passent.
-        motif = re.compile(r"^\S.*? : absent → .+$")
-        verifie("poste.py --dry-run sort en 0 et n'imprime qu'une ligne par outil absent, avec sa commande",
+        # H2 : un outil que la sonde n'a pas pu mesurer sort en « à vérifier (raison) ».
+        motif = re.compile(r"^\S.*? : (absent → .+|à vérifier \(.+\))$")
+        verifie("poste.py --dry-run sort en 0 et n'imprime qu'une ligne par outil absent ou à vérifier",
                 r.returncode == 0 and all(motif.match(l) for l in lignes),
                 (r.stderr[:200] or str([l for l in lignes if not motif.match(l)][:3])))
+        c1_poste_h2(tmp)
     else:
         verifie("poste.py présent", False, "attendu au merge de la lane B")
+
+
+def poste_isole(tmp, *args, outils_uv=(), uvx=""):
+    """poste.py dans un dossier personnel neuf, PATH réduit au système : seuls les faux
+    exécutables posés dans ~/.local/bin (le dossier des outils de uv) existent."""
+    home = tmp / "home-poste"
+    shutil.rmtree(home, ignore_errors=True)
+    bin_uv = home / ".local" / "bin"
+    bin_uv.mkdir(parents=True)
+    for nom, corps in [(n, "exit 0") for n in outils_uv] + ([("uvx", uvx)] if uvx else []):
+        (bin_uv / nom).write_text("#!/bin/sh\n" + corps + "\n", encoding="utf-8")
+        (bin_uv / nom).chmod(0o755)
+    poses = sorted(f.name for f in bin_uv.iterdir() if os.access(f, os.X_OK))
+    env = dict(os.environ, HOME=str(home), PATH="/usr/bin:/bin")
+    r = subprocess.run([sys.executable, str(POSTE), *args], env=env, capture_output=True, text=True, timeout=120)
+    return r, poses
+
+
+def c1_poste_h2(tmp):
+    """Phase H2, défaut 7 : un outil posé par uv est vu, un outil non mesurable est « à vérifier »."""
+    if sys.platform == "win32":
+        verifie("poste.py H2 : faux exécutables en shell, contrôle joué hors Windows", True)
+        return
+    r, poses = poste_isole(tmp, "--dry-run", outils_uv=["graphify"])
+    verifie("H2 : un outil posé par uv dans ~/.local/bin, hors PATH, est vu présent",
+            poses == ["graphify"] and r.returncode == 0 and "graphify" not in r.stdout, str(poses) + r.stdout[-300:])
+    r, poses = poste_isole(tmp, "--dry-run")
+    verifie("H2 témoin : sans le binaire, graphify est listé absent avec sa commande",
+            poses == [] and re.search(r"^graphify : absent → ", r.stdout, re.M) is not None, r.stdout[-300:])
+    refus = ("echo \"error: Failed to initialize cache at \\`$HOME/.cache/uv\\`\" >&2\n"
+             "echo \"  Caused by: Permission denied (os error 13)\" >&2\nexit 2")
+    r, poses = poste_isole(tmp, "--dry-run", uvx=refus)
+    ligne = next((l for l in r.stdout.splitlines() if l.startswith("markitdown")), "")
+    verifie("H2 : une sonde uvx refusée (cache) donne « markitdown : à vérifier », jamais une installation",
+            poses == ["uvx"] and ligne.startswith("markitdown : à vérifier (") and "Permission denied" in ligne,
+            ligne or r.stdout[-300:])
 
 
 # ── C2 : trois profils ──────────────────────────────────────────────────────

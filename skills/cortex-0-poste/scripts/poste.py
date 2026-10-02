@@ -76,27 +76,64 @@ def os_courant():
 
 
 def _version(cmd):
+    # cwd temporaire : `markitdown --version` dépose un `:memory:.ses` dans le dossier courant.
     try:
-        r = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=10)
+        r = subprocess.run([cmd, "--version"], capture_output=True, text=True, timeout=10,
+                           cwd=tempfile.gettempdir())
         m = re.search(r"\d+(\.\d+)+", r.stdout + r.stderr)
         return m.group(0) if m else ""
     except (OSError, subprocess.TimeoutExpired):
         return ""
 
 
-def _uvx(args):
-    """Sonde un outil servi par uvx : `uvx --from "paquet[extra]" outil --version`."""
-    if not shutil.which("uvx"):
+def _raison(sortie, prefixe):
+    """Première ligne d'erreur et sa cause, chemin personnel en forme ~, bornée : la
+    raison d'une sonde qui n'a rien prouvé, dite telle quelle plutôt qu'« absent »."""
+    lignes = [l.strip() for l in sortie.splitlines() if l.strip()][:2]
+    texte = " ; ".join(lignes).replace(str(Path.home()), "~") or "aucune sortie"
+    return f"{prefixe} : {texte}"[:200]
+
+
+def dossier_outils_uv():
+    """Le dossier où `uv tool install` pose ses exécutables : `uv tool dir --bin` quand
+    uv répond, sinon ~/.local/bin (Path.home() vaut %USERPROFILE% sous Windows)."""
+    defaut = Path.home() / ".local" / "bin"
+    uv = shutil.which("uv") or shutil.which("uv", path=str(defaut))
+    if uv:
+        try:
+            r = subprocess.run([uv, "tool", "dir", "--bin"], capture_output=True, text=True, timeout=15)
+            if r.returncode == 0 and r.stdout.strip():
+                return Path(r.stdout.strip())
+        except (OSError, subprocess.TimeoutExpired):
+            pass  # repli du contrat (§2) : l'emplacement par défaut de uv, cherché quand même
+    return defaut
+
+
+def trouver(cmd, bin_uv):
+    """Le PATH d'abord, puis le dossier des outils de uv, absent du PATH d'une session neuve."""
+    return shutil.which(cmd) or shutil.which(cmd, path=str(bin_uv))
+
+
+def _uvx(args, uvx):
+    """Sonde un outil servi par uvx : `uvx --from "paquet[extra]" outil --version`.
+    Sans uvx, l'outil est absent. Une sonde qui échoue (cache refusé par un bac à sable,
+    réseau coupé, délai) ne prouve pas l'absence : present vaut None, avec sa raison."""
+    if not uvx:
         return {"present": False, "version": ""}
     try:
-        r = subprocess.run(["uvx", *args, "--version"], capture_output=True, text=True, timeout=120)
-    except (OSError, subprocess.TimeoutExpired):
-        return {"present": False, "version": ""}
+        r = subprocess.run([uvx, *args, "--version"], capture_output=True, text=True, timeout=120,
+                           cwd=tempfile.gettempdir())
+    except subprocess.TimeoutExpired:
+        return {"present": None, "version": "", "raison": "sonde uvx : délai de 120 s dépassé"}
+    except OSError as e:
+        return {"present": None, "version": "", "raison": _raison(str(e), "sonde uvx impossible")}
+    if r.returncode != 0:
+        return {"present": None, "version": "", "raison": _raison(r.stderr or r.stdout, "sonde uvx en échec")}
     m = re.search(r"\d+(\.\d+)+", r.stdout + r.stderr)
-    return {"present": r.returncode == 0, "version": m.group(0) if m and r.returncode == 0 else ""}
+    return {"present": True, "version": m.group(0) if m else ""}
 
 
-def _app(nom, systeme):
+def _app(nom, systeme, bin_uv):
     """Rend (présent, version) pour une application de bureau."""
     if not nom:
         return False, ""
@@ -113,35 +150,63 @@ def _app(nom, systeme):
     if systeme == "windows":
         exe = Path(os.environ.get("LOCALAPPDATA", "")) / nom
         return exe.is_file(), ""
-    return bool(shutil.which(nom)), _version(nom) if shutil.which(nom) else ""
+    chemin = trouver(nom, bin_uv)
+    return bool(chemin), _version(chemin) if chemin else ""
 
 
 def detecter(systeme=None):
-    """Mesure chaque outil. Rend {nom: {present, version}}. Ne modifie rien."""
+    """Mesure chaque outil. Rend {nom: {present, version[, raison][, chemin]}}, present
+    à None quand la sonde n'a pu ni prouver la présence ni l'absence. Ne modifie rien.
+    Un outil trouvé par son binaire est présent, sans sonde uvx (04-contrat H2 §2)."""
     systeme = systeme or os_courant()
+    bin_uv = dossier_outils_uv()
     etat = {}
     for nom, o in OUTILS.items():
-        if "uvx" in o:
-            etat[nom] = _uvx(o["uvx"])
-        elif "cmd" in o:
-            present = bool(shutil.which(o["cmd"]))
-            etat[nom] = {"present": present, "version": _version(o["cmd"]) if present else ""}
-        else:
-            present, version = _app(o["app"].get(systeme, ""), systeme)
+        if "app" in o:
+            present, version = _app(o["app"].get(systeme, ""), systeme, bin_uv)
             etat[nom] = {"present": present, "version": version}
+            continue
+        chemin = trouver(o.get("cmd", nom), bin_uv)
+        if chemin:
+            etat[nom] = {"present": True, "version": _version(chemin), "chemin": chemin}
+        elif "uvx" in o:
+            etat[nom] = _uvx(o["uvx"], trouver("uvx", bin_uv))
+        else:
+            etat[nom] = {"present": False, "version": ""}
     return etat
 
 
-def gh_connecte():
+def gh_connecte(gh="gh"):
+    """Rend (connecte, raison). « Not logged into any » prouve la déconnexion ; tout
+    autre échec (trousseau illisible dans un bac à sable, réseau) vaut None, raison dite."""
     try:
-        return subprocess.run(["gh", "auth", "status"], capture_output=True, timeout=15).returncode == 0
-    except (OSError, subprocess.TimeoutExpired):
-        return False
+        r = subprocess.run([gh, "auth", "status"], capture_output=True, text=True, timeout=15)
+    except subprocess.TimeoutExpired:
+        return None, "gh auth status : délai de 15 s dépassé"
+    except OSError as e:
+        return None, _raison(str(e), "gh auth status impossible")
+    if r.returncode == 0:
+        return True, ""
+    sortie = r.stdout + r.stderr
+    if "not logged into any" in sortie.lower():
+        return False, ""
+    # La cause, sans la ligne qui nomme le compte : poste.json n'a pas à le porter.
+    causes = [l for l in sortie.splitlines() if "account" not in l.lower()
+              and re.search(r"token|keyring|error|denied|timeout|network", l, re.I)]
+    return None, _raison("\n".join(causes) or f"code {r.returncode}", "gh auth status illisible ici")
 
 
 def lignes_dry_run(etat, systeme):
-    return [f"{nom} : absent → {OUTILS[nom]['install'][systeme]}"
-            for nom in KIT if not etat[nom]["present"]]
+    """Une ligne par outil du kit absent, avec sa commande ; « à vérifier » pour un
+    outil que la sonde n'a pas pu mesurer : jamais d'installation sur un doute."""
+    lignes = []
+    for nom in KIT:
+        e = etat[nom]
+        if e["present"] is None:
+            lignes.append(f"{nom} : à vérifier ({e.get('raison') or 'sonde sans réponse'})")
+        elif not e["present"]:
+            lignes.append(f"{nom} : absent → {OUTILS[nom]['install'][systeme]}")
+    return lignes
 
 
 def installer(noms, systeme):
@@ -271,10 +336,14 @@ def ecrire(a, systeme, etat):
     chemin = atelier / "poste.json"
     ancien = json.loads(chemin.read_text(encoding="utf-8")) if chemin.is_file() else {}
     par_cortex = deja_par_cortex(ancien) | set(a.installes)
-    outils = {n: {"present": e["present"], "version": e["version"], "installe_par_cortex": n in par_cortex}
+    outils = {n: {"present": e["present"], "version": e["version"], "installe_par_cortex": n in par_cortex,
+                  **({"raison": e["raison"]} if e.get("raison") else {})}
               for n, e in etat.items()}
     if etat["gh"]["present"]:
-        outils["gh"]["connecte"] = gh_connecte()
+        connecte, raison = gh_connecte(etat["gh"].get("chemin") or "gh")
+        outils["gh"]["connecte"] = connecte
+        if raison:
+            outils["gh"]["raison"] = raison
     maintenant = datetime.now().isoformat(timespec="seconds")
     slug = slug_de(a, atelier) or (ancien.get("organisation") or {}).get("code", "")
     poste = {"format": "cortex/poste", "version": 1, "genere_le": maintenant, "os": systeme,
@@ -319,6 +388,31 @@ def _autotest():
     assert lignes[1] == 'markitdown : absent → uv tool install "markitdown[all]"'
     assert OUTILS["markitdown"]["uvx"] == ["--from", "markitdown[all]", "markitdown"]
     assert all(" : absent → " in l for l in lignes_dry_run(etat, "windows"))
+    # H2 défaut 7 : un outil non mesurable se dit « à vérifier », jamais une installation.
+    etat["markitdown"] = {"present": None, "version": "", "raison": "sonde uvx en échec : cache refusé"}
+    lignes = lignes_dry_run(etat, "macos")
+    assert "markitdown : à vérifier (sonde uvx en échec : cache refusé)" in lignes, lignes
+    assert not any(l.startswith("markitdown : absent") for l in lignes)
+    if os.name != "nt":                      # faux exécutables en shell : hors Windows
+        with tempfile.TemporaryDirectory() as tmp:
+            def faux(nom, corps):
+                f = Path(tmp) / nom
+                f.write_text("#!/bin/sh\n" + corps + "\n", encoding="utf-8")
+                f.chmod(0o755)
+                return str(f)
+            faux("cortex-outil-temoin", "exit 0")
+            assert trouver("cortex-outil-temoin", Path(tmp)), "dossier des outils de uv non lu"
+            assert not trouver("cortex-outil-temoin", Path(tmp) / "vide")
+            assert _uvx(["x"], None) == {"present": False, "version": ""}
+            refus = _uvx(["x"], faux("uvx-refus", "echo \"error: Failed to initialize cache\" >&2\n"
+                                                  "echo \"  Caused by: Permission denied (os error 13)\" >&2; exit 2"))
+            assert refus["present"] is None and "Permission denied" in refus["raison"], refus
+            assert _uvx(["x"], faux("uvx-ok", "echo markitdown 0.1.7")) == {"present": True, "version": "0.1.7"}
+            assert gh_connecte(faux("gh-ok", "exit 0")) == (True, "")
+            assert gh_connecte(faux("gh-non", "echo 'You are not logged into any GitHub hosts.' >&2; exit 1")) \
+                == (False, "")
+            illisible = gh_connecte(faux("gh-trousseau", "echo '- The token in keyring is invalid.' >&2; exit 1"))
+            assert illisible[0] is None and "illisible" in illisible[1], illisible
     with tempfile.TemporaryDirectory() as tmp:
         config = Path(tmp) / "config.yaml"
         config.write_text("version: 1\nprofil: employe\nposte:\n  os: linux\n  outils: []\n\nmode: solo\n",
