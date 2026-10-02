@@ -117,7 +117,7 @@ Chaque écart : `{type, indice, source_id}`, l'indice chiffré (« 9 fichiers »
 
 ## Graphify : proposé, jamais installé d'office
 
-Quand `depots` n'est pas vide, ou qu'une entrée `disque` porte `graphify_propose: true` (plus de 500 documents dans son sous-arbre), le dire une fois, en une phrase, dans le message de clôture : un graphe de dépendances aiderait le maillon 5 sur ce dépôt ou ce dossier, et son installation est une option du maillon 0. Ne rien installer, ne rien lancer, ne jamais le proposer sur le vault lui-même.
+Quand `depots` n'est pas vide, ou qu'une entrée `disque` porte `graphify_propose: true` (plus de 500 documents dans son sous-arbre), le dire une fois, en une phrase, dans le message de clôture : une carte de ce dépôt ou de ce dossier aiderait au remplissage, et elle s'installe depuis l'équipement du poste (« équipe mon poste »). Ne rien installer, ne rien lancer, ne jamais le proposer sur le vault lui-même.
 
 ## Les bornes
 
@@ -152,13 +152,13 @@ Le rapport lisible reprend, par substrat : ce qui a été parcouru, les chiffres
 ```
 Inventaire terminé pour <organisation>.
 
-- <N> substrats parcourus, <M> entrées cataloguées
+- <N> dossiers et outils parcourus, <M> entrées cataloguées
 - disque : <dossiers_vus> dossiers, <fichiers_vus> fichiers, <extractions> structurants lus en mots
 - schémas relevés : <K> bases, <P> propriétés distinctes
 - messagerie : <en_tetes_lus> en-têtes sur <periode_mois> mois, <N domaines agrégés | hors périmètre>
-- <E> écarts candidats pour l'entretien
+- <E> points à éclaircir avec vous à l'étape suivante
 - au-delà des bornes : <ce qui a été laissé de côté, ou rien>
-- <graphe de dépendances proposé sur <dépôt ou dossier>, option du maillon 0 | rien>
+- <carte proposée pour <dépôt ou dossier>, à installer depuis l'équipement du poste | rien>
 
 Pour toi :
 1. Relis 01-inventaire.md, surtout la section « Au-delà des bornes ».

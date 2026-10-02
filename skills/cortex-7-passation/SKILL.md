@@ -143,7 +143,7 @@ Pour toi :
    ligne remis_le (§6).
 3. À J+7 et J+30, demande le `bilan`.
 
-Ce maillon se relance quand tu veux : si le vault évolue, la documentation
+La remise se relance quand tu veux : si le vault évolue, la documentation
 se régénère. C'est pour ça qu'elle n'est pas écrite à la main.
 ```
 

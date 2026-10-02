@@ -38,7 +38,7 @@ Ce qui relève d'un autre maillon : le choix des domaines (`cortex-3`), la colle
    python3 scripts/cortex_config.py <chemin config.yaml>
    ```
 2. Le fichier `_cortex/02-ontologie.md` porte `statut: valide` — les domaines ont été arbitrés et signés.
-3. Lire la clé `conduite` de la config — absente ⇒ `consultant`, comportement actuel à l'identique. Elle ne change rien au geste : ce maillon est déterministe et se moque de qui l'a lancé. Elle choisit seulement le message de clôture. Cas particulier : si aucun atelier n'existe — pas de `config.yaml` du tout —, ce n'est pas un maillon 4 qui échoue, c'est une installation qui commence. Le dire, et proposer de démarrer par `cortex-1-cadrage`.
+3. Lire la clé `conduite` de la config : absente ⇒ `consultant`, comportement actuel à l'identique. Elle ne change rien au geste : ce maillon est déterministe et se moque de qui l'a lancé. Elle choisit seulement le message de clôture. Cas particulier : si aucun atelier n'existe, pas de `config.yaml` du tout, ce n'est pas un maillon 4 qui échoue, c'est une installation qui commence. Le dire, et donner la phrase qui commence le parcours : « installe mon second cerveau ».
 
 **Si un contrôle échoue, s'arrêter. Pas de repli.** Installer sur une ontologie non validée produit un vault qu'il faudra refaire, et refaire un vault déjà rempli coûte cent fois l'installation.
 
@@ -72,7 +72,7 @@ Le `<slug>` est `organisation.code` du `config.yaml`, demandé au maillon 0 et j
 
 Poser la question à la personne (AskUserQuestion) : « Voulez-vous une sauvegarde privée de votre second cerveau sur votre compte GitHub ? » Options : oui ; non, je reste sur mon poste. Sur oui seulement, lancer la commande ci-dessus, ou relancer le scaffold avec `--depot-prive`. Un refus est une réponse complète : le vault versionné localement garde déjà l'annulation et l'historique. Prérequis d'un oui : `gh auth login` fait au maillon 0.
 
-Deux choses qu'il ne fait pas, et c'est délibéré : il ne comble aucune valeur manquante, et il **ne copie pas `marque.mentions_interdites` dans le vault du client**. Cette liste porte les autres clients du consultant ; la copier ferait du fichier censé les interdire celui qui les transporte. Elle reste dans l'atelier, où la recette du maillon 7 la lit.
+Deux choses qu'il ne fait pas, et c'est délibéré : il ne comble aucune valeur manquante, et il **ne copie pas `marque.mentions_interdites` dans le vault du client**. Cette liste porte les marques du consultant ; la copier dans le vault ferait du fichier censé les interdire celui qui les livre. Elle reste dans l'atelier, où la recette du maillon 7 la lit.
 
 `--force` écrase une destination existante. **Sans hésiter tant que le vault n'est pas peuplé** — c'est le mode normal de ce maillon, et détruire un vault qui ne contient que le gabarit ne coûte rien.
 
@@ -117,7 +117,8 @@ Le second contrôle doit être lancé **depuis le vault du client**, pas depuis 
 ```
 Le vault de <organisation> est installé.
 
-- <N> notes, <M> domaines, mode <solo|federe>, régime <pointeur|copie>
+- <N> notes, <M> domaines, <pour une personne seule | relié au commun de l'équipe>
+- <vos outils restent la référence | documents de fond recopiés un par un>
 - lint : vert
 - couche d'agents : 6 skills, 2 sous-agents, 2 hooks
 - <K> dossier(s) de travail en lecture seule
@@ -128,8 +129,9 @@ Pour toi :
 2. Fais tourner `cloture` sur une vraie session, trois fois.
 3. Quand c'est fluide, dis « remplis mon second cerveau » pour y verser l'inventaire.
 
-Ne peuple pas le vault à la main avant l'étape 3 : cortex-5 est idempotent,
-il détecterait une note écrite à la main comme un conflit à arbitrer.
+Ne peuple pas le vault à la main avant l'étape 3 : le remplissage
+reconnaît ses propres notes et prendrait une note écrite à la main
+pour un conflit à arbitrer.
 ```
 
 **En mode solo :**

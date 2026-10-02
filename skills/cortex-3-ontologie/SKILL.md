@@ -40,7 +40,7 @@ Ce que la personne a déclaré au cadrage et ce que l'inventaire a mesuré diff�
 
 **Entrée.** `ecarts_candidats` de `01-inventaire.json` (`04-contrat.md` §4), complété par ce que la lecture du §1 fait apparaître face aux listes de `00-cadrage.md`. Six types : `correspondant_non_declare`, `dossier_sans_domaine`, `reunion_recurrente_sans_projet`, `projet_non_declare`, `base_deportee_non_declaree`, `depot_non_declare`.
 
-**Forme.** Par AskUserQuestion, quatre écarts par appel, chacun en langage ordinaire avec l'indice chiffré et des options fermées plus « autre ». Jamais le nom du type d'écart devant la personne. Les formulations qui tiennent :
+**Forme.** Par AskUserQuestion, quatre écarts par appel, chacun en langage ordinaire avec l'indice chiffré et des options fermées plus « autre ». Jamais le nom du type d'écart devant la personne. L'entretien s'annonce dans ses mots : « j'ai quelques points à éclaircir avec vous sur ce que j'ai trouvé », jamais « je dois trancher quatre écarts » (`cortex-1-cadrage/references/doctrine.md` §8). Les formulations qui tiennent :
 
 | Type | Question | Options |
 |---|---|---|
@@ -124,6 +124,8 @@ Pour chaque type de fait : quelle est la source de vérité, et que fait le vaul
 
 La granularité la plus fine de la chaîne avec le maillon 1, et pour une autre raison : chaque ligne est un arbitrage qu'il faudrait re-litiger avec le client si on le passait en bloc.
 
+Chaque décision s'affiche avant sa question : le domaine, sa preuve chiffrée, ce qu'il écarte. La carte se signe vue : domaines et preuves, écartés et seuils, matrice, points incertains, dans le message qui précède la demande, ou dans l'aperçu de l'option qui la valide (`cortex-1-cadrage/references/doctrine.md` §10).
+
 Puis **faire signer `02-ontologie.md`**. Pas une formalité : c'est le document qui empêchera, dans trois mois, de refaire le débat des domaines sur un vault déjà peuplé — moment où le changer coûte cent fois ce qu'il coûte aujourd'hui.
 
 **En mode solo, la signature devient une confirmation explicite — et le coût se dit avant.** Récapituler la carte entière : les familles retenues avec leur preuve, ce qui a été écarté et pourquoi, les cycles, les points incertains. Puis énoncer le coût, en clair : « revenir sur cette carte une fois l'outil rempli demandera de tout reprendre — chaque fiche re-rattachée une à une. C'est maintenant que changer d'avis est bon marché. » Attendre la confirmation ; un refus rouvre la décision concernée, pas la carte entière. La confirmation se trace dans `02-ontologie.md` — une ligne datée « Carte récapitulée, coût de retour énoncé, confirmée le <date> » — et c'est par elle que le contrôle `ontologie_signee_client` passe : en solo, le signataire et le bénéficiaire sont la même personne, la trace remplace le papier. Une porte supprimée serait un défaut, pas une simplification.
@@ -152,7 +154,7 @@ controles:
 ```
 Ontologie arrêtée pour <organisation>.
 
-- entretien : <N> écarts relevés, <M> répondus, <K> laissés en [?]
+- points à éclaircir : <N> relevés, <M> répondus, <K> laissés en [?]
 - <N> domaines, chacun avec sa preuve
 - matrice d'ownership : <M> types de faits, <K> lien(s) INTERDIT déclaré(s)
 - cycles : <liste>
@@ -162,10 +164,9 @@ Pour toi :
 1. Fais signer 02-ontologie.md. Ne saute pas cette étape.
 2. Puis dis « construis mon second cerveau ».
 
-Le maillon 4 refuse de démarrer si 02-ontologie.md n'est pas en statut
-valide. Installer sur une ontologie non arbitrée produit un vault qu'il
-faudra refaire — et refaire un vault déjà rempli coûte cent fois
-l'installation.
+L'installation refuse de démarrer tant que la carte n'est pas signée.
+Installer sur une carte non arbitrée produit un vault qu'il faudra
+refaire, et refaire un vault déjà rempli coûte cent fois l'installation.
 ```
 
 **En mode solo :**

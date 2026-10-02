@@ -94,7 +94,7 @@ Le **registre** `_cortex/04-ingest.md` tient la table `source_id → note`. C'es
 
 ## 4. Validation — par lot de source
 
-Les douze projets venus de la base, puis les trente acteurs venus des agrégats de messagerie. Pas note par note.
+Les douze projets venus de la base, puis les trente acteurs venus des agrégats de messagerie. Pas note par note. Chaque lot s'affiche avant sa validation : la liste des notes à écrire, avec leur domaine et leur pointeur, dans le message ou dans l'aperçu de l'option qui le valide (`cortex-1-cadrage/references/doctrine.md` §10).
 
 Le coût de régénération est élevé en jetons mais le registre rend la relance incrémentale : c'est la granularité qui minimise le nombre d'allers-retours sans jamais imposer de tout rejouer.
 
@@ -128,21 +128,22 @@ controles:
 Vault peuplé pour <organisation>.
 
 - <N> projets, <M> acteurs, <K> ressources
-- structurants copiés : <N> sur <plafond> (régime copie), ou « aucun, régime pointeur »
+- documents de fond recopiés : <N> sur <plafond>, ou « aucun, vos outils restent la référence »
 - écartés : <N> entrées, motifs dans 04-ingest.md
 - lint : vert
 - conflits arbitrés : <N ou aucun>
 
 Pour toi :
-1. Ouvre le vault et vérifie trois notes au hasard : le pointeur mène-t-il
+1. Ouvre le vault et vérifie trois notes au hasard : le lien mène-t-il
    au bon endroit ?
 2. Fais tourner `cloture` sur une vraie session de travail.
 3. Puis dis « voyons mes assistants métier », si le cadrage a identifié un besoin.
 4. Enfin « prépare la remise ».
 
-L'étape 1 n'est pas une formalité. Un pointeur faux est indétectable par
-le lint — il vérifie la présence, pas la destination — et c'est la seule
-erreur de ce maillon qui ne se voit qu'à l'usage, des semaines plus tard.
+L'étape 1 n'est pas une formalité. Un lien faux est indétectable par
+le contrôle de santé, qui vérifie la présence et pas la destination :
+c'est la seule erreur du remplissage qui ne se voit qu'à l'usage, des
+semaines plus tard.
 ```
 
 **En mode solo :**
