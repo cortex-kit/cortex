@@ -406,7 +406,8 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
     if moi is None:
         moi = {"slug": slug}
         membres.append(moi)
-    moi["redacteur"], moi["export"] = redacteur, _tilde(export)
+    # Absolu avant la forme ~ : federe.py et etat.py résolvent un chemin relatif depuis le commun.
+    moi["redacteur"], moi["export"] = redacteur, _tilde(Path.cwd() / Path(export).expanduser())
     deja = {_nom_cle(m.get("redacteur", "")) for m in membres if m.get("redacteur")}
     liste = [str(a) for a in conf.get("attendus") or []]
     ignores = [a for a in attendus if _nom_cle(a) in deja]
@@ -604,6 +605,11 @@ def _autotest():
         assert groupe.read_bytes() == premier, "inscription non idempotente"
         inscrire(groupe, "helene", "Hélène Vasseur", "~/Ailleurs/_export/helene")
         assert [m["export"] for m in cortex_config.charger(groupe)["membres"]] == ["~/Ailleurs/_export/helene"]
+        # Reprise m4 : un --export relatif s'écrit depuis le dossier courant, pas depuis le commun.
+        inscrire(groupe, "helene", "Hélène Vasseur", "rel/_export/helene")
+        ecrit = cortex_config.charger(groupe)["membres"][0]["export"]
+        assert Path(ecrit).expanduser() == Path.cwd() / "rel" / "_export" / "helene", ecrit
+        inscrire(groupe, "helene", "Hélène Vasseur", "~/Ailleurs/_export/helene")
         b = inscrire(groupe, "karim", "Karim  Benali", "~/Cortex/karim/vault/_export/karim",
                      attendus=["Hélène Vasseur"])
         # Témoin : un --attendu qui nomme un membre déjà inscrit est ignoré, sans erreur,
