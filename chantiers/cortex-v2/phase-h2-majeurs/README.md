@@ -33,10 +33,10 @@ Tenu par le chef d'orchestre, jamais par une lane.
 | Étape | État | Date |
 |---|---|---|
 | Pack écrit | fait | 2026-09-29 |
-| Lane A | lancée (Opus, `~/Dev/cortex--h2a`) | 2026-10-02 |
-| Lane B | lancée (Opus, `~/Dev/cortex--h2b`) | 2026-10-02 |
-| Audits A et B | après les lanes | |
-| Merge dans `fix/phase-h` | après les audits | |
+| Lane A | faite, auditée (mergeable, 1 majeur repris), reprise mergée | 2026-10-02 |
+| Lane B | faite, auditée (3 bloquants repris), reprise mergée | 2026-10-02 |
+| Audits A et B | faits | 2026-10-02 |
+| Merge dans `main` (= `fix/phase-h`) | fait, plugin rc.7 | 2026-10-02 |
 | Lane C, parcours | après le merge | |
 
 ## Version
