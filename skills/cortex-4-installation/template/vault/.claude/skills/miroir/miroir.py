@@ -222,9 +222,6 @@ def _autotest():
         t = (v / "20 - Projets" / "Alpha.md").read_text(encoding="utf-8")
         assert 'phase: "Phase D"' in t and "progression: 90" in t and "statut: termine" in t, t
         assert recaler(v, conf, lire)[0] == []                       # rejoué : rien à faire
-        assert identifiant("https://www.notion.so/Titre-" + "e" * 32 + "?pvs=4") == "e" * 32
-        assert identifiant("https://app.notion.com/p/3c00ef92-eb03-81cf-8578-fa88013e1a97") \
-            == "3c00ef92eb0381cf8578fa88013e1a97"
         # Vault adopté : la fiche se relie par `notion_bdd`, porte son cycle dans
         # `nature` et son avancement dans `avancement`. Le recalage s'écrit sous
         # ces clés, aucune clé canonique n'apparaît.
@@ -245,6 +242,9 @@ def _autotest():
         assert "progression" not in t and "cycle" not in t and "url_canonique" not in t, t
         # Une clé absente de la fiche s'ajoute au lieu d'être annoncée sans être écrite.
         assert "progression: 90" in remplacer("---\ntype: projet\n---\n# X\n", "progression", "90")
+        assert identifiant("https://www.notion.so/Titre-" + "e" * 32 + "?pvs=4") == "e" * 32
+        assert identifiant("https://app.notion.com/p/3c00ef92-eb03-81cf-8578-fa88013e1a97") \
+            == "3c00ef92eb0381cf8578fa88013e1a97"
         (v / "jeton").write_text("secret_abc\n", encoding="utf-8")
         (v / ".env").write_text("AUTRE=1\nNOTION_TOKEN='ntn_xyz'\n", encoding="utf-8")
         (v / "vide.env").write_text("AUTRE=1\n", encoding="utf-8")
