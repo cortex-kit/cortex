@@ -141,17 +141,17 @@ L'export est un dossier du vault, pas une écriture vers l'extérieur : c'est l'
 
 ## 8. Commit
 
-Si le vault est sous git :
+Par le script, jamais par un `git commit` tapé :
 
 ```bash
-git add <chemins ciblés>          # jamais `add -A`
-git commit -m "<message mono-sujet>"
-git remote | grep -q . && git push    # seulement si un remote existe
+python3 .claude/skills/cloture/cloture.py --vault . --message "<message mono-sujet>" <chemins ciblés>
 ```
 
-`git add` ciblés : la configuration locale de l'éditeur produit du bruit qui n'a pas à être versionné avec la doctrine. L'export (`_export/`) fait partie des chemins ciblés en mode `federe`.
+Il ajoute les chemins nommés (jamais `add -A`) et l'export du commun s'il existe, commite sous l'identité locale du vault, retire du message toute ligne d'attribution de session (`Co-Authored-By`, `Claude-Session`), puis pousse si un dépôt distant existe. Un `git commit` tapé porterait ces lignes, et avec elles un lien vers la session de qui a installé le vault : `settings.json` le refuse. Sans git, le script le dit et sort en 0.
 
-**Jamais `--force`, jamais `--no-verify`.** Si le push échoue, le signaler et s'arrêter là : le commit local existe, rien n'est perdu.
+Chemins ciblés : la configuration locale de l'éditeur produit du bruit qui n'a pas à être versionné avec la doctrine.
+
+**Jamais `--force`, jamais `--no-verify`.** Si le push échoue, le script le signale et l'enregistrement local reste : rien n'est perdu.
 
 ## 9. Récap, 7 lignes maximum
 

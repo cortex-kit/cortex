@@ -98,6 +98,10 @@ Les douze projets venus de la base, puis les trente acteurs venus des agrégats 
 
 Le coût de régénération est élevé en jetons mais le registre rend la relance incrémentale : c'est la granularité qui minimise le nombre d'allers-retours sans jamais imposer de tout rejouer.
 
+## 4 bis. Reporter la carte « qui fait foi »
+
+La table signée au maillon 3 (matrice d'ownership de `_cortex/02-ontologie.md` : type de fait, outil de référence, rôle du vault) se reporte dans `<vault>/90 - Meta/Architecture Mémoire.md` §2, ligne pour ligne, à la place des cellules `_à renseigner_`. Le lien interdit signé va dans la table des flux d'`Architecture - Vue d'ensemble`. Rien ne s'invente : un type de fait que la carte signée laisse ouvert garde sa ligne, avec la mention « laissé ouvert à la carte du <date> », et se dit dans le récapitulatif. Sans ce report, le vault part avec les trous du gabarit et la règle « une source de vérité par fait » n'a pas de table.
+
 ## 5. Vérifier
 
 ```bash
@@ -105,6 +109,17 @@ python3 <vault>/.claude/skills/lint/lint_sante.py --vault <vault>
 ```
 
 **Doit sortir en 0.** Un vault peuplé qui ne passe pas le lint ne doit pas être remis : les écarts se corrigent ici, pendant qu'ils sont peu nombreux et récents.
+
+```bash
+grep -c "| _à renseigner_ |" "<vault>/90 - Meta/Architecture Mémoire.md"    # attendu : 0
+```
+
+Puis enregistrer le remplissage dans l'historique du vault, par son script et jamais par `git commit` : un commit tapé par l'assistant porte les lignes d'attribution de la session qui remplit, et elles partiraient chez le client avec le vault.
+
+```bash
+python3 "<vault>/.claude/skills/cloture/cloture.py" --vault "<vault>" --message "Remplissage depuis l'inventaire" \
+    "10 - Domaines" "20 - Projets" "40 - Acteurs" "50 - Ressources" "90 - Meta"
+```
 
 ## 6. Écrire l'état
 
@@ -120,6 +135,7 @@ controles:
   ecartes_declares: passe        # ou `arbitre` avec motif
   structurants_valides_un_par_un: passe   # regime copie ; `arbitre` motif « regime pointeur » sinon
   aucun_corps_de_mail_copie: passe
+  matrice_reportee: passe        # Architecture Mémoire §2 sans « _à renseigner_ »
 ```
 
 ## Message de clôture

@@ -39,10 +39,12 @@ Toute session tombe dans l'une de ces quatre. Détail dans [[Architecture Mémoi
 
 - Le vault : pointeurs, décisions, macro-actions, trous qualifiés, fiches projet.
 - `.claude/` : les skills et sous-agents de ce vault.
+- L'historique : par la clôture seulement (`python3 .claude/skills/cloture/cloture.py`), jamais par un `git commit` tapé, qui porterait les lignes d'attribution de la session.
 
 ## Écritures interdites
 
 - **Tout substrat externe sur un champ miroir.** Sens unique, toujours : le substrat est canonique, le vault est miroir en lecture. Une écriture inverse crée un conflit qu'aucune règle ne peut trancher automatiquement.
+- **Aucune trace dans un dossier de travail.** Ne jamais se déplacer dans un dossier de travail avec `cd`, le harnais y laisse une trace ; nommer le dossier en entier (`ls "<dossier>"`, `find "<dossier>" …`).
 - **Tout dépôt ou dossier non rattaché au projet courant.** Un correctif repéré au passage sur un autre périmètre se **note**, il ne s'exécute pas.
 - **Aucun chemin absolu**, nulle part. Tout chemin passe par `chemins.dossiers_projets` de la configuration, et `dossier_local` est relatif. C'est ce qui rend ce vault utilisable sur une autre machine que celle qui l'a créé.
 - **Aucune donnée sensible en clair** : coordonnées bancaires, mots de passe, identifiants fiscaux ou sociaux, scans d'identité. Voir [[Conventions]] §9. Ce vault est synchronisé, sauvegardé et lisible par un agent — trois qualités utiles, trois voies de fuite.

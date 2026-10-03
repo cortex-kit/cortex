@@ -77,6 +77,15 @@ PERIMETRE_WHITE_LABEL = [SKILLS, DEPOT / "notice", DEPOT / "outils", DEPOT / "RE
 # et cortex-7-passation/SKILL.md. Les fragments entre backticks sont retires de
 # la ligne avant la recherche, pour la meme raison.
 MOTIF_DE_DETECTION = re.compile(r"""re\.(compile|search|match|findall|finditer|sub)\s*\(|(?<![A-Za-z0-9_])r["']|\bgrep\b""")
+# H2 lane C : le harnais de Claude Code laisse `<dossier>/.claude/.cc-writes`
+# dans tout dossier où une commande entre par `cd`. Aucun SKILL.md ne prescrit
+# donc un `cd` vers un chemin (racine, `~`, variable, gabarit `<…>`).
+CD_VERS_UN_CHEMIN = re.compile(r"""(?:^|[\s;&|(`])cd\s+["']?(?:~|\$|<|/|\.\.)""")
+# H2 lane C, Q-vocab : la mécanique de la chaîne dans un récapitulatif de fin
+# (« Fais tourner `cloture` », « le scaffold », « le contrôle est marqué arbitré »).
+MOTS_DE_LA_CHAINE = re.compile(r"`[^`\n]+`|\.py\b|cortex-\d|\bmaillons?\b|\bscaffold|\bskills?\b"
+                               r"|\b(?:contrôles?|marqués?)\s+arbitrés?|\bconsultant|\bsolo\b|\bfédéré"
+                               r"|\brégime\b|\bpointeur|\bécarts?\b|\bprofil\b", re.I)
 BINAIRES = {".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".docx", ".xlsx", ".pyc", ".woff", ".woff2", ".ttf"}
 PROFILS = ("employe", "dirigeant", "societe")
 ETAPES_CONTRAT = {0: "poste.json", 1: "00-cadrage.md", 2: "01-inventaire.md", 3: "02-ontologie.md",
@@ -150,6 +159,20 @@ def frontmatter(texte):
         return None
     return {l.split(":", 1)[0].strip(): l.split(":", 1)[1].strip()
             for l in lignes[1:fin] if ":" in l}
+
+
+def blocs_recapitulatif(texte):
+    """Les blocs de code des sections « Message de clôture » et « Récap » : le
+    texte que la personne lit en fin d'étape, mot pour mot."""
+    blocs = []
+    for section_ in re.split(r"^(?=## )", texte, flags=re.M):
+        if re.match(r"## .*(Message de clôture|Récap)", section_):
+            blocs += re.findall(r"^```[a-z]*\n(.*?)^```", section_, re.M | re.S)
+    return blocs
+
+
+def vocabulaire_des_recaps(texte):
+    return [m.group(0) for b in blocs_recapitulatif(texte) for m in MOTS_DE_LA_CHAINE.finditer(b)]
 
 
 def fichiers_texte(perimetre):
@@ -780,6 +803,12 @@ def c2_profils(tmp, configs):
                 fautifs.append(f"{m.parent.name} : {motif}")
     verifie("aucun maillon n'enchaîne, la section Notice seule propose la suite "
             "(I10, arbitrage 2026-09-19)", not fautifs, str(fautifs))
+    recaps = maillons + sorted((GABARIT / ".claude" / "skills").glob("*/SKILL.md"))
+    vus = [(m.parent.name, len(blocs_recapitulatif(m.read_text(encoding="utf-8")))) for m in recaps]
+    mots = {m.parent.name: v for m in recaps if (v := vocabulaire_des_recaps(m.read_text(encoding="utf-8")))}
+    verifie(f"H2 : les récapitulatifs de fin ({sum(n for _, n in vus)} blocs, {len(recaps)} SKILL.md) ne nomment "
+            "ni skill, ni script, ni mot de la chaîne (doctrine §8)",
+            sum(n for _, n in vus) >= 16 and not mots, str(mots) if mots else str(vus))
 
 
 # ── C3 : inventaire outille ─────────────────────────────────────────────────
@@ -872,6 +901,19 @@ def c4_couche_vault(tmp, configs):
                              capture_output=True, text=True).stdout.split("\n")
     verifie("le vault porte une identité git locale, celle qui signe son premier commit",
             ident == attendu and auteurs[0] == attendu, f"{ident!r} / {auteurs[:1]}")
+    # H2 lane C : chaque commit du vault portait `Co-Authored-By` et `Claude-Session`,
+    # un lien vers la session de qui installait. La clôture commite par cloture.py.
+    (vault / "_recette-cloture.txt").write_text("clôture de recette\n", encoding="utf-8")
+    r_clot = lancer(vault / ".claude" / "skills" / "cloture" / "cloture.py", "--vault", str(vault), "--message",
+                    "Clôture : recette\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n"
+                    "Claude-Session: https://claude.ai/code/session_recette", "_recette-cloture.txt")
+    dernier = subprocess.run(["git", "-C", str(vault), "log", "-1", "--format=%an%n%B"],
+                             capture_output=True, text=True).stdout
+    verifie("H2 : un commit de clôture (cloture.py du vault) signe sous l'identité du vault, "
+            "sans Co-Authored-By ni Claude-Session",
+            r_clot.returncode == 0 and dernier.startswith(attendu + "\nClôture : recette")
+            and not re.search(r"co-authored-by|claude-session|claude\.ai", dernier, re.I),
+            f"code {r_clot.returncode}, {dernier[:200]!r}, {r_clot.stderr[:200]}")
     settings_path = vault / ".claude" / "settings.json"
     try:
         settings = json.loads(settings_path.read_text(encoding="utf-8"))
@@ -888,6 +930,9 @@ def c4_couche_vault(tmp, configs):
     verifie("une règle deny Edit par racine, aucune règle Write inopérante",
             racines and all(f"Edit({r}/**)" in deny for r in racines)
             and not any(d.startswith("Write(") for d in deny), str(deny))
+    verifie("H2 : git commit tapé refusé (deny), la clôture passe par cloture.py (allow)",
+            "Bash(git commit:*)" in deny and "Bash(git commit:*)" not in allow
+            and "Bash(python3 .claude/skills/cloture/cloture.py:*)" in allow, str(deny))
     verifie("aucune règle allow n'ouvre Write, Edit ni un Bash libre",
             not any(a in ("Write", "Edit", "Bash") or a.startswith(("Write(", "Edit(")) for a in allow), str(allow))
     if sys.platform != "win32":
@@ -1214,6 +1259,11 @@ def c9_chemins_absolus():
             if not MOTIF_DE_DETECTION.search(l) and motif.search(re.sub(r"`[^`]*`", "", l))]
     verifie("aucun chemin absolu (/Users/, /home/, lettre de lecteur) dans skills/ notice/ outils/ README.md",
             not hits, f"{len(hits)} ligne(s) : {hits[:6]}")
+    tous = sorted(SKILLS.glob("**/SKILL.md"))
+    cd = [f"{m.relative_to(DEPOT)}:{no}" for m in tous
+          for no, l in enumerate(m.read_text(encoding="utf-8").splitlines(), 1) if CD_VERS_UN_CHEMIN.search(l)]
+    verifie(f"H2 : aucun SKILL.md ({len(tous)}, skills du vault comprises) ne prescrit un cd vers un chemin",
+            len(tous) >= 16 and not cd, f"{len(cd)} ligne(s) : {cd[:6]}")
     skills_md = list(SKILLS.glob("cortex-*/SKILL.md"))
     durs = [m.parent.name for m in skills_md if re.search(r"\$HOME/\.claude|~/\.claude/skills/cortex", m.read_text(encoding="utf-8"))]
     verifie("les maillons se référencent par ${CLAUDE_SKILL_DIR}, jamais par ~/.claude/skills", not durs, str(durs))

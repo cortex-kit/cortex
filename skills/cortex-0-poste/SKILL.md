@@ -31,7 +31,7 @@ C'est le point d'entrée. Ne rien lister dans `~/Cortex/` : sur le poste d'un co
 
 > « Quel nom court voulez-vous donner à votre second cerveau ? Un mot, sans espace : votre prénom, votre société, ce que vous voulez. »
 
-Aucun atelier existant ne se propose en option. Seul se reconnaît l'atelier dont la personne donne le nom : `~/Cortex/<slug>/` testé pour ce nom, rien d'autre. S'il existe, il n'est jamais présumé le sien : dire qu'un second cerveau porte déjà ce nom sur l'ordinateur, sans le décrire d'après son contenu, et demander s'il faut le reprendre ou choisir un autre nom (`cortex-1-cadrage/references/doctrine.md` §11).
+Question ouverte, sans option : la personne écrit le nom elle-même. Aucun nom ne se propose depuis le compte Claude du poste, son adresse, le nom d'utilisateur de l'ordinateur ou le dossier personnel : sur le poste d'un consultant, ce serait le sien. Aucun atelier existant ne se propose en option. Seul se reconnaît l'atelier dont la personne donne le nom : `~/Cortex/<slug>/` testé pour ce nom, rien d'autre. S'il existe, il n'est jamais présumé le sien : dire qu'un second cerveau porte déjà ce nom sur l'ordinateur, sans le décrire d'après son contenu, et demander s'il faut le reprendre ou choisir un autre nom (`cortex-1-cadrage/references/doctrine.md` §11).
 
 La réponse, en minuscules, devient `<slug>`. Si `~/Cortex/<slug>/_cortex/poste.json` existe déjà avec `notice_ouverte_le` renseigné, le maillon est fait pour cet atelier : le dire, proposer de rouvrir la notice, et s'arrêter. L'atelier vit dans `~/Cortex/<slug>/_cortex/`, hors de tout dossier synchronisé. Le slug est `organisation.code` : `poste.py` l'écrit dans `config.yaml` et dans `poste.json`, et c'est lui que reprendront `_export/<slug>/`, le dépôt `cortex-<slug>` et `federation.yaml`. Le maillon 1 y trouvera `config.yaml` avec le bloc `poste` déjà écrit.
 
@@ -60,7 +60,7 @@ Avant toute question, présenter chaque outil manquant en deux ou trois phrases 
 | buzz | transcrire vos enregistrements audio |
 | graphify | dessiner la carte d'un gros dossier de documents ou d'un dépôt de code, jamais du second cerveau lui-même |
 
-Puis une seule question fermée (AskUserQuestion, choix multiples, un outil par option, les indispensables pré-cochés : `markitdown`, `obsidian`, `uv`, `git`, `gh` ; `buzz`, `github-desktop` et `graphify` selon ce que la personne a dit d'elle). **Le choix vaut accord** : dès la réponse, lancer l'installation des outils cochés, sans seconde confirmation.
+Puis une seule question fermée (AskUserQuestion, choix multiples, un outil par option, les indispensables pré-cochés : `markitdown`, `obsidian`, `uv`, `git`, `gh` ; `buzz`, `github-desktop` et `graphify` selon ce que la personne a dit d'elle). Chaque option porte un libellé en langage ordinaire (« Lecteur de notes (Obsidian) », « Voir l'historique sans terminal (GitHub Desktop) »), jamais l'identifiant du script, et la question porte une option « Aucun ». « Aucun » coché : rien ne s'installe, le maillon continue. **Le choix vaut accord** : dès la réponse, lancer l'installation des outils cochés, sans seconde confirmation.
 
     python3 "${CLAUDE_SKILL_DIR}/scripts/poste.py" --installer obsidian,markitdown,graphify --atelier ~/Cortex/<slug>/_cortex
 
@@ -71,13 +71,15 @@ Ensuite, deux gestes qui demandent la personne :
 - **Les core plugins du lecteur de notes.** Bases, Daily notes, Templates, Graph, Properties. Ils s'activent dans les réglages du lecteur, une fois le second cerveau installé : le dire ici en ces mots, ne rien faire maintenant.
 - **`gh auth login`.** Si `gh` est présent et non connecté, proposer de lancer la connexion dans le terminal. C'est la personne qui se connecte dans son navigateur, jamais le script. Sans compte, la sauvegarde en ligne attendra l'installation du second cerveau : le noter, continuer. Une connexion illisible d'ici (`connecte: null`) n'est pas une connexion expirée : la dire « à vérifier », et donner la commande de connexion dans le même message, sans question de plus : la personne la lance si elle ne l'a pas faite.
 
-Proposer enfin, sans insister, les options que le script n'installe pas : dictée vocale (`wispr-flow`, `superwhisper`) et prise de notes de réunion (`noota`), chacune depuis le site de l'éditeur. Ce que la personne retient part dans `--options` au §4, et `options_proposees` vaut exactement cette liste. Une réponse « aucune » ou un silence : pas de `--options`, la liste reste vide.
+Proposer enfin, sans insister, les options que le script n'installe pas : dictée vocale (`wispr-flow`, `superwhisper`) et prise de notes de réunion (`noota`), chacune depuis le site de l'éditeur. Même règle : libellés ordinaires (« Dictée vocale (Wispr Flow) »), et une option « Aucune ». Ce que la personne retient part dans `--options` au §4, et `options_proposees` vaut exactement cette liste. Une réponse « aucune » ou un silence : pas de `--options`, la liste reste vide.
 
 ## 3. Brancher le mail
 
 Une question, en langage ordinaire :
 
 > « Quelle adresse utilisez-vous pour le travail ? »
+
+Question ouverte, comme le nom court : aucune adresse ne se propose, ni celle du compte Claude du poste, ni une adresse déduite du nom donné.
 
 Puis :
 
@@ -130,6 +132,7 @@ Forme `~` pour tout chemin, jamais un chemin absolu. Le bloc `poste` est le miro
 - **Ne jamais écrire une voie mail qui installe sans accord.** `--voie softeria` ou `--voie mcp-email` ne part qu'après un oui à la question qui dit ce qu'elles posent ; un refus écrit `--voie aucune`.
 - **Ne jamais dire « absent » d'un outil « à vérifier »**, ni proposer de modifier un script, le `PATH` ou la configuration du shell.
 - **Ne jamais présumer qu'un atelier existant est celui de la personne.** Le nom court se demande, toujours.
+- **Ne jamais proposer un nom court ni une adresse** tirés du compte Claude du poste ou de l'ordinateur. Les deux se demandent par question ouverte.
 - **Ne jamais lire la messagerie ici.** Le MX est une requête DNS sur le domaine, pas une lecture de courrier.
 - **Ne jamais se connecter à un compte à la place de la personne** (`gh auth login`, connecteurs, éditeurs d'options).
 - **Ne jamais écrire hors de `~/Cortex/<slug>/_cortex/`.** Le poste se mesure, il ne se range pas.

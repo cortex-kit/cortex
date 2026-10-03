@@ -90,9 +90,17 @@ def plat(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
-def mots(texte):
-    """Mots-signaux d'un texte : au moins 4 lettres, hors mots vides."""
-    return [m for m in re.findall(r"[a-z]{4,}", plat(texte).replace("-", " ")) if m not in VIDES]
+def mots(texte, sigles=False):
+    """Mots-signaux d'un texte : au moins 4 lettres, hors mots vides.
+
+    Avec `sigles`, pour un nom de fichier ou de dossier, garde aussi les sigles
+    de 2 ou 3 capitales : « PLU Lyon 2026 synthese.pdf » rendait lyon et
+    synthese, jamais plu (H2, lane C). Pas pour le texte extrait, où les
+    sigles sont du bruit (PDF, TVA)."""
+    vus = [m for m in re.findall(r"[a-z]{4,}", plat(texte).replace("-", " ")) if m not in VIDES]
+    if sigles:
+        vus += [s.lower() for s in re.findall(r"(?<![A-Za-z])[A-Z]{2,3}(?![A-Za-z])", texte)]
+    return vus
 
 
 def date(ts):
@@ -270,7 +278,7 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
                     mtimes.append(e.stat().st_mtime)
                 except OSError:
                     continue
-                sig.update(mots(Path(e.name).stem))
+                sig.update(mots(Path(e.name).stem, sigles=True))
                 if signal_base(e.name):
                     bases.append(e.name)
                 type_ = candidat_structurant(e.name, types_structurants)
@@ -281,7 +289,7 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
                         sig.update(mots(extracteur.texte(Path(e.path))))
                     else:
                         bornes["depassement"] = True
-            sig.update(mots(dossier.name))
+            sig.update(mots(dossier.name, sigles=True))
             rel = dossier.relative_to(racine)
             entree = {
                 "source_id": "-".join(x for x in (prefixe, plat(str(rel)) if str(rel) != "." else "") if x),
@@ -475,6 +483,12 @@ def _autotest():
         assert {e["type"] for e in inv["ecarts_candidats"]} == {"base_deportee_non_declaree", "depot_non_declare"}
         assert next(e for e in inv["disque"] if e["profondeur"] == 0)["fichiers_arbre"] == 4
         assert inv["mail"]["voie"] == "aucune" and inv["mail"]["plafond"] == PLAFOND_MAIL
+        # H2 : un sigle du nom de fichier est un mot-signal (« PLU » au maillon 3).
+        plu = Path(tmp) / "Foncier"
+        plu.mkdir()
+        (plu / "PLU Lyon 2026 synthese.pdf").write_bytes(b"x")
+        mots_plu = inventaire(conf, [str(plu)], Extracteur(actif=False))["disque"][0]["signal_ontologique"]["mots"]
+        assert "plu" in mots_plu and "lyon" in mots_plu, mots_plu
         sortie = Path(tmp) / "inv.json"
         ecrire(inv, sortie)
         assert json.loads(sortie.read_text())["version"] == 2

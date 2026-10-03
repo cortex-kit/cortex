@@ -86,6 +86,12 @@ Contraintes non négociables, les mêmes que pour les deux agents génériques :
 - **Il cite ses sources** : page, section, chemin. Une extraction sans source est invérifiable, donc inexploitable.
 - **Un champ absent se déclare absent.** Jamais une valeur plausible : dans une extraction, une valeur inventée est indistinguable d'une valeur lue, et c'est le seul défaut qui contamine toutes les autres.
 
+L'agent écrit s'enregistre dans l'historique du vault par son script, jamais par `git commit`, qui porterait les lignes d'attribution de la session :
+
+```bash
+python3 "<vault>/.claude/skills/cloture/cloture.py" --vault "<vault>" --message "Assistant <nom>" ".claude/agents/<nom>.md"
+```
+
 ## 4. Tester sur du réel
 
 Faire tourner l'agent sur **trois documents réels**, et vérifier chaque champ à la main.
@@ -138,6 +144,8 @@ Sa condition d'entrée : tous les jalons précédents au vert —
 
 Quand vous voulez continuer, dites « prépare la remise ».
 ```
+
+Le récapitulatif se dit dans les mots de la personne (`cortex-1-cadrage/references/doctrine.md` §8) : ni nom de skill ou de script, ni statut d'atelier. Un assistant qui n'a pas pu être testé se dit en clair (« l'assistant n'est pas écrit : les documents disponibles sont vides, le test sur trois documents réels n'a pas pu se faire »), jamais « le contrôle est marqué arbitré ».
 
 S'il manque un jalon, c'est-à-dire un fichier d'atelier ni validé ni arbitré, s'arrêter et dire lequel : le maillon 7 le refuserait de toute façon en étape 0.
 
