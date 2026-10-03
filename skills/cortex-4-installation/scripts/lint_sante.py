@@ -35,6 +35,7 @@ import json
 import re
 import subprocess
 import sys
+import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 
@@ -337,7 +338,10 @@ def lint(vault, conf):
 
     # Toutes les notes du vault, y compris celles qu'on n'audite pas : une note
     # ignoree reste une cible de lien parfaitement legitime.
-    notes_existantes = {p.stem for p in vault.rglob("*.md")
+    # NFC des deux côtés : un nom de fichier synchronisé arrive souvent décomposé
+    # (é = e + accent), le lien tapé dans la note composé. Sans cela, tout lien
+    # accentué vers un tel fichier se déclarait cassé.
+    notes_existantes = {unicodedata.normalize("NFC", p.stem) for p in vault.rglob("*.md")
                         if p.is_file() and ".git" not in p.parts}
 
     # Avant d'auditer les notes, auditer le contrat qui les regit : un vault
@@ -417,7 +421,7 @@ def lint(vault, conf):
         # de ce controle un vault fraichement installe pouvait etre livre avec
         # des liens morts depuis Centre.md sans que rien ne le signale.
         for cible in liens_sortants(body) + liens_sortants(str(fm.get("domaine") or "")):
-            nom = cible.split("#")[0].strip()
+            nom = unicodedata.normalize("NFC", cible.split("#")[0].strip())
             if nom and nom not in notes_existantes:
                 f["liens_casses"].append({"file": str(rel), "vers": nom})
 
@@ -761,6 +765,12 @@ def _autotest():
         assert faux["phase_hors_enum"], "l'alias mal écrit n'est pas appliqué"
         faux = lint(v, dict(conf, alias={"cylce": "nature"}))
         assert any(e.startswith("alias.cylce") for e in faux["contrat_config_invalide"]), faux
+        # Un fichier au nom décomposé (NFD) reste la cible d'un lien composé (NFC).
+        (v / unicodedata.normalize("NFD", "Société.md")).write_text("---\ntype: hub\n---\n# S\n", encoding="utf-8")
+        (v / "Ops.md").write_text("---\ntype: hub\n---\n# Ops\n\n[[" + unicodedata.normalize("NFC", "Société")
+                                  + "]] [[Absente]]\n", encoding="utf-8")
+        vus = [x["vers"] for x in lint(v, conf)["liens_casses"]]
+        assert vus == ["Absente"], vus
     print("OK lint_sante.py : vault adopté (alias lus, alias mal écrit signalé), structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, "
           "lettre de lecteur, empreinte du commun")
     return 0
