@@ -27,13 +27,13 @@ Il répond à quatre questions, dans cet ordre :
 
 **« Qu'est-ce que c'est ? »** — La mémoire longue et le pilotage léger de l'organisation. Il pointe, il ne stocke pas. Ce qu'il n'est pas : un wiki d'équipe, un gestionnaire de tâches, un espace de stockage, un double du substrat métier.
 
-**« Qu'est-ce que je fais tous les jours ? »** — Une chose : lancer `cloture` à la fin de chaque bloc de travail. Trois à dix fois par jour, moins de trente secondes.
+**« Qu'est-ce que je fais tous les jours ? »** — Une chose : dire « clôture » à la fin de chaque bloc de travail. Trois à dix fois par jour, moins de trente secondes.
 
 C'est le seul geste qui compte, et c'est celui sur lequel tout repose. Un vault sans clôture se remplit une fois, à l'installation, puis meurt — personne ne retourne écrire ce qui s'est décidé. Le dire ainsi, sans l'enrober.
 
 **« Qu'est-ce que je fais de temps en temps ? »** — `nouveau-projet` quand un projet démarre, `ingest` quand une source vaut d'être gardée, `lint` une fois par mois et avant toute reprise après absence, `parle` pour poser une question et obtenir une réponse qui cite, `bilan` quand le hook le propose (J+7, J+30) ou à la demande.
 
-**« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault.
+**« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault. Et, pour l'assistant, une phrase écrite telle quelle : « ne jamais se déplacer dans un dossier de travail avec `cd`, le harnais y laisse une trace ; nommer le dossier en entier ».
 
 **Sous Windows natif, une limite de plus, écrite dans le guide.** `os: windows` dans `_cortex/poste.json` : le guide le dit en clair. Sous Windows sans WSL2, les commandes que lance l'assistant ne sont pas confinées au vault ; seules les règles de lecture et d'édition protègent les dossiers de travail. Pour un poste qui porte des données sensibles, recommander Claude Code dans WSL2 (le sous-système Linux de Windows), où le confinement s'applique. L'installation n'en est pas bloquée.
 
@@ -49,6 +49,13 @@ L'ordre est le livrable — il va du général au particulier sans jamais faire 
 4. `Centre`, section « quoi regarder » — l'état courant.
 
 Ne jamais commencer par la liste des projets. Un état lu sans les décisions qui l'ont produit se comprend de travers, et on refait des arbitrages déjà tranchés.
+
+Le guide et la fiche de reprise s'enregistrent dans l'historique du vault par son script, jamais par `git commit` :
+
+```bash
+python3 "<vault>/.claude/skills/cloture/cloture.py" --vault "<vault>" --message "Remise : guide d'usage et reprise" \
+    "90 - Meta/Guide d'usage.md" "90 - Meta/Reprise.md"
+```
 
 ## 3. La recette d'acceptation — mécanique
 
@@ -72,6 +79,9 @@ grep -rwiE "$M" "$V"                                                  # attendu 
 #    notes. Les objets de .git sont compressés, le grep ci-dessus ne les lit
 #    pas. Phase H : l'identité git du consultant signait les commits du vault.
 git -C "$V" log --all -p --format='%an %ae %cn %ce %B' | grep -wiE "$M"   # attendu : vide
+#    Aucune ligne d'attribution de session : elle lie le vault à la session
+#    de qui l'a installé (H2). Les commits passent par cloture.py, qui les retire.
+git -C "$V" log --all --format=%B | grep -iE "co-authored-by|claude-session|claude\.ai/code"   # attendu : vide
 
 # 2. Transmissibilité
 grep -rE "/Users/|/home/|[A-Z]:\\\\" "$V" --include='*.md'            # attendu : vide
@@ -88,7 +98,7 @@ test ! -f "$V/.obsidian/community-plugins.json"
 # 6. Pointeurs vivants : trois au hasard, vérifiés à la main
 ```
 
-**Le contrôle 1 est bloquant et sans exception.** Il attrape les marques et les outils du consultant restés dans le vault livré : ce n'est pas un défaut de finition, c'est une fuite, et elle ne se rattrape pas après remise. Le nom d'un autre client ne figure pas dans sa liste (`cortex-1-cadrage/references/doctrine.md` §11) : il reste dehors par la lecture bornée (§9), pas par ce contrôle. Une trace dans l'historique git se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
+**Le contrôle 1 est bloquant et sans exception.** Il attrape les marques et les outils du consultant restés dans le vault livré : ce n'est pas un défaut de finition, c'est une fuite, et elle ne se rattrape pas après remise. Le nom d'un autre client ne figure pas dans sa liste (`cortex-1-cadrage/references/doctrine.md` §11) : il reste dehors par la lecture bornée (§9), pas par ce contrôle. Une trace dans l'historique git, marque ou ligne d'attribution de session, se corrige avant la remise : réécrire les commits concernés sous l'identité locale du vault, sans ces lignes, puis, si un dépôt distant existe déjà, le dire au consultant, qui décide du push forcé.
 
 **Le contrôle 6 est le seul manuel, et il est irremplaçable.** Le lint vérifie qu'un pointeur est présent, jamais qu'il mène quelque part. Un pointeur faux est invisible pour la machine et ne se découvre qu'à l'usage, des semaines plus tard, au pire moment.
 

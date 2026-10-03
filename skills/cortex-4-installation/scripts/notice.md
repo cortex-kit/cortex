@@ -45,8 +45,8 @@ s'arrête si quelque chose manque.
   bases et vos dépôts, sans rien lire en profondeur. Si vous l'avez autorisé,
   il regarde aussi qui vous écrit le plus, par en-têtes seulement.
 - **3. Ontologie.** Vos grandes familles d'activité. L'outil compare ce que
-  vous avez dit à ce qu'il a vu, pose une question par écart, et vous
-  confirmez la carte.
+  vous avez dit à ce qu'il a vu, pose une question sur chaque point à
+  éclaircir, et vous confirmez la carte.
 - **4. Installation.** Le second cerveau est créé, vide et sain. Cette étape ne
   laisse pas de fichier de suivi : son résultat est le dossier lui-même, et sa
   preuve un contrôle de santé qui sort sans erreur.

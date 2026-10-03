@@ -27,6 +27,8 @@ Trois acteurs se partagent le travail :
 2. `_cortex/poste.json` présent (maillon 0) : il donne la voie mail.
 3. **Chaque substrat déclaré répond.** Tester l'accès avant de commencer : chaque racine existe, chaque connecteur répond à une requête vide.
 
+Un outil que le cadrage a noté utilisé par ses exports, sans adresse, répond par ses exports dans les racines déclarées : il ne bloque pas, il se relève par ces exports à l'étape 3, et son traitement ne se redemande pas (`cortex-1-cadrage/references/doctrine.md` §11).
+
 Si un substrat ne répond pas : **s'arrêter et le dire.** Ne pas inventorier les autres « en attendant ». Un inventaire partiel est pire qu'absent : le maillon 3 déduirait une ontologie d'un corpus troué en le croyant complet, et le trou deviendrait un domaine oublié.
 
 Lire la clé `conduite` du `config.yaml` : absente, elle vaut `consultant`. Dans les deux modes, l'adresse se fait dans les mots de la personne (« vos dossiers », jamais « les substrats du client », `cortex-1-cadrage/references/doctrine.md` §8). En `solo`, le fond ne change pas ; seul le message de clôture change, il propose la suite au lieu de rendre la main.
@@ -44,7 +46,7 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/scan.py" --config <vault>/config.yaml --out
 `--racine <dossier>` (répétable) remplace `collecte.racines` pour un rejeu ciblé. Le script :
 
 - parcourt chaque racine jusqu'à `collecte.profondeur_arbre`, au plus `collecte.max_dossiers` dossiers, en ignorant les dossiers cachés ;
-- écrit une entrée `disque` par dossier : chemin en forme `~`, profondeur, fichiers directs et dans le sous-arbre, sous-dossiers, extensions comptées, première et dernière modification, `depot_git`, `signal_ontologique` (mots des noms de dossiers et de fichiers, candidats structurants), `signaux_base_deportee` ;
+- écrit une entrée `disque` par dossier : chemin en forme `~`, profondeur, fichiers directs et dans le sous-arbre, sous-dossiers, extensions comptées, première et dernière modification, `depot_git`, `signal_ontologique` (mots des noms de dossiers et de fichiers, sigles de deux ou trois capitales compris, candidats structurants), `signaux_base_deportee` ;
 - écrit une entrée `depots` par dossier `.git` : langages par extensions, dernier commit, vingt premières lignes du README, `graphify_propose` vrai pour les seuls dépôts qui portent du code ;
 - extrait le texte des candidats structurants (nom qui porte organigramme, process, contrat, fiche de poste, cahier des charges, cadrage) par `uvx --from "markitdown[all]" markitdown` s'il est présent, au plus 64 Kio par fichier et 2 Mio au total, jusqu'à `collecte.max_extractions` fichiers (quarante par défaut ; `sante.max_structurants` est le plafond de copie du maillon 5, pas celui-ci). Seuls des mots comptés en sortent ; le texte n'est jamais écrit ;
 - mesure `bornes` en entiers : `profondeur_max_vue`, `dossiers_vus`, `fichiers_vus`, `octets_extraits`, `dossiers_au_dela`, `extractions`, rappel de `profondeur_arbre` et `max_dossiers`, et `depassement` dès qu'un dossier n'a pas été parcouru ;
@@ -86,7 +88,7 @@ Ce que l'agent dérive, et rien d'autre :
 
 ## Étape 3 : `bases`, `agenda`, `resume`
 
-**Bases.** Deux sources : `substrats.base_projets` du `config.yaml` (déclarée), et les `signaux_base_deportee` du scan (exports csv d'outils, fichiers `.base`, liens vers un outil). Pour chaque base qui répond, relever le **schéma seul** : titre, noms de propriétés, options des listes déroulantes, volume, dernière mise à jour. Jamais le corps des pages. Les schémas sont le meilleur signal de toute la chaîne : un vocabulaire déjà curé par la personne.
+**Bases.** Deux sources : `substrats.base_projets` du `config.yaml` (déclarée), et les `signaux_base_deportee` du scan (exports csv d'outils, fichiers `.base`, liens vers un outil). Une base que la personne a dite utilisée par ses exports se relève par ces exports (colonnes, volume, date), sans question sur la façon de la traiter : sa réponse au cadrage l'a tranchée. Pour chaque base qui répond, relever le **schéma seul** : titre, noms de propriétés, options des listes déroulantes, volume, dernière mise à jour. Jamais le corps des pages. Les schémas sont le meilleur signal de toute la chaîne : un vocabulaire déjà curé par la personne.
 
 **Agenda.** Titres des réunions **récurrentes** seulement, avec récurrence et nombre d'occurrences. Ce qui se pilote toutes les semaines est un domaine, quoi qu'en dise l'organigramme.
 

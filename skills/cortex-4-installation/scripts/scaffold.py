@@ -54,17 +54,17 @@ def ignorable(src):
     return "__pycache__" in src.parts or src.suffix in (".pyc", ".pyo")
 
 # Contrat 04 §9, amende le 2026-09-19 par le chef d'orchestre : lecture seule
-# sur les racines, les quatre gestes de la cloture (add, commit, push, export)
-# pour qu'une cloture de novice ne demande aucune permission, et le
-# rafraichissement d'un structurant perime, qui est du meme registre : un geste
-# de routine propose par le lint, `cloture`, `parle` et `bilan`.
+# sur les racines, les deux scripts de la cloture (export, puis cloture.py qui
+# fait add, commit et push) pour qu'une cloture de novice ne demande aucune
+# permission, et le rafraichissement d'un structurant perime, qui est du meme
+# registre : un geste de routine propose par le lint, `cloture`, `parle` et `bilan`.
 ALLOW = [
     "Read", "Glob", "Grep",
     "Bash(python3 .claude/skills/lint/lint_sante.py:*)",
     "Bash(python3 .claude/skills/cloture/export.py:*)",
+    "Bash(python3 .claude/skills/cloture/cloture.py:*)",
     "Bash(python3 .claude/skills/ingest/copie_structurant.py:*)",
     "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
-    "Bash(git add:*)", "Bash(git commit:*)", "Bash(git push:*)",
     "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)",
     "Bash(file:*)", "Bash(du:*)",
 ]
@@ -128,7 +128,10 @@ def settings_json(conf, plateforme=None):
         if reel != os.path.abspath(os.path.expanduser(r)):
             formes.append(forme_tilde(reel))
     s = {
-        "permissions": {"allow": list(ALLOW), "deny": [f"Edit({r}/**)" for r in formes],
+        # H2 lane C : un `git commit` tapé par l'assistant porte les lignes
+        # d'attribution de la session du consultant ; le vault commite par
+        # cloture.py, qui les retire.
+        "permissions": {"allow": list(ALLOW), "deny": [f"Edit({r}/**)" for r in formes] + ["Bash(git commit:*)"],
                         "additionalDirectories": formes},
         "hooks": HOOKS,
     }
@@ -434,9 +437,12 @@ def depot_prive(dest, slug, executer):
     a déjà l'annulation et l'historique, le dépôt distant n'ajoute que la
     sauvegarde hors poste.
     """
-    cmd = ["gh", "repo", "create", slug, "--private", "--source", ".", "--push"]
+    # Le chemin du vault en entier, jamais `cd` : le harnais de Claude Code laisse
+    # `.claude/.cc-writes` dans tout dossier où une commande entre par `cd` (H2).
+    cmd = ["gh", "repo", "create", slug, "--private", "--source", str(dest), "--push"]
     if not executer:
-        print(f"→ Dépôt privé (sur accord, jamais imposé) : cd \"{dest}\" && {' '.join(cmd)}")
+        print(f"→ Dépôt privé (sur accord, jamais imposé) : gh repo create {slug} --private "
+              f"--source \"{dest}\" --push")
         return
     try:
         subprocess.run(cmd, cwd=dest, check=True)
@@ -616,7 +622,7 @@ def main():
           f"mode {conf.get('mode')}, 0 moustache residuelle")
     racines = racines_collecte(conf)
     print(f"✎ settings.json : {len(racines)} racine(s) en lecture seule, "
-          f"{len(racines)} regle(s) deny, 2 hooks")
+          f"{len(racines) + 1} regle(s) deny (dont git commit), 2 hooks")
     if git_ok:
         depot_prive(dest, "cortex-" + (conf.get("organisation") or {}).get("code", "vault"), a.depot_prive)
     print(f"→ Suite : python3 lint_sante.py --vault \"{dest}\"")
@@ -634,7 +640,8 @@ def _autotest():
     conf = {"collecte": {"racines": [home + "/Documents", "~/Desktop/Travail"]}}
     s = settings_json(conf)
     assert s["permissions"]["additionalDirectories"] == ["~/Documents", "~/Desktop/Travail"], s
-    assert s["permissions"]["deny"] == ["Edit(~/Documents/**)", "Edit(~/Desktop/Travail/**)"], s
+    assert s["permissions"]["deny"] == ["Edit(~/Documents/**)", "Edit(~/Desktop/Travail/**)",
+                                        "Bash(git commit:*)"], s
     assert s["permissions"]["allow"] == ALLOW
     assert set(s["hooks"]) == {"SessionStart", "Stop"}
     # Bash confiné : pas d'échappatoire, racines interdites, commun autorisé en fédéré.

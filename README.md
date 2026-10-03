@@ -1,6 +1,6 @@
 # Cortex
 
-Un second cerveau installé chez vous, en français, par une chaîne de maillons guidés.
+Un second cerveau installé chez vous, en français, par une suite d'étapes guidées. Version 2.0.0.
 
 ## Trois gestes
 

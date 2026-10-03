@@ -52,7 +52,7 @@ Il crée l'arborescence, substitue les moustaches, **instancie une note par doma
 
 ### Les permissions : lire les dossiers de travail, n'y écrire jamais
 
-`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et une règle `deny` `Edit(<racine>/**)`, qui couvre tous les outils d'écriture ; Claude Code ignore une règle `Write(...)`. Les règles ne voient pas ce que Bash lance : hors Windows, un bloc `sandbox` sans échappatoire (`allowUnsandboxedCommands: false`) confine Bash au vault, les racines en `denyWrite`, le commun seul en `allowWrite` en mode fédéré, le réseau limité à `github.com` pour le push. La liste `allow` porte la lecture (`Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`) et les quatre gestes de la clôture (`git add`, `git commit`, `git push`, `export.py`), pour qu'une clôture ne demande aucune permission. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
+`.claude/settings.json` est **généré**, pas copié : il dépend de `collecte.racines`. Pour chaque racine, une entrée `additionalDirectories` (lecture) et une règle `deny` `Edit(<racine>/**)`, qui couvre tous les outils d'écriture ; Claude Code ignore une règle `Write(...)`. Les règles ne voient pas ce que Bash lance : hors Windows, un bloc `sandbox` sans échappatoire (`allowUnsandboxedCommands: false`) confine Bash au vault, les racines en `denyWrite`, le commun seul en `allowWrite` en mode fédéré, le réseau limité à `github.com` pour le push. La liste `allow` porte la lecture (`Read`, `Glob`, `Grep`, le lint, `git status`, `git diff`, `git log`, `find`, `wc`, `ls`, `head`, `file`, `du`) et les deux scripts de la clôture (`export.py`, puis `cloture.py`, qui ajoute, commite et pousse), pour qu'une clôture ne demande aucune permission. `git commit` tapé par l'assistant est refusé (`deny`) : il porterait les lignes d'attribution de la session qui installe, `cloture.py` commite sous l'identité du vault et les retire. Aucun bypass, jamais : l'agent lit les affaires de la personne, il ne les touche pas.
 
 Une config v1 sans `collecte.racines` retombe sur `chemins.dossiers_projets`, la seule racine qu'elle connaît.
 
@@ -65,7 +65,7 @@ Deux, dans le même `settings.json`, en scripts Python du vault (`.claude/hooks/
 Après `git init`, le script affiche la commande et s'arrête là :
 
 ```bash
-cd "<vault>" && gh repo create cortex-<slug> --private --source . --push
+gh repo create cortex-<slug> --private --source "<vault>" --push
 ```
 
 Le `<slug>` est `organisation.code` du `config.yaml`, demandé au maillon 0 et jamais redemandé. Le même sert à `~/Cortex/<slug>/`, à `_export/<slug>/` et à l'entrée du membre dans `federation.yaml`.
@@ -108,7 +108,7 @@ python3 "<vault>/.claude/skills/lint/lint_sante.py" --vault "<vault>"  # attendu
 grep -c '"deny"' "<vault>/.claude/settings.json"                       # attendu : 1
 ```
 
-Le contrôle vivant des permissions, depuis le vault : `claude -p "compte les fichiers de <racine>" --output-format json` rend `permission_denials` vide ; `claude -p "écris un fichier x dans <racine>/y" --output-format json` rend un refus. Le premier prouve la lecture, le second prouve le refus d'écriture.
+Le contrôle vivant des permissions, depuis le vault : `claude -p "compte les fichiers de <racine> avec find \"<racine>\" -type f, sans cd" --output-format json` rend `permission_denials` vide ; `claude -p "écris un fichier x dans <racine>/y" --output-format json` rend un refus. Le premier prouve la lecture, le second prouve le refus d'écriture. Aucune commande ne se déplace dans une racine : dès qu'une commande y entre par `cd`, le harnais de Claude Code y crée `.claude/.cc-writes`, et sur un dossier synchronisé ce dossier part chez toute l'équipe. Une commande nomme la racine en entier (`find "<racine>" …`, `ls "<racine>"`).
 
 Le second contrôle doit être lancé **depuis le vault du client**, pas depuis ce skill : c'est ce qui prouve qu'il est autonome et ne dépend de rien sur la machine du consultant.
 
@@ -126,7 +126,7 @@ Le vault de <organisation> est installé.
 
 Pour toi :
 1. Ouvre le vault et parcours [[Centre]].
-2. Fais tourner `cloture` sur une vraie session, trois fois.
+2. Dis « clôture » à la fin de trois vraies séances de travail.
 3. Quand c'est fluide, dis « remplis mon second cerveau » pour y verser l'inventaire.
 
 Ne peuple pas le vault à la main avant l'étape 3 : le remplissage
@@ -152,6 +152,8 @@ encore vide. N'y écrivez rien à la main avant le remplissage.
 
 Quand vous voulez continuer, dites « remplis mon second cerveau ».
 ```
+
+Le récapitulatif se dit dans les mots de la personne (`cortex-1-cadrage/references/doctrine.md` §8) : « l'installation », jamais « le scaffold » ; « dites « clôture » », jamais le nom d'une skill ou d'un script. Une limite du kit lui-même ne devient pas une question à la personne : elle n'a pas à corriger l'outil.
 
 ## Interdits
 
