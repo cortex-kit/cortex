@@ -67,7 +67,7 @@ Une cinquième opération est **transversale** : la clôture. Ce n'est pas une c
    │  99 - Inbox/      captures à trier                       │
    │                                                          │
    │  config.yaml      LE seul fichier qui varie par client   │
-   │  .claude/         6 skills + 2 sous-agents               │
+   │  .claude/         8 skills + 2 sous-agents               │
    └──────────────────────────┬───────────────────────────────┘
                               │
                               │ skill `cloture`, 3 à 10 fois par jour

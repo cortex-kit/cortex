@@ -296,7 +296,7 @@ sante:
   max_structurants: 40
   jours_sans_cloture_alerte: 7
 agents:
-  skills: [cloture, nouveau-projet, ingest, lint, parle, bilan]
+  skills: [cloture, nouveau-projet, ingest, lint, parle, bilan, agenda, miroir]
   sousagents: [chercheur-vault, auditeur-ontologie]
   metier: []
   hooks: [session-start, stop]
@@ -989,6 +989,14 @@ def c4_couche_vault(tmp, configs):
                             capture_output=True, text=True, timeout=120, env=dict(os.environ, CLAUDE_PROJECT_DIR=str(vault)))
     verifie("H2 : stop.py --autotest lancé hors du vault sort en 0", r_stop.returncode == 0,
             (r_stop.stderr or r_stop.stdout)[:200])
+    for nom in ("agenda", "miroir"):
+        script = vault / ".claude" / "skills" / nom / f"{nom}.py"
+        r_s = lancer(script, "--autotest") if script.is_file() else None
+        verifie(f"{nom}.py est livré et son --autotest sort en 0",
+                r_s is not None and r_s.returncode == 0, "absent" if r_s is None else (r_s.stderr or r_s.stdout)[:200])
+    verifie("agenda et miroir se lancent sans permission (allow)",
+            all(f"Bash(python3 .claude/skills/{n}/{n}.py:*)" in allow for n in ("agenda", "miroir")), str(allow))
+    verifie("session_start.py affiche l'agenda en bref", "agenda.py" in src_ss and "--bref" in src_ss)
     skills_livrees = {p.name for p in (vault / ".claude" / "skills").iterdir() if p.is_dir()} \
         if (vault / ".claude" / "skills").is_dir() else set()
     attendues = set((conf.get("agents") or {}).get("skills") or [])

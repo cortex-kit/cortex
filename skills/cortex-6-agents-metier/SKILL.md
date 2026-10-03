@@ -39,7 +39,7 @@ C'est la partie la plus utile de ce maillon. Tout client demande des agents, et 
 2. Le lint sort en 0.
 3. Au moins un besoin identifié au cadrage ou constaté à l'ingest.
 
-Si aucun besoin ne passe le test à trois conditions : **livrer zéro agent métier et le dire.** Le kit générique — six skills et deux sous-agents — couvre l'usage courant. Zéro est un résultat valide, et souvent le bon.
+Si aucun besoin ne passe le test à trois conditions : **livrer zéro agent métier et le dire.** Le kit générique — huit skills et deux sous-agents — couvre l'usage courant. Zéro est un résultat valide, et souvent le bon.
 
 **Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, la réponse honnête au test des trois conditions est le plus souvent « pas encore » : un agent sur mesure se conçoit sur des répétitions observées, et quelqu'un qui vient d'installer son outil n'en a encore aucune. Le dire comme un rendez-vous, jamais comme un refus : « Aucun geste ne s'est encore répété dans votre outil — c'est normal, il vient d'être rempli. Travaillez avec pendant trois semaines ; si une même corvée revient chaque semaine sur un même type de document, revenez me le dire : c'est exactement ce qu'un assistant sur mesure sait absorber. » Ce maillon se relance à tout moment ; passer au maillon 7 n'y ferme aucune porte.
 

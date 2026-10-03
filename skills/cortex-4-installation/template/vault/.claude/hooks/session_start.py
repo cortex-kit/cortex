@@ -3,7 +3,8 @@
 
 Trois lignes au plus, dans le contexte de la session :
   1. le lint en bref (contrôles durs, dette, dernière clôture trop ancienne) ;
-  2. la proposition de `bilan` à J+7 et J+30 de la remise, lue dans
+  2. l'agenda en bref (cases en retard, du jour, des sept prochains jours) ;
+  3. la proposition de `bilan` à J+7 et J+30 de la remise, lue dans
      `_cortex/06-passation.md` (clé `remis_le`) quand l'atelier est dans le vault.
 
 Usage : python3 "${CLAUDE_PROJECT_DIR}/.claude/hooks/session_start.py" [--autotest]
@@ -58,6 +59,12 @@ def main():
         r = subprocess.run([sys.executable, str(lint), "--vault", ".", "--bref"],
                            capture_output=True, text=True, cwd=vault)
         print((r.stdout or r.stderr).strip())
+    agenda = vault / ".claude" / "skills" / "agenda" / "agenda.py"
+    if agenda.is_file():
+        r = subprocess.run([sys.executable, str(agenda), "--vault", ".", "--bref"],
+                           capture_output=True, text=True, cwd=vault)
+        if r.stdout.strip():
+            print(r.stdout.strip())
     f = fenetre_bilan(remis_le(vault))
     if f:
         print(f"Bilan {f} de la remise : dites « bilan » pour voir ce qui a vécu depuis.")

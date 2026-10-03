@@ -31,7 +31,7 @@ Il répond à quatre questions, dans cet ordre :
 
 C'est le seul geste qui compte, et c'est celui sur lequel tout repose. Un vault sans clôture se remplit une fois, à l'installation, puis meurt — personne ne retourne écrire ce qui s'est décidé. Le dire ainsi, sans l'enrober.
 
-**« Qu'est-ce que je fais de temps en temps ? »** — `nouveau-projet` quand un projet démarre, `ingest` quand une source vaut d'être gardée, `lint` une fois par mois et avant toute reprise après absence, `parle` pour poser une question et obtenir une réponse qui cite, `bilan` quand le hook le propose (J+7, J+30) ou à la demande.
+**« Qu'est-ce que je fais de temps en temps ? »** — `nouveau-projet` quand un projet démarre, `ingest` quand une source vaut d'être gardée, `lint` une fois par mois et avant toute reprise après absence, `parle` pour poser une question et obtenir une réponse qui cite, `bilan` quand le hook le propose (J+7, J+30) ou à la demande, `agenda` pour les cases datées (le point du matin), `miroir` pour recaler phases et statuts sur la base de projets quand elle existe.
 
 **« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault. Et, pour l'assistant, une phrase écrite telle quelle : « ne jamais se déplacer dans un dossier de travail avec `cd`, le harnais y laisse une trace ; nommer le dossier en entier ».
 
@@ -145,7 +145,7 @@ Vault remis à <organisation>.
 
 Recette : <N>/6 contrôles passés<, arbitrages : …>
 Livré : guide d'usage, fiche de reprise, runbook des 4 opérations
-        <N> notes, <M> domaines, 6 savoir-faire, <K> assistants, 2 automatismes
+        <N> notes, <M> domaines, 8 savoir-faire, <K> assistants, 2 automatismes
 Remise datée du <remis_le> : bilan proposé à J+7 et J+30.
 
 Pour toi :

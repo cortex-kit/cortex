@@ -134,7 +134,7 @@ sante:
 # encodent des règles de gestion qui changent, et un agent périmé qui répond
 # quand même est plus dangereux qu'un agent absent.
 agents:
-  skills: [cloture, nouveau-projet, ingest, lint, parle, bilan]
+  skills: [cloture, nouveau-projet, ingest, lint, parle, bilan, agenda, miroir]
   sousagents: [chercheur-vault, auditeur-ontologie]
   metier: []
   hooks: [session-start, stop]
@@ -146,6 +146,20 @@ agents:
 # ne désignait pas l'émetteur de la facture : le nom mentait. Ici : `payeur`.
 vehicules: []
 payeurs: []
+
+# ── OPTIONNEL — miroir descendant de la base de projets ────────────────────
+# La base fait foi pour la phase et le statut ; la skill `miroir` recale les
+# fiches, en sens unique, sur accord. Rien ne remonte jamais vers la base.
+# outil : notion | "" (pas de miroir). jeton : CHEMIN du fichier qui contient le
+# jeton d'intégration, jamais le jeton (le vault est versionné et synchronisé).
+# phase, statut : noms des propriétés à liste fermée dans la base.
+# miroir_statuts : une ligne par statut de la base, traduit en statut du vault.
+miroir:
+  outil: ""
+  jeton: ""
+  phase: ""
+  statut: ""
+miroir_statuts: []
 
 # ── OPTIONNEL — substrats externes. "" = absent chez ce client. ────────────
 # Aucun code du produit ne suppose la présence d'un substrat. Ce sont des

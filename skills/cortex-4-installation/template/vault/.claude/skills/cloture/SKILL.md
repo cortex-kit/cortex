@@ -22,6 +22,10 @@ C'est **la** skill du produit. Un vault sans clôture se remplit une fois, à l'
 
 Le vault a un `config.yaml` à sa racine. Sinon, s'arrêter et le dire : sans configuration, ni les enums ni les seuils ne sont connus, et toute écriture serait à l'aveugle.
 
+Si `config.yaml` porte un bloc `miroir` avec `outil` renseigné, lancer d'abord le constat du miroir (`python3 .claude/skills/miroir/miroir.py --vault .`) : une phase changée dans la base depuis la dernière clôture se recale avant le patch, sur accord, jamais dans l'autre sens.
+
+Une case de `## Actions` qui vient d'être faite se coche dans le patch du §4 ; une case échue qui ne sera pas faite se redate ou s'abandonne, sur accord. Une case échue laissée ouverte brouille l'agenda de tous les jours suivants.
+
 ## 1. Détecter les notes touchées
 
 Par ordre de fiabilité :

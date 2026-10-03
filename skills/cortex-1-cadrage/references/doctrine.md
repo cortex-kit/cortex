@@ -25,7 +25,7 @@ Ces mots ont un sens précis dans la chaîne. Les employer autrement devant un c
 | **cycle** | le vocabulaire de phases d'un type de projet. Les mots du client, pas les tiens |
 | **atelier** | `_cortex/`, le dossier de travail du consultant. Ne part jamais chez le client |
 | **white-label** | l'absence, dans le livrable, de ta marque et de tes outils internes. Les autres clients en restent dehors par la lecture bornée (§9), jamais par une liste qui les nommerait (§11) |
-| **kit générique** | les 6 skills et 2 sous-agents livrés par le maillon 4, identiques chez tous |
+| **kit générique** | les 8 skills et 2 sous-agents livrés par le maillon 4, identiques chez tous |
 | **agent métier** | un sous-agent sur mesure, conçu au maillon 6 sur un vault déjà peuplé, avec une date de péremption |
 
 ## 3. La chaîne, et pourquoi elle est coupée là

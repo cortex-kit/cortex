@@ -64,6 +64,8 @@ ALLOW = [
     "Bash(python3 .claude/skills/cloture/export.py:*)",
     "Bash(python3 .claude/skills/cloture/cloture.py:*)",
     "Bash(python3 .claude/skills/ingest/copie_structurant.py:*)",
+    "Bash(python3 .claude/skills/agenda/agenda.py:*)",
+    "Bash(python3 .claude/skills/miroir/miroir.py:*)",
     "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
     "Bash(find:*)", "Bash(wc:*)", "Bash(ls:*)", "Bash(head:*)",
     "Bash(file:*)", "Bash(du:*)",
@@ -146,7 +148,9 @@ def settings_json(conf, plateforme=None):
             "autoAllowBashIfSandboxed": False,
             "filesystem": {"denyWrite": formes,
                            "allowWrite": [forme_tilde(commun)] if commun else []},
-            "network": {"allowedDomains": ["github.com"]},
+            # Le miroir lit la base de projets : son domaine seul s'ajoute, et seulement s'il est configuré.
+            "network": {"allowedDomains": ["github.com"] + (
+                ["api.notion.com"] if (conf.get("miroir") or {}).get("outil") == "notion" else [])},
         }
     return s
 
@@ -651,6 +655,8 @@ def _autotest():
     assert sb["filesystem"] == {"denyWrite": ["~/Documents", "~/Desktop/Travail"],
                                 "allowWrite": ["~/Cortex/commun"]}, sb
     assert settings_json(conf, "darwin")["sandbox"]["filesystem"]["allowWrite"] == []
+    assert settings_json(conf, "darwin")["sandbox"]["network"]["allowedDomains"] == ["github.com"]
+    assert "api.notion.com" in settings_json(dict(conf, miroir={"outil": "notion"}), "darwin")["sandbox"]["network"]["allowedDomains"]
     assert "sandbox" not in settings_json(conf, "win32")
     # Config v1 : sans `collecte.racines`, la racine est `chemins.dossiers_projets`.
     assert racines_collecte({"chemins": {"dossiers_projets": home + "/Affaires"}}) == ["~/Affaires"]

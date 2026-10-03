@@ -1,6 +1,6 @@
 ---
 name: cortex-4-installation
-description: Installe un vault Cortex — un second cerveau structuré — chez une organisation, à partir d'un fichier de configuration. Crée l'arborescence, la doctrine paramétrée, les templates, la couche d'agents (6 skills, 2 sous-agents, 2 hooks), les permissions en lecture seule sur les dossiers de travail, et propose un dépôt git privé sans l'imposer. Déterministe et rejouable : détruire et relancer est un geste normal. Déclencher quand l'utilisateur dit "installe le vault", "instancie Cortex", "crée le second cerveau de X", "maillon 4", ou dispose d'un config.yaml prêt. Phrase d'entrée de la notice : « construis mon second cerveau ». Ne PAS utiliser pour cadrer (cortex-1), inventorier (cortex-2), décider de l'ontologie (cortex-3) ni pour peupler le vault (cortex-5).
+description: Installe un vault Cortex — un second cerveau structuré — chez une organisation, à partir d'un fichier de configuration. Crée l'arborescence, la doctrine paramétrée, les templates, la couche d'agents (8 skills, 2 sous-agents, 2 hooks), les permissions en lecture seule sur les dossiers de travail, et propose un dépôt git privé sans l'imposer. Déterministe et rejouable : détruire et relancer est un geste normal. Déclencher quand l'utilisateur dit "installe le vault", "instancie Cortex", "crée le second cerveau de X", "maillon 4", ou dispose d'un config.yaml prêt. Phrase d'entrée de la notice : « construis mon second cerveau ». Ne PAS utiliser pour cadrer (cortex-1), inventorier (cortex-2), décider de l'ontologie (cortex-3) ni pour peupler le vault (cortex-5).
 ---
 
 # cortex-4-installation — matérialiser le vault
@@ -122,7 +122,7 @@ Le vault de <organisation> est installé.
 - <N> notes, <M> domaines, <pour une personne seule | relié au commun de l'équipe>
 - <vos outils restent la référence | documents de fond recopiés un par un>
 - contrôle de santé : vert
-- assistants livrés : 6 savoir-faire, 2 assistants, 2 automatismes
+- assistants livrés : 8 savoir-faire, 2 assistants, 2 automatismes
 - <K> dossier(s) de travail en lecture seule
 - dépôt privé : <créé | refusé, le vault reste local>
 
