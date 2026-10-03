@@ -134,7 +134,7 @@ Le suivi n'est pas un protocole ni une prestation : c'est une skill du vault, `b
 
 Ces deux dates sont les deux moments où l'usage se décide. À J+7, on sait si la clôture est devenue un réflexe ; zéro clôture en sept jours est le signal à ne pas manquer. À J+30, on sait si le vault est encore consulté. En mode `consultant`, prévoir de demander ces deux bilans au client ; en mode `solo`, le hook suffit.
 
-Le hook lit `remis_le` dans `_cortex/06-passation.md` **quand l'atelier vit dans le vault** (mode `solo`). En mode `consultant`, l'atelier ne part pas chez le client : copier la seule ligne `remis_le` dans un `_cortex/06-passation.md` réduit à son frontmatter, sans inventaire ni constats.
+Le hook lit `remis_le` dans `<vault>/_cortex/06-passation.md`. L'atelier vit à côté du vault (`~/Cortex/<slug>/_cortex/`, le vault en `~/Cortex/<slug>/vault/`), dans les deux modes : écrire donc **toujours** dans le vault un `_cortex/06-passation.md` réduit à son frontmatter (`remis_le` seul), sans inventaire ni constats, et l'enregistrer par `cloture.py`. Sans cette copie, aucun bilan ne se propose, en solo comme en consultant.
 
 **La remise ouvre la notice.** Le dernier geste du maillon est la commande de la section Notice ci-dessous : le tableau de bord montre les étapes faites et la phrase suivante, qui est désormais « clôture ». La personne voit l'installation finie et le seul geste qui reste.
 

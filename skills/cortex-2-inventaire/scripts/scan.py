@@ -224,8 +224,13 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
     def hors_budget():
         return time.monotonic() - debut > budget_secondes
 
-    for racine, prefixe in zip(racines, prefixes(racines)):
+    for i, (racine, prefixe) in enumerate(zip(racines, prefixes(racines))):
         racine = Path(racine).expanduser()
+        # Part équitable du plafond restant : sans elle, les premières racines
+        # consommaient tout et les suivantes n'étaient jamais ouvertes (parcours
+        # réel du 2026-10-03 : deux racines sur quatre vues à 200 dossiers).
+        # ponytail: le reliquat d'une racine ne remonte qu'aux suivantes, pas aux précédentes.
+        plafond_racine = bornes["dossiers_vus"] + max(1, (max_dossiers - bornes["dossiers_vus"]) // (len(racines) - i))
         if not racine.is_dir():
             raise FileNotFoundError(f"racine introuvable : {tilde(racine)}")
         if hors_budget():
@@ -241,7 +246,7 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
                 bornes["depassement"] = True
                 break
             dossier, prof = pile.pop(0)
-            if bornes["dossiers_vus"] >= max_dossiers:
+            if bornes["dossiers_vus"] >= min(max_dossiers, plafond_racine):
                 bornes["dossiers_au_dela"] += 1
                 bornes["depassement"] = True
                 continue
@@ -473,6 +478,13 @@ def _autotest():
         assert isinstance(b["depassement"], bool), b
         assert b["profondeur_max_vue"] == 2 and b["depassement"] is True and b["dossiers_au_dela"] == 1, b
         assert b["fichiers_vus"] == 4, b   # profond.txt est au-delà de la profondeur
+        # Part équitable du plafond : la seconde racine est ouverte même quand la première le remplirait.
+        r2 = Path(tmp) / "Second"
+        (r2 / "x").mkdir(parents=True)
+        conf2 = {"profil": "employe", "donnees": {"regime": "copie"},
+                 "collecte": {"profondeur_arbre": 3, "max_dossiers": 4}}
+        vus = [d["chemin"] for d in inventaire(conf2, [str(r), str(r2)], Extracteur(actif=False))["disque"]]
+        assert len(vus) == 4 and sum(c.endswith(("/Second", "/Second/x")) for c in vus) == 2, vus
         crm = next(e for e in inv["disque"] if e["source_id"] == "travail-projets-crm")
         assert crm["signaux_base_deportee"] == ["export-outil-2026-01.csv"], crm
         assert crm["signal_ontologique"]["structurant_candidat"] == ["ORGANIGRAMME.md"], crm

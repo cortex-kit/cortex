@@ -104,14 +104,14 @@ def _autotest():
     with tempfile.TemporaryDirectory() as tmp:
         v = Path(tmp)
         git(v, "init", "-q")
-        git(v, "config", "user.name", "Hélène Vasseur")
-        git(v, "config", "user.email", "helene@exemple.test")
+        git(v, "config", "user.name", "Rédaction Test")
+        git(v, "config", "user.email", "redaction@exemple.test")
         (v / "note.md").write_text("# note\n", encoding="utf-8")
         sale = ("Clôture : fiche Caluire\n\nCo-Authored-By: Claude Opus <noreply@anthropic.com>\n"
                 "Claude-Session: https://claude.ai/code/session_x\n🤖 Generated with Claude Code\n")
         assert cloturer(v, sale, ["note.md", "absent.md"]) == 0
         corps = git(v, "log", "-1", "--format=%an <%ae>%n%B").stdout
-        assert corps.startswith("Hélène Vasseur <helene@exemple.test>"), corps
+        assert corps.startswith("Rédaction Test <redaction@exemple.test>"), corps
         assert "Clôture : fiche Caluire" in corps, corps
         assert not re.search(r"co-authored-by|claude-session|claude\.ai|generated with", corps, re.I), corps
         assert cloturer(v, "rien", ["note.md"]) == 0          # rien à commiter : 0, aucun commit

@@ -40,7 +40,7 @@ Le piège est unique et il est fatal : **recopier au lieu de pointer**. La parad
 ## Étape 1 : le disque par `scan.py`
 
 ```
-python3 "${CLAUDE_SKILL_DIR}/scripts/scan.py" --config <vault>/config.yaml --out <vault>/_cortex/01-inventaire.json
+python3 "${CLAUDE_SKILL_DIR}/scripts/scan.py" --config ~/Cortex/<slug>/_cortex/config.yaml --out ~/Cortex/<slug>/_cortex/01-inventaire.json
 ```
 
 `--racine <dossier>` (répétable) remplace `collecte.racines` pour un rejeu ciblé. Le script :
@@ -68,7 +68,9 @@ Lire `mail.voie` dans `_cortex/poste.json`, puis suivre la ligne correspondante.
 | `connecteur`, fournisseur `gmail` | `search_threads` du connecteur Gmail | `newer_than:<mail_mois>m`, page après page jusqu'à la fin ou 2 000 en-têtes | expéditeur, destinataires, objet, date de chaque message du fil ; un fil de n messages compte n en-têtes | `get_message`, `get_thread`, les extraits de corps renvoyés avec le fil |
 | `connecteur`, fournisseur `m365` | `outlook_email_search` du connecteur Microsoft 365 | période des `mail_mois` derniers mois, paginée | `from`, `subject`, `receivedDateTime` | `read_resource` sur un message, les aperçus |
 | `softeria` | serveur `ms-365-mcp-server`, preset `outlook` | `messages?$select=from,subject,receivedDateTime&$top=100`, filtrée sur `receivedDateTime` depuis `mail_mois` mois, suivie par `@odata.nextLink` | `from`, `subject`, `receivedDateTime` | `body`, `bodyPreview`, attachments |
-| `mcp-email` | `list_accounts`, puis `list_emails` par compte et par dossier (`INBOX`, puis `Sent`) | période des `mail_mois` derniers mois, en-têtes seuls | expéditeur, destinataires, objet, date | `read_email`, `download_attachment` |
+| `mcp-email` | `list_accounts`, `list_folders` pour le nom réel du dossier des envoyés (`[Gmail]/Messages envoyés`, `[Gmail]/Sent Mail`…), puis `list_emails` par compte sur `INBOX` et ce dossier | l'outil n'a ni filtre de date ni pagination : un appel par dossier avec `limit` 2 000, puis filtrage local sur les `mail_mois` derniers mois | expéditeur, objet, date ; le destinataire n'est pas rendu, les envois ne donnent qu'un volume par boîte | `read_email`, `download_attachment` |
+
+Avec `mcp-email`, déclarer dans « Au-delà des bornes » ce que l'outil ne voit pas : les messages rangés sous d'autres libellés que la réception et les envois, et les domaines destinataires des envois.
 
 Compter au fil des pages, sans rien noter ailleurs que dans les agrégats. Quand le compteur atteint 2 000 :
 

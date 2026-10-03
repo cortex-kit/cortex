@@ -23,7 +23,7 @@ C'est le point de reprise à coût nul de toute la chaîne : `rm -rf` puis relan
 
 **Aucun maillon n'invoque le suivant.** Le consultant lance.
 
-En mode **solo** — clé `conduite` de la config — chaque maillon propose le suivant et l'enchaîne après un accord explicite, jamais sans, et jamais si sa condition d'entrée manque. Qualification complète : `cortex-1-cadrage/references/doctrine.md` §3, amendement 2026-08-23.
+En mode **solo** — clé `conduite` de la config — la règle ne change pas : le maillon termine par la notice, qui affiche l'étape suivante et la phrase à prononcer, et **n'enchaîne jamais**, même sur un accord explicite. Arbitrage complet : `cortex-1-cadrage/references/doctrine.md` §3, amendement 2026-09-19.
 
 ## Positionnement
 
@@ -101,6 +101,8 @@ Il réécrit `.claude/` (skills, sous-agents, scripts de lint) et ne touche à r
 Ce maillon ne mérite pas de validation fine : régénérer coûte une seconde. Les validations par bloc appartiennent aux maillons dont la sortie est chère à reproduire — le cadrage et l'ontologie.
 
 ## Contrôles de sortie
+
+Si la sortie du script porte « git non initialise », le bac à sable de Claude Code a refusé l'écriture de `.git/config` : relancer l'installation hors bac à sable avec `--force` (le vault est encore vide), la permission se demande à la personne. Un vault sans git n'a pas de clôture : `cloture.py` n'aurait rien où enregistrer.
 
 ```bash
 grep -r "{{" "<vault>" --include='*.md' | grep -v 'Templates/'      # attendu : vide

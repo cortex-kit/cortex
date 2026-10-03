@@ -136,7 +136,7 @@ Les poser au cadrage, quand ils sont abstraits, coûte une phrase. Les poser au 
 
 `<ton espace>/Cortex/<slug>/_cortex/` — **chez toi, jamais dans la livraison**. Le client reçoit son vault, pas tes notes de travail, tes hypothèses écartées ni les constats te concernant sa propre organisation.
 
-Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `00-cadrage.md`. Initialiser git s'il ne l'est pas.
+Créer : `README.md` (index de chaîne, sections futures marquées `_À compléter dans le maillon N._`), `00-cadrage.md`. Initialiser git s'il ne l'est pas. Le bac à sable de Claude Code refuse l'écriture de `.git/config` (« Operation not permitted ») : relancer alors `git init` hors bac à sable, la permission se demande à la personne. Un atelier sans git perd son historique sans le dire.
 
 **`config.yaml` existe déjà** : le maillon 0 l'a créé dans `~/Cortex/<slug>/_cortex/` avec `version: 1` et le bloc `poste`. Ne jamais le recréer ni l'écraser : le relire avec `cortex_config.charger`, y fusionner les clés du cadrage, réécrire le fichier complet. Sans maillon 0 (parcours consultant hérité), partir de `${CLAUDE_SKILL_DIR}/../cortex-4-installation/template/config.example.yaml`. Dans les deux cas, le fichier reçoit, dans l'ordre : `conduite`, `profil`, le bloc config du profil (`mode`, `commun`, `donnees.regime`, `collecte` avec les racines confirmées), `organisation`, `substrats`, `poste` depuis `poste.json`, `marque` (§2). `domaines: []` et `cycles: []` restent vides : ils sont au maillon 3. `python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/cortex_config.py" _cortex/config.yaml` doit le relire sans erreur ; `valider_installable` le refusera encore, c'est attendu tant que les domaines manquent.
 
