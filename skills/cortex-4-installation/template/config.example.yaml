@@ -82,6 +82,7 @@ marque:
 
 # ── OBLIGATOIRE — les centres de gravité. 1 à 6, jamais plus. ──────────────
 # `code` pilote DEUX choses : le tag #d/<code> et le préfixe de fiche <CODE>.
+# 2 à 6 lettres minuscules : un vault existant qu'on adopte garde ses codes.
 # La casse est imposée par le lint, elle ne dérive pas.
 # Au-delà de 6 domaines, ce n'est pas une demande à satisfaire mais un signal
 # de sous-segmentation à remonter au client.
@@ -108,6 +109,18 @@ cycles:
   - { cycle: produit, phase: "production",   progression: 90 }
   - { cycle: produit, phase: "maintenance",  progression: 95 }
   - { cycle: produit, phase: "archive",      progression: 100 }
+
+# ── OPTIONNEL — alias de clés, pour un vault existant qu'on adopte ─────────
+# Un vault qui a déjà ses noms de clés garde ses fiches telles quelles : chaque
+# ligne dit sous quel nom une clé Cortex se lit ET s'écrit dans les fiches.
+#   alias:
+#     cycle: nature              # le cycle se lit dans `nature`
+#     url_canonique: notion_bdd  # le pointeur vers la base se lit dans `notion_bdd`
+# Clés admises : cycle, phase, progression, statut, url_canonique, repo,
+# dossier_local, dernier_journal. Un alias ne crée jamais de clé ; une fiche qui
+# porte déjà la clé Cortex la garde. Un nom qu'aucune fiche ne porte est signalé
+# par le lint. Vide pour un vault installé par Cortex.
+alias:
 
 # ── OBLIGATOIRE — seuils de santé, contrôles DURS ──────────────────────────
 # Les métriques d'Architecture Mémoire §7, rendues exécutables. Baisser une

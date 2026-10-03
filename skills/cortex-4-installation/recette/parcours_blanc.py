@@ -542,6 +542,35 @@ def recette_v1(tmp):
             any(e.startswith("conduite") for e in erreurs), str(erreurs[:2]))
     r = scaffold("--config", str(inconnu), "--out", str(tmp / "refus-conduite"))
     verifie("scaffold s'arrete sur une conduite inconnue", r.returncode == 2, r.stderr[:200])
+
+    section("v1", "10. Vault existant adopte (defaut : ses cles et ses codes refuses sans reecriture)")
+    conf = cortex_config.charger(cfg)
+    six = dict(conf, domaines=[{"code": "bureau", "nom": "Socle"}])
+    sept = dict(conf, domaines=[{"code": "bureaux", "nom": "Socle"}])
+    verifie("un code de domaine de 6 lettres est accepte",
+            not any(e.startswith("domaines") for e in cortex_config.valider_installable(six)))
+    verifie("un code de domaine de 7 lettres est refuse",
+            any("2 à 6 lettres" in e for e in cortex_config.valider_installable(sept)))
+    adoptee = vault / "20 - Projets" / "MAG - Adoptee.md"
+    adoptee.write_text(note_projet("Adoptee", "mag", "Agencement magasin", "Signé", 30)
+                       .replace("cycle: affaire", "nature: affaire")
+                       .replace("url_canonique:", "notion_bdd:")
+                       .replace('dossier_local: "Adoptee"\n', ""), encoding="utf-8")
+    sans = lint(vault, "--json")
+    verifie("sans alias, une fiche a cles d'origine echoue (phase hors cycle, pointeur absent)",
+            sans.returncode == 1 and '"phase_hors_enum": [\n    {' in sans.stdout
+            and "MAG - Adoptee.md" in sans.stdout, sans.stdout[-300:])
+    avec = tmp / "config-alias.yaml"
+    avec.write_text(cfg.read_text(encoding="utf-8")
+                    + "alias:\n  cycle: nature\n  url_canonique: notion_bdd\n", encoding="utf-8")
+    r = lint(vault, "--config", str(avec))
+    verifie("avec alias, la meme fiche passe le lint", r.returncode == 0, r.stdout[-400:])
+    faux = tmp / "config-alias-faux.yaml"
+    faux.write_text(cfg.read_text(encoding="utf-8") + "alias:\n  cycle: natrue\n", encoding="utf-8")
+    r = lint(vault, "--config", str(faux))
+    verifie("un alias qu'aucune fiche ne porte est signale", r.returncode == 1 and "natrue" in r.stdout,
+            r.stdout[-300:])
+    adoptee.unlink()
     return cfg
 
 

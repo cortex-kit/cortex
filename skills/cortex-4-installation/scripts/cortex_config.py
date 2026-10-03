@@ -337,9 +337,11 @@ def valider_installable(conf):
         if not code or not nom:
             erreurs.append(f"domaines[{i}]: `code` et `nom` sont tous deux requis.")
             continue
-        if not code.islower() or not code.isalpha() or not 2 <= len(code) <= 4:
+        # 6 lettres et non 4 : un vault existant qu'on adopte garde ses codes
+        # (six lettres, comme `bureau`), un retaggage casserait tout ce qui filtre dessus.
+        if not code.islower() or not code.isalpha() or not 2 <= len(code) <= 6:
             erreurs.append(
-                f"domaines[{i}].code = {code!r} : 2 à 4 lettres minuscules. Il pilote "
+                f"domaines[{i}].code = {code!r} : 2 à 6 lettres minuscules. Il pilote "
                 "le tag #d/ et le préfixe de fiche, il ne se corrige plus après coup.")
         codes.append(code)
     if len(codes) != len(set(codes)):
@@ -355,6 +357,8 @@ def valider_installable(conf):
             f"conduite: {conf.get('conduite')!r} n'est ni 'solo' ni 'consultant'. "
             "Absente, la clé vaut 'consultant'. Ne pas confondre avec `mode`, "
             "qui porte la fédération du vault (solo/federe).")
+
+    erreurs.extend(erreurs_alias(conf))
 
     communs = set(conf.get("vehicules") or []) & set(conf.get("payeurs") or [])
     if communs:
@@ -384,6 +388,75 @@ def valider_installable(conf):
             "donnees.regime: 'copie' alors que substrats.base_projets est renseigné. "
             "Une base déportée impose le régime pointeur.")
     return erreurs
+
+
+# ── Alias de clés de frontmatter ────────────────────────────────────────────
+#
+# Un vault existant qu'on adopte a déjà ses noms de clés, et sa machinerie les
+# lit. Plutôt que de réécrire ses fiches, `alias` dit sous quel nom une clé
+# canonique se lit ET s'écrit chez lui :
+#
+#     alias:
+#       cycle: nature
+#       url_canonique: notion_bdd
+#
+# Un alias ne crée jamais de clé. Une fiche qui porte déjà la clé canonique la
+# garde : l'alias est ignoré pour elle.
+
+# Les clés que l'outillage lit dans une fiche projet, seules à pouvoir porter
+# un alias. Fermée : `cylce: nature` doit se signaler, pas s'ignorer.
+CLES_ALIASABLES = ("cycle", "phase", "progression", "statut", "url_canonique",
+                   "repo", "dossier_local", "dernier_journal")
+
+
+def erreurs_alias(conf):
+    """Messages sur le bloc `alias` ; vide = bloc absent ou bien formé."""
+    bloc = conf.get("alias")
+    if bloc is None or bloc == "":
+        return []
+    if not isinstance(bloc, dict):
+        return [f"alias: attendu un bloc `canonique: nom_dans_les_fiches`, lu {bloc!r}."]
+    erreurs = []
+    for canon, nom in bloc.items():
+        if canon not in CLES_ALIASABLES:
+            erreurs.append(f"alias.{canon} : clé inconnue, attendu l'une de "
+                           f"{', '.join(CLES_ALIASABLES)}.")
+        elif not isinstance(nom, str) or not re.fullmatch(r"\w+", nom):
+            erreurs.append(f"alias.{canon} = {nom!r} : attendu un nom de clé de frontmatter.")
+        elif nom in CLES_ALIASABLES:
+            erreurs.append(f"alias.{canon} = {nom!r} : {nom!r} est déjà une clé canonique, "
+                           "les deux se confondraient.")
+    return erreurs
+
+
+def alias_de(conf):
+    """{canonique: nom} des alias valides. Les invalides sont signalés par
+    `valider_installable` (donc par le lint), jamais appliqués à moitié."""
+    bloc = conf.get("alias")
+    if not isinstance(bloc, dict) or erreurs_alias(conf):
+        return {}
+    return dict(bloc)
+
+
+def cle_effective(presentes, canon, conf):
+    """Le nom sous lequel `canon` se lit et s'écrit dans une fiche dont les clés
+    sont `presentes` : la canonique si elle y est, sinon son alias s'il y est,
+    sinon la canonique."""
+    if canon in presentes:
+        return canon
+    nom = alias_de(conf).get(canon)
+    return nom if nom and nom in presentes else canon
+
+
+def appliquer_alias(fm, conf):
+    """Copie du frontmatter où chaque clé canonique absente prend la valeur de
+    son alias. Le frontmatter d'origine n'est pas modifié."""
+    out = dict(fm)
+    for canon in alias_de(conf):
+        cle = cle_effective(fm, canon, conf)
+        if cle != canon:
+            out[canon] = fm[cle]
+    return out
 
 
 # Les moustaches remplies UNE FOIS, à l'installation, par scaffold.py.
@@ -473,6 +546,33 @@ def _autotest():
                          ("domaines", dict(conf, domaines="aff"))):
         e = valider_installable(mauvais)
         assert any(x.startswith(cle + ":") for x in e), (cle, e)
+
+    # Codes de domaine : 6 lettres acceptées (un vault existant garde les
+    # siens), 7 refusées. Le test porte les deux bornes.
+    six = dict(conf, domaines=[{"code": "bureau", "nom": "Socle"}])
+    assert not any(e.startswith("domaines") for e in valider_installable(six)), valider_installable(six)
+    sept = dict(conf, domaines=[{"code": "bureaux", "nom": "Socle"}])
+    assert any("2 à 6 lettres" in e for e in valider_installable(sept)), valider_installable(sept)
+
+    # Alias, dans les deux sens : appliqué quand la clé canonique manque,
+    # ignoré quand elle est là. Le frontmatter d'origine ne bouge pas.
+    ca = dict(conf, alias={"cycle": "nature", "url_canonique": "notion_bdd"})
+    assert not valider_installable(ca), valider_installable(ca)
+    fm = {"nature": "mission", "notion_bdd": "https://base.exemple.test/x"}
+    lu = appliquer_alias(fm, ca)
+    assert lu["cycle"] == "mission" and lu["url_canonique"] == "https://base.exemple.test/x", lu
+    assert "cycle" not in fm, "appliquer_alias ne doit pas modifier son entrée"
+    assert appliquer_alias(dict(fm, cycle="produit"), ca)["cycle"] == "produit", \
+        "la clé canonique présente gagne sur l'alias"
+    assert appliquer_alias(fm, conf) == fm, "sans bloc alias, rien ne change"
+    assert cle_effective({"nature"}, "cycle", ca) == "nature"
+    assert cle_effective({"cycle", "nature"}, "cycle", ca) == "cycle"
+    assert cle_effective(set(), "cycle", ca) == "cycle", "un alias ne crée jamais de clé"
+    # Un alias mal écrit se signale au lieu de rendre un cycle vide.
+    for mauvais in ({"cylce": "nature"}, {"cycle": "phase"}, {"cycle": "a b"}, "nature"):
+        e = valider_installable(dict(conf, alias=mauvais))
+        assert any(x.startswith("alias") for x in e), (mauvais, e)
+        assert appliquer_alias(fm, dict(conf, alias=mauvais)) == fm, mauvais
 
     # Le refus explicite du mapping à 2 niveaux fait partie du contrat.
     try:

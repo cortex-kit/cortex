@@ -343,6 +343,7 @@ def lint(vault, conf):
     # Avant d'auditer les notes, auditer le contrat qui les regit : un vault
     # sans domaine declare n'a rien qui puisse etre sain.
     f["contrat_config_invalide"] = cortex_config.valider_installable(conf)
+    cles_vues = set()     # clés lues dans les fiches auditées, pour juger les alias
 
     for md in sorted(vault.rglob("*.md")):
         rel = md.relative_to(vault)
@@ -389,6 +390,9 @@ def lint(vault, conf):
         if not fm:
             f["notes_sans_frontmatter"].append(str(rel))
             continue
+        cles_vues.update(fm)
+        # Un vault adopté garde ses noms de clés : `nature` se lit comme `cycle`.
+        fm = cortex_config.appliquer_alias(fm, conf)
 
         typ = fm.get("type", "")
         body = text[text.find("\n---", 3) + 4:] if text.startswith("---") else text
@@ -456,6 +460,14 @@ def lint(vault, conf):
                 a = age_jours(fm.get("dernier_journal"))
                 if a is None or a > seuil_perime:
                     f["dernier_journal_perime"].append({"file": str(rel), "age_jours": a})
+
+    # Un alias que aucune fiche ne porte est un nom mal écrit : sans ce
+    # constat, il rendrait chaque cycle vide sans rien dire.
+    for canon, nom in cortex_config.alias_de(conf).items():
+        if nom not in cles_vues:
+            f["contrat_config_invalide"].append(
+                f"alias.{canon} = {nom!r} : aucune note auditée ne porte la clé `{nom}`. "
+                "Nom mal écrit dans config.yaml ?")
 
     # Agents métier périmés : un agent qui répond encore alors que ses règles
     # de gestion ont changé est plus dangereux qu'un agent absent.
@@ -726,7 +738,30 @@ def _autotest():
         assert "commun_edite_main" in DURS
         (commun / SCEAU_COMMUN).unlink()
         assert lint(v, cf)["commun_edite_main"][-1]["raison"].startswith(SCEAU_COMMUN), "m6 : sceau absent signalé"
-    print("OK lint_sante.py : structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, "
+    # Vault adopté : une fiche à la manière d'un vault existant (`nature`,
+    # `notion_bdd`) échoue sans alias et passe avec. Le cas rouge prouve que
+    # l'alias est réellement lu.
+    with tempfile.TemporaryDirectory() as tmp:
+        v = Path(tmp)
+        (v / "20 - Projets").mkdir()
+        (v / "20 - Projets" / "OPS - Alpha.md").write_text(
+            '---\ntype: projet\ndomaine: "[[Ops]]"\nstatut: actif\nnature: mission\nphase: Cadrage\n'
+            'progression: 20\nnotion_bdd: "https://base.exemple.test/' + "a" * 32 + '"\n'
+            f'dernier_journal: {date.today().isoformat()}\n---\n# Alpha\n', encoding="utf-8")
+        (v / "Ops.md").write_text("---\ntype: hub\n---\n# Ops\n", encoding="utf-8")
+        conf = cortex_config.charger_texte(CONFIG_TEST.replace("regime: copie", "regime: pointeur"))
+        sans = lint(v, conf)
+        assert [x["file"] for x in sans["phase_hors_enum"]] == ["20 - Projets/OPS - Alpha.md"], sans["phase_hors_enum"]
+        assert sans["pointeur_canonique_absent"] == ["20 - Projets/OPS - Alpha.md"], sans["pointeur_canonique_absent"]
+        avec = lint(v, dict(conf, alias={"cycle": "nature", "url_canonique": "notion_bdd"}))
+        assert not any(avec[k] for k in DURS), {k: avec[k] for k in DURS if avec[k]}
+        # Un alias mal écrit se signale, il ne rend pas un cycle vide en silence.
+        faux = lint(v, dict(conf, alias={"cycle": "natrue"}))
+        assert any("natrue" in e for e in faux["contrat_config_invalide"]), faux["contrat_config_invalide"]
+        assert faux["phase_hors_enum"], "l'alias mal écrit n'est pas appliqué"
+        faux = lint(v, dict(conf, alias={"cylce": "nature"}))
+        assert any(e.startswith("alias.cylce") for e in faux["contrat_config_invalide"]), faux
+    print("OK lint_sante.py : vault adopté (alias lus, alias mal écrit signalé), structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, "
           "lettre de lecteur, empreinte du commun")
     return 0
 

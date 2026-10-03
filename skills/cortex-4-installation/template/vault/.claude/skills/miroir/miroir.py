@@ -16,7 +16,9 @@ Configuration (config.yaml du vault) :
       - { source: "En cours", vault: actif }
 
 Une fiche se relie à sa ligne de base par `url_canonique` (l'identifiant de 32
-caractères hexadécimaux qu'elle contient).
+caractères hexadécimaux qu'elle contient). Dans un vault adopté, le bloc `alias`
+de config.yaml dit sous quel nom chaque clé se lit et s'écrit (`url_canonique:
+notion_bdd`, `cycle: nature`) : le miroir écrit sous la clé présente dans la fiche.
 
 Usage :
   python3 .claude/skills/miroir/miroir.py --vault .            # constat, n'écrit rien
@@ -78,9 +80,19 @@ def champ(fm, cle):
     return m.group(1).split("#")[0].strip().strip("\"'") if m else ""
 
 
+def cles(fm):
+    return set(re.findall(r"^([\w_]+):", fm, re.M))
+
+
 def remplacer(texte, cle, valeur):
+    """Remplace la ligne `cle:` du frontmatter, ou l'ajoute en fin de frontmatter
+    si la fiche ne la porte pas : sans cet ajout, la fiche était annoncée recalée
+    sans qu'aucune ligne n'ait changé."""
     fm = frontmatter(texte)
-    neuf = re.sub(rf"^{cle}:.*$", f"{cle}: {valeur}", fm, count=1, flags=re.M)
+    if cle in cles(fm):
+        neuf = re.sub(rf"^{cle}:.*$", lambda _: f"{cle}: {valeur}", fm, count=1, flags=re.M)
+    else:
+        neuf = f"{fm}\n{cle}: {valeur}"
     return texte.replace(fm, neuf, 1)
 
 
@@ -93,7 +105,11 @@ def recaler(vault, conf, lire):
     for md in sorted((vault / "20 - Projets").glob("*.md")):
         texte = md.read_text(encoding="utf-8")
         fm = frontmatter(texte)
-        pid = identifiant(champ(fm, "url_canonique"))
+        presentes = cles(fm)
+
+        def nom(canon):
+            return cortex_config.cle_effective(presentes, canon, conf)
+        pid = identifiant(champ(fm, nom("url_canonique")))
         if champ(fm, "type") != "projet" or not pid:
             continue
         try:
@@ -101,23 +117,24 @@ def recaler(vault, conf, lire):
         except Exception as e:  # réseau, droits, page supprimée : constat, jamais arrêt
             constats.append(f"{md.stem} : base injoignable ({type(e).__name__})")
             continue
-        cycle = champ(fm, "cycle")
+        cycle = champ(fm, nom("cycle"))
+        phase, progression, statut = nom("phase"), nom("progression"), nom("statut")
         if m.get("phase"):
             v = source.get(m["phase"], "")
-            if v and v != champ(fm, "phase"):
+            if v and v != champ(fm, phase):
                 if v in cortex_config.phases_autorisees(conf, cycle):
-                    changements.append((md, "phase", champ(fm, "phase"), v))
+                    changements.append((md, phase, champ(fm, phase), v))
                     p = progressions.get((cycle, v))
-                    if p is not None and str(p) != champ(fm, "progression"):
-                        changements.append((md, "progression", champ(fm, "progression"), str(p)))
+                    if p is not None and str(p) != champ(fm, progression):
+                        changements.append((md, progression, champ(fm, progression), str(p)))
                 else:
                     constats.append(f"{md.stem} : phase « {v} » hors du cycle {cycle or 'aucun'}, non recopiée")
         if m.get("statut"):
             v = source.get(m["statut"], "")
             if v and v not in statuts:
                 constats.append(f"{md.stem} : statut « {v} » sans correspondance dans miroir_statuts")
-            elif v and statuts[v] != champ(fm, "statut"):
-                changements.append((md, "statut", champ(fm, "statut"), statuts[v]))
+            elif v and statuts[v] != champ(fm, statut):
+                changements.append((md, statut, champ(fm, statut), statuts[v]))
     return changements, constats
 
 
@@ -128,7 +145,9 @@ def ecrire(changements):
     for md, champs in par_fiche.items():
         texte = md.read_text(encoding="utf-8")
         for cle, apres in champs:
-            texte = remplacer(texte, cle, f'"{apres}"' if cle == "phase" else apres)
+            # Guillemets dès que la valeur n'est pas un mot simple (« Phase D ») :
+            # la règle tient quel que soit le nom de la clé dans un vault adopté.
+            texte = remplacer(texte, cle, apres if re.fullmatch(r"[\w-]+", apres) else f'"{apres}"')
         md.write_text(texte, encoding="utf-8")
     return len(par_fiche)
 
@@ -144,6 +163,11 @@ def main():
     vault = Path(a.vault).expanduser().resolve()
     conf = cortex_config.charger(vault / "config.yaml")
     m = conf.get("miroir") or {}
+    # Un alias mal écrit relierait zéro fiche, et « Fiches alignées » mentirait.
+    erreurs = cortex_config.erreurs_alias(conf)
+    if erreurs:
+        print("\n".join(erreurs), file=sys.stderr)
+        return 2
     if m.get("outil") != "notion":
         print("Aucun miroir configuré (miroir.outil vide) : rien à faire.")
         return 0
@@ -201,6 +225,26 @@ def _autotest():
         assert identifiant("https://www.notion.so/Titre-" + "e" * 32 + "?pvs=4") == "e" * 32
         assert identifiant("https://app.notion.com/p/3c00ef92-eb03-81cf-8578-fa88013e1a97") \
             == "3c00ef92eb0381cf8578fa88013e1a97"
+        # Vault adopté : la fiche se relie par `notion_bdd`, porte son cycle dans
+        # `nature` et son avancement dans `avancement`. Le recalage s'écrit sous
+        # ces clés, aucune clé canonique n'apparaît.
+        ca = dict(conf, alias={"cycle": "nature", "url_canonique": "notion_bdd",
+                               "progression": "avancement"})
+        (v / "20 - Projets" / "Epsilon.md").write_text(
+            '---\ntype: projet\nstatut: actif\nnature: mission\nphase: "Phase A"\navancement: 10\n'
+            'notion_bdd: "https://app.notion.com/' + "a" * 32 + '"\n---\n# E\n', encoding="utf-8")
+        ch, _ = recaler(v, ca, lire)
+        assert sorted((md.stem, k, a, b) for md, k, a, b in ch if md.stem == "Epsilon") == [
+            ("Epsilon", "avancement", "10", "90"), ("Epsilon", "phase", "Phase A", "Phase D"),
+            ("Epsilon", "statut", "actif", "termine")], ch
+        sans, _ = recaler(v, conf, lire)
+        assert not [c for c in sans if c[0].stem == "Epsilon"], "sans alias, la fiche n'est pas reliée"
+        ecrire([c for c in ch if c[0].stem == "Epsilon"])
+        t = (v / "20 - Projets" / "Epsilon.md").read_text(encoding="utf-8")
+        assert "avancement: 90" in t and 'phase: "Phase D"' in t and "statut: termine" in t, t
+        assert "progression" not in t and "cycle" not in t and "url_canonique" not in t, t
+        # Une clé absente de la fiche s'ajoute au lieu d'être annoncée sans être écrite.
+        assert "progression: 90" in remplacer("---\ntype: projet\n---\n# X\n", "progression", "90")
         (v / "jeton").write_text("secret_abc\n", encoding="utf-8")
         (v / ".env").write_text("AUTRE=1\nNOTION_TOKEN='ntn_xyz'\n", encoding="utf-8")
         (v / "vide.env").write_text("AUTRE=1\n", encoding="utf-8")
