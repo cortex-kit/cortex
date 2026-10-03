@@ -46,7 +46,7 @@ C'est la table la plus utile du vault. La colonne « jamais dans » compte autan
 
 ## 2. Session projet — un dossier client, une mission, un chantier métier
 
-- **Démarrer** : `cd "<dossier du projet>" && claude`. Le CLAUDE.md du projet pointe vers son substrat canonique et vers sa fiche de vault.
+- **Démarrer** : ouvrir la session dans le second cerveau (jamais dans un dossier de travail, le harnais y laisse un dossier `.claude/`), puis dire « parle de <projet> ». La note du projet pointe vers son substrat canonique ; les dossiers de travail sont lus depuis ici.
 - **Pendant** : les travaux détaillés dans le substrat, les fichiers dans l'espace documentaire, la fiche de vault en pilotage léger seulement.
 - **Finir** : skill `cloture`.
 

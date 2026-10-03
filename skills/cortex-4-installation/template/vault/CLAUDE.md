@@ -66,7 +66,7 @@ Dès qu'un nom de projet est cité, avant toute action :
 1. Chercher la fiche dans `20 - Projets/` (approximatif, insensible à la casse et aux accents — les noms propres sont saisis de plusieurs façons).
 2. Lire la fiche complète.
 3. Afficher un encart de 5 à 8 lignes : état et phase, dernier delta, macro-actions, blocage ou trou.
-4. Proposer à copier-coller : `cd "<dossier_local résolu>" && claude`. **Proposé, jamais exécuté.**
+4. Proposer la phrase « parle de <projet> » dans cette session. Ne jamais ouvrir une session Claude dans un dossier de travail : le harnais y laisse un dossier `.claude/` ; le second cerveau lit les dossiers de travail depuis ici.
 5. Si la fiche ou le `dossier_local` est absent : **le signaler comme un trou**, proposer la skill `nouveau-projet`. Ne jamais deviner.
 
 Le point 5 compte plus qu'il n'y paraît : une valeur devinée par un agent est indistinguable d'une valeur réelle une fois écrite, et c'est ainsi qu'un vault perd sa fiabilité — non par une grosse erreur, mais par une série de comblements plausibles.

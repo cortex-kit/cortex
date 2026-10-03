@@ -37,7 +37,7 @@ Tenu par le chef d'orchestre, jamais par une lane.
 | Lane B | faite, auditée (3 bloquants repris), reprise mergée | 2026-10-02 |
 | Audits A et B | faits | 2026-10-02 |
 | Merge dans `main` (= `fix/phase-h`) | fait, plugin rc.7 | 2026-10-02 |
-| Lane C, parcours | jouée : 1 bloquant (harnais, requalifié avec parade), 2 majeurs de prose, 10 majeurs de la Phase H levés ; reprise finale `fix/h2c` puis tag v2.0.0 | 2026-10-03 |
+| Lane C, parcours | jouée : 1 bloquant (harnais, requalifié avec parade), 2 majeurs de prose, 10 majeurs de la Phase H levés ; reprise finale mergée, recette 144 à 0, Phase H validée, tag v2.0.0 | 2026-10-03 |
 
 ## Version
 
