@@ -13,7 +13,7 @@ Remonte vers [[Architecture Mémoire]] (couche PLAYBOOK). Comment démarrer et f
 
 | Je veux… | Je fais |
 |---|---|
-| travailler sur un dossier client ou un projet | session dans le second cerveau, puis « parle de <projet> » ; jamais de session ouverte dans le dossier de travail lui-même (le harnais y laisse un dossier `.claude/`) |
+| travailler sur un dossier client ou un projet | session dans le second cerveau, puis « parle de <projet> » ; les dossiers de travail (`{{DOSSIERS_PROJETS}}`) sont lus depuis ici, jamais de session ouverte dedans (le harnais y laisse un dossier `.claude/`) |
 | piloter, ranger, décider, lancer un chantier | session vault : `cd "<racine du vault>" && claude`, puis [[Amorçage]] |
 | coder | `cd <dépôt> && claude`, `git pull` d'abord, commit et push à la fin |
 | voir où j'en suis | [[Centre]], section « quoi regarder », puis la skill `lint` |
