@@ -96,6 +96,18 @@ def remplacer(texte, cle, valeur):
     return texte.replace(fm, neuf, 1)
 
 
+def alias_orphelins(vault, conf):
+    """Messages pour chaque alias qu'aucune fiche de 20 - Projets ne porte. Un nom
+    mal écrit retomberait sur la clé canonique, absente : la fiche serait sautée
+    sans bruit, ou une clé canonique ajoutée à côté de la vraie."""
+    vues = set()
+    for md in (vault / "20 - Projets").glob("*.md"):
+        vues |= cles(frontmatter(md.read_text(encoding="utf-8")))
+    return [f"alias.{canon} = {nom!r} : aucune fiche de 20 - Projets ne porte la clé `{nom}`. "
+            "Nom mal écrit dans config.yaml ?"
+            for canon, nom in cortex_config.alias_de(conf).items() if nom not in vues]
+
+
 def recaler(vault, conf, lire):
     """Rend (changements, constats). Un changement : (fiche, champ, avant, après)."""
     m = conf.get("miroir") or {}
@@ -164,7 +176,7 @@ def main():
     conf = cortex_config.charger(vault / "config.yaml")
     m = conf.get("miroir") or {}
     # Un alias mal écrit relierait zéro fiche, et « Fiches alignées » mentirait.
-    erreurs = cortex_config.erreurs_alias(conf)
+    erreurs = cortex_config.erreurs_alias(conf) or alias_orphelins(vault, conf)
     if erreurs:
         print("\n".join(erreurs), file=sys.stderr)
         return 2
@@ -183,7 +195,9 @@ def main():
     for c in constats:
         print(f"[!] {c}")
     if not changements:
-        print("Fiches alignées sur la base.")
+        # Avec des constats (page injoignable, phase hors cycle), « alignées » mentirait.
+        print(f"Aucun changement à appliquer ; {len(constats)} constat(s) ci-dessus."
+              if constats else "Fiches alignées sur la base.")
     elif a.ecrire:
         print(f"✓ {ecrire(changements)} fiche(s) recalée(s). Dites « clôture » pour l'enregistrer.")
     else:
@@ -240,6 +254,9 @@ def _autotest():
         t = (v / "20 - Projets" / "Epsilon.md").read_text(encoding="utf-8")
         assert "avancement: 90" in t and 'phase: "Phase D"' in t and "statut: termine" in t, t
         assert "progression" not in t and "cycle" not in t and "url_canonique" not in t, t
+        assert alias_orphelins(v, ca) == []
+        orph = alias_orphelins(v, dict(conf, alias={"statut": "etta"}))
+        assert len(orph) == 1 and "etta" in orph[0], orph
         # Une clé absente de la fiche s'ajoute au lieu d'être annoncée sans être écrite.
         assert "progression: 90" in remplacer("---\ntype: projet\n---\n# X\n", "progression", "90")
         assert identifiant("https://www.notion.so/Titre-" + "e" * 32 + "?pvs=4") == "e" * 32
