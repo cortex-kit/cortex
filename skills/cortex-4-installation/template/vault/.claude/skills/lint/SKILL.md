@@ -47,7 +47,7 @@ Ils sont venus avec le régime `copie` et l'export vers un vault commun. Ce que 
 
 **`structurant_perime`, dette.** Pour chaque note de `50 - Ressources/Structurants/`, le lint recalcule le sha256 de `source_path` et le compare au `hash` du frontmatter. Trois raisons possibles : `source modifiee depuis la copie`, `source absente`, `frontmatter incomplet`. C'est une dette voulue : une source qui bouge n'est pas une faute, c'est un rafraîchissement à décider. Le geste est dans la skill `ingest`, section « Rafraîchir un structurant périmé ». Le code de retour reste 0.
 
-**Le plafond de lignes, suspendu sur les structurants.** `journal_entree_obese` ne s'applique pas dans `50 - Ressources/Structurants/`. Une copie de process fait la longueur de son process ; lui imposer dix lignes reviendrait à interdire le régime copie au moment même où on l'a choisi.
+**Le plafond de lignes, suspendu sur les structurants.** `journal_entree_obese` ne s'applique pas dans `50 - Ressources/Structurants/`. Une copie de contrat fait la longueur de son contrat ; lui imposer dix lignes reviendrait à interdire le régime copie au moment même où on l'a choisi.
 
 **`visibilite`, contrôle dur.** Une note porte `visibilite: prive` ou `visibilite: commun`, ou rien du tout, auquel cas `commun.visibilite_defaut` tranche. Toute autre valeur bloque, parce que l'export du mode fédéré décide sur cette clé : une valeur hors enum enverrait dans le commun une note que personne n'a voulu y mettre, ou retiendrait une note attendue.
 

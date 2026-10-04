@@ -388,16 +388,32 @@ def valider_installable(conf):
         erreurs.append(
             "donnees.regime: 'copie' alors que substrats.base_projets est renseigné. "
             "Une base déportée impose le régime pointeur.")
-    if "process" in (donnees.get("structurants") or []):
-        erreurs.append(
-            "donnees.structurants: 'process' refusé. Une procédure ne se copie jamais, "
-            "régime copie compris : la sienne se pointe depuis le vault, celle de "
-            "l'entreprise vit dans le dossier commun (contrat 2.3.0 §1).")
+    # `process` dans `structurants` n'est plus une erreur (arbitrage du 2026-10-04 sur T5) :
+    # un vault livré avant 2.3.0 le porte et doit rester installable et vert au lint. Le
+    # type est ignoré (`structurants_effectifs`) et signalé (`avertissements`) ; le refus
+    # vit là où la copie se fait, dans copie_structurant.py.
     erreurs.extend(erreurs_rangement(collecte, mapping("referentiel"), mapping("sante")))
     return erreurs
 
 
 REFERENTIEL_ETATS = ("existant", "a_creer", "aucun", "inconnu")
+TYPES_RETIRES = {"process": "2.3.0"}   # une procédure ne se copie jamais (contrat 2.3 T5 amendé)
+
+
+def structurants_effectifs(conf):
+    """`donnees.structurants` sans les types retirés : la liste qui fait foi pour la copie."""
+    donnees = conf.get("donnees") if isinstance(conf.get("donnees"), dict) else {}
+    liste = donnees.get("structurants") or []
+    return [t for t in (liste if isinstance(liste, list) else []) if t not in TYPES_RETIRES]
+
+
+def avertissements(conf):
+    """Ce qui se tolère sans bloquer : un type retiré encore présent dans une config ancienne."""
+    donnees = conf.get("donnees") if isinstance(conf.get("donnees"), dict) else {}
+    liste = donnees.get("structurants") or []
+    return [f"donnees.structurants : type {t!r} retiré en {v}, ignoré. Une procédure ne se copie "
+            "jamais : la sienne se pointe depuis le vault, celle de l'entreprise vit dans le dossier commun."
+            for t, v in TYPES_RETIRES.items() if isinstance(liste, list) and t in liste]
 
 
 def _tilde(chemin):
@@ -657,11 +673,13 @@ def _autotest():
 
     def refus(c, cle):
         return any(x.startswith(cle + ":") for x in valider_installable(c))
+    # Une config 2.2 qui porte encore `process` reste installable, avec un avertissement,
+    # et la liste effective l'exclut ; témoin : sans `process`, aucun avertissement.
     proc = dict(conf, donnees=dict(conf["donnees"], structurants=["contrat", "process"]))
-    assert refus(proc, "donnees.structurants") and any(
-        "ne se copie jamais" in x for x in valider_installable(proc))
-    assert not refus(dict(conf, donnees=dict(conf["donnees"], structurants=["contrat"])),
-                     "donnees.structurants")
+    assert not valider_installable(proc), valider_installable(proc)
+    assert any("retiré en 2.3.0, ignoré" in x for x in avertissements(proc))
+    assert structurants_effectifs(proc) == ["contrat"]
+    assert avertissements(conf) == [] and structurants_effectifs(conf) == conf["donnees"]["structurants"]
     commun = "~/Library/CloudStorage/OneDrive-Exemple/Commun"
     col = dict(conf["collecte"], racines=["~/Documents/Travail", commun], partagees=[commun])
     ok = dict(conf, collecte=col, referentiel={"etat": "existant", "chemin": commun + "/Référentiel"})
@@ -720,6 +738,8 @@ def main():
     conf = charger(args[0])
     for cle in sorted(conf):
         print(f"{cle}: {conf[cle]!r}")
+    for a in avertissements(conf):
+        print(f"[avertissement] {a}")
     return 0
 
 

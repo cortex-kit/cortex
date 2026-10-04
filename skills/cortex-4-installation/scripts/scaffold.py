@@ -531,6 +531,8 @@ def main():
     # Charger ne verifie que la syntaxe. Installer exige un contrat complet :
     # un vault sans domaine se scaffoldait et passait le lint en vert.
     manques = cortex_config.valider_installable(conf)
+    for avert in cortex_config.avertissements(conf):
+        print(f"[i] {avert}")
     if manques:
         print(f"[X] Config incomplete : {chemin_config}", file=sys.stderr)
         for m in manques:

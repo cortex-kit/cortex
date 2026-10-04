@@ -1618,13 +1618,29 @@ def c11_rangement(tmp, configs):
     hors = dict(conf0, referentiel={"etat": "existant", "chemin": "~/Ailleurs/Référentiel"})
     sous = dict(conf0, collecte=dict(conf0["collecte"], partagees=["~/Pas/Declare"]))
     exemple = cortex_config.charger(RACINE / "template" / "config.example.yaml")
-    verifie("cortex_config refuse process dans structurants (message qui nomme la règle), un dossier commun hors "
-            "racine, des dossiers partagés non déclarés ; accepte config.example.yaml",
-            any("procédure ne se copie jamais" in e for e in cortex_config.valider_installable(dict(conf0, donnees=struct)))
-            and refus(hors, "referentiel") and refus(sous, "partagees")
+    verifie("cortex_config refuse un dossier commun hors racine, des dossiers partagés non déclarés ; accepte "
+            "config.example.yaml, qui ne porte plus process",
+            refus(hors, "referentiel") and refus(sous, "partagees")
             and not cortex_config.valider_installable(exemple)
             and "process" not in (exemple.get("donnees") or {}).get("structurants", []),
             str(cortex_config.valider_installable(exemple)[:2]))
+
+    # T5 amendé : une config 2.2 qui porte encore process reste valide et verte au lint, avec un avertissement.
+    conf22 = dict(conf0, donnees=struct)
+    cfg22 = tmp / "config-2.2-process.yaml"
+    cfg22.write_text(configs["dirigeant"][0].read_text(encoding="utf-8").replace(
+        "structurants: [organigramme,", "structurants: [organigramme, process,"), encoding="utf-8")
+    v22 = tmp / "vault-2.2"
+    r22 = scaffold("--config", str(cfg22), "--out", str(v22))
+    l22 = lint(v22) if r22.returncode == 0 else r22
+    verifie("une config 2.2 avec process : validation sans erreur, avertissement « retiré en 2.3.0, ignoré », "
+            "liste effective sans process, installation et lint à 0",
+            not cortex_config.valider_installable(conf22)
+            and any("retiré en 2.3.0, ignoré" in x for x in cortex_config.avertissements(conf22))
+            and "process" not in cortex_config.structurants_effectifs(conf22)
+            and "process" in cortex_config.charger(cfg22)["donnees"]["structurants"]
+            and r22.returncode == 0 and "retiré en 2.3.0" in r22.stdout and l22.returncode == 0,
+            f"{r22.returncode} {r22.stderr[:200]} lint {l22.returncode} {l22.stdout[-200:]}")
 
     # Une procédure ne se copie jamais ; un contrat, si (assertion négative et sa positive).
     vault_copie = tmp / "vault-copie"

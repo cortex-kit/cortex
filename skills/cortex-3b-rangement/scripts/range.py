@@ -28,6 +28,7 @@ Usage (`py` sous Windows vaut `python3`) :
     range.py --atelier <_cortex> --annuler [--ids r003]
     range.py --atelier <_cortex> --publier <SKILL.md de l'atelier> --nom <assistant> --renforce
     range.py --atelier <_cortex> --chemins
+    range.py --atelier <_cortex> --autorise <chemin>      # remplissage : une fiche peut-elle pointer ici ?
     range.py --atelier <_cortex> --clore applique|refuse
     range.py --autotest
 
@@ -1392,12 +1393,15 @@ def _autotest():
         # Geste manuel : en attente (A4), puis constaté par --verifier.
         c = json.loads(ici("--chemins").stdout)
         assert c["en_attente"] == [tilde(perso / "Process relance.md")] and not note_autorisee(atelier, perso / "Process relance.md")
+        assert ici("--autorise", str(perso / "Process relance.md")).returncode == GARDE
         dest = Path(os.path.expanduser(next(o for o in lire_plan(atelier)["operations"] if o["id"] == relance)["vers"]))
         os.rename(perso / "Process relance.md", dest)          # la personne, dans son outil
         assert ici("--verifier").returncode == 0
         c = json.loads(ici("--chemins").stdout)
         assert c["en_attente"] == [] and c["traductions"][tilde(perso / "Process relance.md")] == tilde(dest)
         assert note_autorisee(atelier, perso / "Process relance.md")
+        r = ici("--autorise", str(perso / "Process relance.md"))
+        assert r.returncode == OK and tilde(dest) in r.stdout, r.stdout
         # --verifier a son témoin : un fichier rangé qu'on touche est un écart.
         rangé = Path(os.path.expanduser(par["Scan_0001.md"]["vers"]))
         st = rangé.stat()
@@ -1520,6 +1524,7 @@ def main():
     g.add_argument("--annuler", action="store_true")
     g.add_argument("--publier", metavar="SKILL.md")
     g.add_argument("--chemins", action="store_true")
+    g.add_argument("--autorise", metavar="CHEMIN", help="0 si une note-pointeur peut viser ce chemin, 3 sinon (A4)")
     g.add_argument("--clore", choices=("applique", "refuse"))
     g.add_argument("--autotest", action="store_true")
     p.add_argument("--ids", help="r001,r003")
@@ -1566,6 +1571,16 @@ def main():
             return publier(atelier, a.publier, a.nom, a.renforce)
         if a.chemins:
             print(json.dumps(chemins(atelier), ensure_ascii=False, indent=2))
+            return OK
+        if a.autorise:
+            c = chemins(atelier)
+            ancien = tilde(os.path.expanduser(a.autorise))
+            if not note_autorisee(atelier, a.autorise):
+                print(f"non : {ancien} attend un déplacement fait par la personne ; aucune fiche, "
+                      "« en attente de déplacement » dans 04-ingest.md")
+                return GARDE
+            nouveau = c["traductions"].get(ancien)
+            print(f"oui : {nouveau}" + " (chemin rangé)" if nouveau else f"oui : {ancien}")
             return OK
         if a.clore:
             return clore(atelier, a.clore)

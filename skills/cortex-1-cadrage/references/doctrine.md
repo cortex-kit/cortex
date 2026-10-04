@@ -73,6 +73,8 @@ Chaque maillon écrit un fichier d'atelier dont le frontmatter porte `statut` et
 
 **Le trou en `03` est voulu.** La sortie du maillon 4 est le vault lui-même, et sa preuve est le lint qui sort en 0 depuis ce vault. Lui fabriquer un fichier d'état n'ajouterait aucune information et donnerait à croire que l'installation est un jugement à valider.
 
+*Amendement 2026-10-04 — le trou reste, une date s'écrit à côté.* L'installation n'écrit toujours aucun fichier d'état à elle. Elle inscrit seulement, dans `03-rangement.md` de l'étape 3 bis, la date de la construction (`construit_le`), et `statut: passee` si le rangement n'a pas été conclu. Ce n'est pas une preuve de l'installation, c'est une borne pour le rangement : une fois le vault construit, ses liens ne doivent plus voir bouger les fichiers qu'ils pointent, et `range.py` refuse de proposer, d'appliquer ou de défaire.
+
 C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne : une consigne se contourne par bonne volonté un jour de retard, un contrôle d'étape 0 ne se contourne pas sans mentir par écrit.
 
 ## 5. Les cinq invariants
@@ -81,7 +83,7 @@ Ils valent dans les neuf maillons et dans l'étape 3 bis. Chacun a coûté quelq
 
 **Pointeur jamais copie.** Une copie diverge de sa source, et le jour où elles se contredisent, personne ne sait laquelle croit. La parade n'est pas une règle en prose : le schéma d'inventaire n'a pas de champ `contenu`, et le plafond de résumé est un contrôle dur. S'il n'y a pas d'endroit où mettre la copie, la copie ne se fait pas.
 
-*Amendement 2026-10-04 : une procédure ne se copie jamais, régime copie compris.* Dans une société à trois rédacteurs, une procédure recopiée dans chaque vault existe en quatre versions qui divergent, et aucune IA ne sait laquelle fait foi. `process` sort donc des types copiables, et `cortex_config.py` le refuse dans `donnees.structurants`. Une procédure personnelle, la façon de faire de la personne, reçoit une note-pointeur dans son vault. Une procédure établie pour toute l'entreprise vit dans le dossier commun (le référentiel), en un seul exemplaire ; chaque vault pointe vers ce dossier et son sommaire, aucun n'en garde de note par document. Un assistant métier établi pour toute l'entreprise suit la même règle. En cas de doute sur le classement, une question à la personne.
+*Amendement 2026-10-04 : une procédure ne se copie jamais, régime copie compris.* Dans une société à trois rédacteurs, une procédure recopiée dans chaque vault existe en quatre versions qui divergent, et aucune IA ne sait laquelle fait foi. `process` sort donc des types copiables : `copie_structurant.py` refuse de copier une procédure, et une config antérieure à 2.3.0 qui le porte encore reste valide, le type ignoré avec un avertissement. Une procédure personnelle, la façon de faire de la personne, reçoit une note-pointeur dans son vault. Une procédure établie pour toute l'entreprise vit dans le dossier commun (le référentiel), en un seul exemplaire ; chaque vault pointe vers ce dossier et son sommaire, aucun n'en garde de note par document. Un assistant métier établi pour toute l'entreprise suit la même règle. En cas de doute sur le classement, une question à la personne.
 
 **Un vault, un rédacteur nommé.** Pas une équipe, pas une fonction. Git sur du markdown à plusieurs produit des conflits sur `## Journal` à chaque clôture concurrente, à résoudre par des gens qui ne sont pas développeurs. Plusieurs personnes ⇒ plusieurs vaults, et l'agrégation plus tard.
 

@@ -27,7 +27,16 @@ Il **ne rapatrie aucun document**. Il crée des notes qui pointent.
 python3 "${CLAUDE_SKILL_DIR}/../cortex-3b-rangement/scripts/range.py" --atelier <chemin de _cortex/> --chemins
 ```
 
-Le JSON rendu porte `traductions` (ancien chemin vers nouveau) et `en_attente` (l'origine d'un déplacement que la personne doit faire elle-même dans son outil de partage, pas encore constaté). Tout chemin ancien cité par l'ontologie ou le cadrage se lit à travers `traductions`. Une source listée dans `en_attente` ne reçoit **aucune** note-pointeur : elle s'inscrit dans `04-ingest.md` avec la mention « en attente de déplacement », pour qu'aucun lien ne naisse sur un chemin appelé à changer. Quand la personne a fait le déplacement, « rangeons mes dossiers » le constate, et une relance de ce maillon écrit la note sur le nouveau chemin.
+Le JSON rendu porte `traductions` (ancien chemin vers nouveau) et `en_attente` (l'origine d'un déplacement que la personne doit faire elle-même dans son outil de partage, pas encore constaté). Tout chemin ancien cité par l'ontologie ou le cadrage se lit à travers `traductions`.
+
+**Avant chaque note-pointeur**, quand l'atelier porte un rangement, une étape qui ne se saute pas :
+
+1. Demander au rangement si la source peut être pointée :
+   ```bash
+   python3 "${CLAUDE_SKILL_DIR}/../cortex-3b-rangement/scripts/range.py" --atelier <chemin de _cortex/> --autorise "<chemin de la source>"
+   ```
+2. Code 0 : écrire la note sur le chemin que la commande imprime (le chemin rangé s'il a changé).
+3. Code 3 : **aucune** note-pointeur. Inscrire la source dans `04-ingest.md` avec la mention « en attente de déplacement », pour qu'aucun lien ne naisse sur un chemin appelé à changer. Quand la personne a fait le déplacement, « rangeons mes dossiers » le constate, et une relance de ce maillon écrit la note sur le nouveau chemin.
 
 **Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, le fond ne change pas : trier, pointer, ne jamais recopier. Changent l'adresse des arbitrages — ce qui déborde les plafonds se présente à la personne elle-même, dans ses mots : « voilà ce que je propose d'écarter, et pourquoi » — et le message de clôture, qui propose la suite au lieu de rendre la main.
 

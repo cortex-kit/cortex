@@ -58,8 +58,9 @@ chemins:
 #            contrôle structurant_perime compare le hash à la source.
 # structurants : les types de documents éligibles à la copie, dans les mots du
 #            maillon 5. Jamais un corps de mail hors `fil_structurant`.
-#            `process` n'y figure jamais (refusé) : une procédure ne se copie pas,
-#            elle se pointe, ou vit dans le dossier commun (bloc `referentiel`).
+#            `process` n'y figure plus : une procédure ne se copie pas, elle se
+#            pointe, ou vit dans le dossier commun (bloc `referentiel`). Resté dans
+#            une config antérieure à 2.3.0, il est ignoré avec un avertissement.
 donnees:
   regime: pointeur
   structurants: [organigramme, fiche_de_poste, contrat, projet, acteur, tenants_aboutissants, fil_structurant]
