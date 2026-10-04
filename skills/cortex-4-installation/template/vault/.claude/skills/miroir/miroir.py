@@ -14,6 +14,10 @@ Configuration (config.yaml du vault) :
       statut: "Statut"
     miroir_statuts:
       - { source: "En cours", vault: actif }
+    miroir_phases:                          # facultatif : libellé de la base → libellé de la fiche
+      - { source: "Phase D - Restitution", vault: "Phase D" }
+
+Une phase absente de `miroir_phases` est comparée telle quelle.
 
 Une fiche se relie à sa ligne de base par `url_canonique` (l'identifiant de 32
 caractères hexadécimaux qu'elle contient). Dans un vault adopté, le bloc `alias`
@@ -131,10 +135,33 @@ def alias_orphelins(vault, conf):
             for canon, nom in cortex_config.alias_de(conf).items() if nom not in vues]
 
 
+def erreurs_phases(conf):
+    """Messages pour une table `miroir_phases` mal formée. Une ligne illisible
+    laisserait passer le libellé brut de la base, et la fiche se verrait
+    déclarée hors du cycle sans que la table fautive soit nommée."""
+    table = conf.get("miroir_phases")
+    if table is None:
+        return []
+    if not isinstance(table, list):
+        return [f"miroir_phases : attendu une liste de `- {{ source: …, vault: … }}`, lu {table!r}."]
+    erreurs, vues = [], {}
+    for i, x in enumerate(table):
+        if not isinstance(x, dict) or not str(x.get("source") or "").strip() \
+                or not str(x.get("vault") or "").strip():
+            erreurs.append(f"miroir_phases[{i}] : `source` et `vault` sont tous deux requis, lu {x!r}.")
+            continue
+        s = str(x["source"])
+        if s in vues and vues[s] != str(x["vault"]):
+            erreurs.append(f"miroir_phases : « {s} » traduit deux fois ({vues[s]!r} et {x['vault']!r}).")
+        vues[s] = str(x["vault"])
+    return erreurs
+
+
 def recaler(vault, conf, lire):
     """Rend (changements, constats). Un changement : (fiche, champ, avant, après)."""
     m = conf.get("miroir") or {}
     statuts = {str(x.get("source")): str(x.get("vault")) for x in conf.get("miroir_statuts") or []}
+    traduction = {str(x["source"]): str(x["vault"]) for x in conf.get("miroir_phases") or []}
     progressions = {(c.get("cycle"), c.get("phase")): c.get("progression") for c in conf.get("cycles") or []}
     changements, constats = [], []
     sans_pointeur, lues, proprietes, fermees = 0, 0, set(), set()
@@ -167,7 +194,8 @@ def recaler(vault, conf, lire):
         cycle = champ(fm, nom("cycle"))
         phase, progression, statut = nom("phase"), nom("progression"), nom("statut")
         if m.get("phase"):
-            v = source.get(m["phase"]) or ""
+            brute = source.get(m["phase"]) or ""
+            v = traduction.get(brute, brute)
             if v and v != champ(fm, phase):
                 if v in cortex_config.phases_autorisees(conf, cycle):
                     changements.append((md, phase, champ(fm, phase), v))
@@ -175,7 +203,8 @@ def recaler(vault, conf, lire):
                     if p is not None and str(p) != champ(fm, progression):
                         changements.append((md, progression, champ(fm, progression), str(p)))
                 else:
-                    constats.append(f"{md.stem} : phase « {v} » hors du cycle {cycle or 'aucun'}, non recopiée")
+                    lue = f"« {v} » (lue « {brute} »)" if v != brute else f"« {v} »"
+                    constats.append(f"{md.stem} : phase {lue} hors du cycle {cycle or 'aucun'}, non recopiée")
         if m.get("statut"):
             v = source.get(m["statut"]) or ""
             if v and v not in statuts:
@@ -222,7 +251,7 @@ def main():
     conf = cortex_config.charger(vault / "config.yaml")
     m = conf.get("miroir") or {}
     # Un alias mal écrit relierait zéro fiche, et « Fiches alignées » mentirait.
-    erreurs = cortex_config.erreurs_alias(conf) or alias_orphelins(vault, conf)
+    erreurs = cortex_config.erreurs_alias(conf) or erreurs_phases(conf) or alias_orphelins(vault, conf)
     if erreurs:
         print("\n".join(erreurs), file=sys.stderr)
         return 2
@@ -322,6 +351,27 @@ def _autotest():
         assert any(c.startswith("2 fiche(s) projet sans pointeur") for c in co), co
         (v / "20 - Projets" / "Zeta.md").unlink()
         (v / "20 - Projets" / "Eta.md").unlink()
+        # miroir_phases : le libellé long de la base est traduit avant comparaison,
+        # un libellé absent de la table est comparé tel quel. Cas rouge : sans la
+        # table, le même libellé long est déclaré hors du cycle.
+        base["a" * 32]["Phase en cours"] = "Phase D - Restitution"
+        base["b" * 32]["Phase en cours"] = "Phase Y - Inconnue"
+        table = [{"source": "Phase D - Restitution", "vault": "Phase D"}]
+        _, co = recaler(v, dict(conf, miroir_phases=table), lire)
+        assert not any("Restitution" in c for c in co), co
+        assert any("Beta" in c and "« Phase Y - Inconnue » hors du cycle" in c for c in co), co
+        _, co = recaler(v, conf, lire)
+        assert sum("« Phase D - Restitution » hors du cycle" in c for c in co) == 1, co
+        (v / "20 - Projets" / "Gamma.md").write_text(
+            fiche.format(id="a" * 32).replace("Phase A", "Phase C"), encoding="utf-8")
+        _, co = recaler(v, dict(conf, miroir_phases=[{"source": "Phase D - Restitution", "vault": "Phase Q"}]), lire)
+        assert any("« Phase Q » (lue « Phase D - Restitution »)" in c for c in co), co
+        # Table mal formée : nommée, jamais une comparaison brute en silence.
+        assert erreurs_phases(conf) == [] and erreurs_phases(dict(conf, miroir_phases=table)) == []
+        for faux in ("Phase D", [{"source": "Phase D - Restitution"}], ["Phase D"],
+                     [{"source": "", "vault": "Phase D"}],
+                     table + [{"source": "Phase D - Restitution", "vault": "Phase C"}]):
+            assert erreurs_phases(dict(conf, miroir_phases=faux)), faux
         # Causes distinctes : le code HTTP est lu, la coupure réseau n'est pas un refus.
         err = urllib.error.HTTPError
         assert cause(err("u", 403, "x", {}, None)).startswith("droits refusés, HTTP 403")

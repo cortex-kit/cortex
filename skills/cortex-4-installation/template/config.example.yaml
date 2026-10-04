@@ -184,12 +184,16 @@ payeurs: []
 # jeton d'intégration, jamais le jeton (le vault est versionné et synchronisé).
 # phase, statut : noms des propriétés à liste fermée dans la base.
 # miroir_statuts : une ligne par statut de la base, traduit en statut du vault.
+# miroir_phases : facultatif, une ligne par libellé de phase de la base qui
+# diffère de celui de la fiche ({ source: "Phase D - Restitution", vault: "Phase D" }).
+# Un libellé absent de la table est comparé tel quel.
 miroir:
   outil: ""
   jeton: ""
   phase: ""
   statut: ""
 miroir_statuts: []
+miroir_phases: []
 
 # ── OPTIONNEL — substrats externes. "" = absent chez ce client. ────────────
 # Aucun code du produit ne suppose la présence d'un substrat. Ce sont des

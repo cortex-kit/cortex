@@ -11,7 +11,7 @@ La base de projets porte l'état des affaires ; la fiche du vault en garde un re
 
 ## Prérequis
 
-Le bloc `miroir` de `config.yaml` : `outil: notion`, le chemin du fichier qui contient le jeton d'intégration (jamais le jeton lui-même dans le vault), les noms des propriétés `phase` et `statut` dans la base, et la table `miroir_statuts` qui traduit chaque statut de la base en statut du vault. La page Notion de chaque projet doit être partagée avec l'intégration. Sans bloc `miroir`, le script le dit et ne fait rien.
+Le bloc `miroir` de `config.yaml` : `outil: notion`, le chemin du fichier qui contient le jeton d'intégration (jamais le jeton lui-même dans le vault), les noms des propriétés `phase` et `statut` dans la base, et la table `miroir_statuts` qui traduit chaque statut de la base en statut du vault. Si la base écrit ses phases autrement que les fiches (« Phase D - Restitution » pour « Phase D »), la table facultative `miroir_phases` ramène chaque libellé de la base à celui de la fiche avant comparaison. La page Notion de chaque projet doit être partagée avec l'intégration. Sans bloc `miroir`, le script le dit et ne fait rien.
 
 ## Le geste
 

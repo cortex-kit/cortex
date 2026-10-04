@@ -21,6 +21,7 @@ Stdlib seule, aucun reseau. Ecrit dans un dossier temporaire et dans
 recette/fixtures/ (ignore par git), rien d'autre.
 """
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -1039,6 +1040,25 @@ def c4_couche_vault(tmp, configs):
         r_s = lancer(script, "--autotest") if script.is_file() else None
         verifie(f"{nom}.py est livré et son --autotest sort en 0",
                 r_s is not None and r_s.returncode == 0, "absent" if r_s is None else (r_s.stderr or r_s.stdout)[:200])
+    # miroir_phases : le libellé long de la base est traduit par la table avant
+    # comparaison, avec le miroir livré dans le vault (et non celui du gabarit).
+    script = vault / ".claude" / "skills" / "miroir" / "miroir.py"
+    spec = importlib.util.spec_from_file_location("miroir_livre", script)
+    m_miroir = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m_miroir)
+    v_mp = tmp / "miroir-phases"
+    (v_mp / "20 - Projets").mkdir(parents=True, exist_ok=True)
+    (v_mp / "20 - Projets" / "Mission.md").write_text(
+        '---\ntype: projet\nstatut: actif\ncycle: mission\nphase: "Phase D"\n'
+        'url_canonique: "https://www.notion.so/' + "f" * 32 + '"\n---\n', encoding="utf-8")
+    c_mp = {"cycles": [{"cycle": "mission", "phase": "Phase D"}],
+            "miroir": {"outil": "notion", "phase": "Phase en cours", "statut": ""}}
+    lire_mp = lambda pid: {"Phase en cours": "Phase D - Restitution"}  # noqa: E731
+    sans = m_miroir.recaler(v_mp, c_mp, lire_mp)
+    avec = m_miroir.recaler(v_mp, dict(c_mp, miroir_phases=[
+        {"source": "Phase D - Restitution", "vault": "Phase D"}]), lire_mp)
+    verifie("miroir_phases : un libellé long de la base est traduit par la table (constat sans table, aucun avec)",
+            avec == ([], []) and any("Phase D - Restitution" in c for c in sans[1]), f"sans {sans}, avec {avec}")
     verifie("agenda et miroir se lancent sans permission (allow)",
             all(f"Bash(python3 .claude/skills/{n}/{n}.py:*)" in allow for n in ("agenda", "miroir")), str(allow))
     verifie("session_start.py affiche l'agenda en bref", "agenda.py" in src_ss and "--bref" in src_ss)
