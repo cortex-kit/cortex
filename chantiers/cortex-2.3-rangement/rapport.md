@@ -8,8 +8,9 @@ Branche `lane/rangement`, worktree `~/Dev/cortex--rangement`, base `cf5912a` (2.
 |---|---|---|
 | Avant la lane (`ce062ca`) | 154 passés, 0 en échec | 0 |
 | Après la lane (`2efc3e4`) | 192 passés, 0 en échec | 0 |
+| Après la reprise 1 (`d6c7b2f`) | 197 passés, 0 en échec | 0 |
 
-Le critère C11 (37 contrôles) couvre le rangement ; C1, C2 et C10 passent de neuf à dix étapes.
+Le critère C11 (42 contrôles après la reprise 1) couvre le rangement ; C1, C2 et C10 passent de neuf à dix étapes.
 
 ## Fait
 
@@ -124,3 +125,36 @@ Le renommage refuse lui-même la destination occupée : deux barrières au lieu 
 - **Garde de lint sur A4** : une note-pointeur écrite vers une source qui attend un déplacement manuel n'est vue par aucun contrôle du vault. Prévue en 2.3.x, dans `lint_sante.py`, hors de cette lane.
 - **Renommage exclusif hors macOS et Linux** : sous Windows, `os.rename` refuse déjà une destination existante ; sur une autre plateforme POSIX sans `renamex_np` ni `renameat2`, la garde rejouée juste avant le geste reste la seule barrière (fenêtre de deux appels système).
 - **Rangement après la remise** : hors périmètre (01-cadrage). Défaire après la construction casserait les liens du vault ; la skill le dit avant d'agir.
+
+## Reprise 1
+
+Après l'audit à froid (`audit.md`, `a10faaa`) et les amendements A6 et A7. Recette à 197 contrôles, sortie 0 (C11 : 42). Chaque garde ajoutée ou éprouvée ici a sa perturbation : neutralisée dans une copie jetable, l'auto-test ou la recette rougit.
+
+| Finding | Correction | Commit |
+|---|---|---|
+| B1, sommaire incomplet | La liste range la création du dossier commun avant toute ligne qui en dépend, le sommaire en dernier. Le sommaire se régénère après chaque lot qui touche le dossier commun et à `--clore` (lignes `i…` au journal, défaites comme les autres). Fixture à cinq procédures d'entreprise ; la recette passe la liste lot par lot comme la skill, avec une procédure acceptée après le sommaire, et exige les cinq. Perturbation du rafraîchissement : rouge | `a54e392`, `d6c7b2f` |
+| M1, rangement non clos effacé par la construction | Des gestes faits sans clôture : `etat.py` rend 3b `en_cours` (« appliqué, pas encore conclu »), le maillon 4 refuse avec « rangeons mes dossiers ». `marquer_construction` n'écrit jamais `passee` quand le journal porte un geste fait. `--clore` inscrit `referentiel.etat` et `referentiel.chemin`. Contrôle de recette sur le scénario x1 | `a54e392` |
+| M2, clôture appliquée en partie | cas d'auto-test (code 3) ; perturbation : rouge | `a54e392` |
+| M3, G6 sur `lire_index` | cas d'auto-test : sommaire simulé en ligne, `--publier` en code 3 ; perturbation : rouge | `a54e392` |
+| m2, création exclusive et publication en double | `creer_exclusif` testé sur un fichier existant ; `--publier` deux fois : G1, code 3 ; perturbations : rouge | `a54e392` |
+| M4, assertion négative vide | L'installation écrit `50 - Ressources/Référentiel commun.md` quand le dossier commun existe (le maillon 5 la vérifie). Sur le même vault de recette : la note existe, aucune note ne porte une des cinq procédures, lint à 0 ; témoin sur un vault jetable qui en porte une | `a54e392` |
+| M6, m10, causes agrégées | Annulation d'une publication : trois messages (disparu, en ligne seulement, modifié). Un `.docx` sans corps donne `titre_illisible`. `--publier` distingue ses trois erreurs d'usage. Un `stat` refusé remonte au lieu de devenir « local » ou « changé » (auto-test). Le repli de `renommer_exclusif` sans libc le dit sur la sortie d'erreur | `a54e392` |
+| m1, grep des appels interdits | La recette voit aussi `Path.unlink`, `Path.rename`, `Path.replace`, `os.rename` ; chaque ligne trouvée est une exception commentée ou un geste de l'auto-test ; témoin à quatre appels sur un jetable, `str.replace` exclu | `a54e392` |
+| m3, notice à neuf étapes | `notice.md` décrit dix étapes, rangement compris ; `notice/LISEZ-MOI.html` régénéré | `a54e392`, clôture |
+| m4, G2 figé | `partage` se recalcule depuis `collecte.partagees` au moment du geste ; cas d'auto-test | `a54e392` |
+| m5, « Mon … » en dossier partagé | classe `a_demander` ; cas d'auto-test | `a54e392` |
+| m6, « JSON » | ajouté à la liste des mots du SKILL | `a54e392` |
+| m7, troncature | au-delà du plafond, la création du dossier commun et le sommaire restent, les dernières lignes ordinaires partent | `a54e392` |
+| m8, A7 | `--verifier` constate un geste manuel sur la taille de la proposition, sans la date ; auto-test dans les deux sens | `a54e392` |
+| m11, commande du maillon 6 | affichée entière, sur deux lignes avec la barre oblique | `a54e392` |
+| m12, atelier de `scaffold.py` | l'atelier est le dossier de `config.yaml` qui porte `02-ontologie.md` ; sinon le script le dit et n'inscrit rien | `a54e392` |
+| M5, m13 | réglés côté pack (A6) | — |
+
+Écart nouveau, déclaré : la note `Référentiel commun` du vault est écrite par l'installation, plus par le maillon 5 seul (contrat §7). Motif : elle ne dépend que de la config, et c'est ce qui donne à l'assertion « aucune note par procédure d'entreprise » un objet vérifiable.
+
+### m9, défauts préexistants, en suivi sans correctif
+
+- `etat.py` : `_frontmatter` rend « illisible » sans raison ; `generer` jette le message d'une config illisible.
+- `copie_structurant.py` : `texte_de` agrège binaire absent, délai dépassé et échec de conversion, et jette `stderr`.
+- `scaffold.py` : une couleur de domaine invalide est grisée sans avertissement.
+- `federe.py` : un `index.json` mal formé lève un `KeyError` brut.
