@@ -12,12 +12,14 @@ un dossier temporaire car le convertisseur laisse un fichier `:memory:.ses` ;
 `fil_structurant`, `--texte` porte le résumé anonymisé et `--source` est
 facultatif : un fil de messagerie n'a pas de fichier qui change.
 
-Refuse : un régime autre que `copie`, un type hors `donnees.structurants`, le
+Refuse : le type `process` (une procédure ne se copie jamais, contrat 2.3 T5 :
+personnelle, elle est pointée depuis le vault ; d'entreprise, elle vit dans le
+dossier commun), un régime autre que `copie`, un type hors `donnees.structurants`, le
 plafond `sante.max_structurants` atteint, une note existante écrite à la main.
 Rejoue sans dupliquer : même hash, rien ; hash différent, la copie se rafraîchit.
 
 Usage :
-  python3 copie_structurant.py --vault <vault> --source <fichier> --type process --domaine "Ops"
+  python3 copie_structurant.py --vault <vault> --source <fichier> --type contrat --domaine "Ops"
   python3 copie_structurant.py --vault <vault> --type fil_structurant --domaine "Ops" --titre "Revue fournisseurs" --texte resume.md
   python3 copie_structurant.py --autotest
 """
@@ -101,6 +103,12 @@ def copier(vault, conf, typ, domaine, source=None, titre=None, texte=None,
            max_octets=200_000, jour=None):
     """Renvoie (code, message). 0 = écrit ou à jour, 2 = refus."""
     vault = Path(vault)
+    if typ == "process":
+        # Avant le régime et la liste : une config antérieure à la 2.3 porte
+        # encore `process` dans `donnees.structurants`, et la règle prime.
+        return 2, ("type 'process' refuse : une procedure ne se copie jamais. Personnelle, elle "
+                   "recoit une note-pointeur dans 50 - Ressources/Procedures/ ; etablie pour toute "
+                   "l'entreprise, elle vit dans le dossier commun et le vault y renvoie.")
     regime = (conf.get("donnees") or {}).get("regime", "pointeur")
     if regime != "copie":
         return 2, f"regime {regime!r} : aucune copie. Le vault pointe, il ne stocke pas."
@@ -185,7 +193,7 @@ def main():
 
 
 def _autotest():
-    conf = {"donnees": {"regime": "copie", "structurants": ["process", "fil_structurant"]},
+    conf = {"donnees": {"regime": "copie", "structurants": ["contrat", "process", "fil_structurant"]},
             "sante": {"max_structurants": 2}}
     j = date(2026, 9, 19)
     with tempfile.TemporaryDirectory() as tmp:
@@ -193,29 +201,35 @@ def _autotest():
         v.mkdir()
         src = Path(tmp) / "PROCESS-affaire.md"
         src.write_text("# Process\n\nversion 1\n", encoding="utf-8")
-        code, msg = copier(v, conf, "process", "Ops", src, jour=j)
+        code, msg = copier(v, conf, "contrat", "Ops", src, jour=j)
         assert code == 0 and msg.startswith("ecrite"), msg
-        note = v / STRUCTURANTS / "process" / "PROCESS-affaire.md"
+        note = v / STRUCTURANTS / "contrat" / "PROCESS-affaire.md"
         t = note.read_text(encoding="utf-8")
-        assert t.startswith("---\ntype: structurant\nstructurant: process\ndomaine: \"[[Ops]]\"\nsource_path: ")
+        assert t.startswith("---\ntype: structurant\nstructurant: contrat\ndomaine: \"[[Ops]]\"\nsource_path: ")
         assert f"hash: {sha256_fichier(src)}" in t and "copie_le: 2026-09-19" in t
         assert "<!-- cortex-5-ingest: structurant:PROCESS-affaire 2026-09-19 -->" in t
         # Idempotent, puis rafraichi quand la source change.
-        assert copier(v, conf, "process", "Ops", src, jour=j)[1].startswith("a jour")
+        assert copier(v, conf, "contrat", "Ops", src, jour=j)[1].startswith("a jour")
         src.write_text("# Process\n\nversion 2\n", encoding="utf-8")
-        assert copier(v, conf, "process", "Ops", src, jour=j)[1].startswith("rafraichie")
+        assert copier(v, conf, "contrat", "Ops", src, jour=j)[1].startswith("rafraichie")
         # Refus : regime pointeur, type inconnu, note ecrite a la main, plafond.
-        assert copier(v, {"donnees": {"regime": "pointeur"}}, "process", "Ops", src)[0] == 2
+        assert copier(v, {"donnees": {"regime": "pointeur"}}, "contrat", "Ops", src)[0] == 2
         assert copier(v, conf, "organigramme", "Ops", src)[0] == 2
         note.write_text("---\ntype: structurant\n---\n# a la main\n", encoding="utf-8")
-        assert "a la main" in copier(v, conf, "process", "Ops", src, jour=j)[1]
+        assert "a la main" in copier(v, conf, "contrat", "Ops", src, jour=j)[1]
         code, _ = copier(v, conf, "fil_structurant", "Ops", titre="Revue fournisseurs",
                          texte="Fil de 38 messages entre l'entreprise et un fournisseur. Resume.", jour=j)
         assert code == 0
         assert "plafond" in copier(v, conf, "fil_structurant", "Ops", titre="Autre", texte="x", jour=j)[1]
         fil = (v / STRUCTURANTS / "fil_structurant" / "Revue fournisseurs.md").read_text(encoding="utf-8")
         assert 'source_path: ""' in fil
-        assert "fil_structurant" in copier(v, conf, "process", "Ops", titre="Sans source", texte="x")[1]
+        assert "fil_structurant" in copier(v, conf, "contrat", "Ops", titre="Sans source", texte="x")[1]
+        # T5 : `process` refuse meme liste dans structurants, quel que soit le regime ;
+        # la meme source passe en `contrat` (temoin positif plus haut).
+        code, msg = copier(v, conf, "process", "Ops", src, jour=j)
+        assert code == 2 and "ne se copie jamais" in msg, msg
+        assert "ne se copie jamais" in copier(v, {"donnees": {"regime": "pointeur"}}, "process", "Ops", src)[1]
+        assert not (v / STRUCTURANTS / "process").exists(), "aucune procedure copiee"
         # Temoin de la forme d'appel du convertisseur (contrat 04, amendement §3).
         assert CMD_MARKITDOWN == ["uvx", "--from", "markitdown[all]", "markitdown"]
     print("OK copie_structurant.py")

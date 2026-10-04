@@ -21,6 +21,14 @@ Il **ne rapatrie aucun document**. Il crée des notes qui pointent.
 
 **Lire la clé `donnees.regime` du `config.yaml`** : `pointeur` (une base déportée porte le canon, rien n'est copié, comportement v1 à l'identique) ou `copie` (aucune base déportée : les documents structurants validés un par un sont copiés, §2 bis). Le régime a été fixé au maillon 1 ; ce maillon ne le change pas.
 
+**Lire les chemins à travers le rangement.** Si l'atelier porte `03-rangement-journal.jsonl`, des dossiers ont été rangés après l'inventaire. Le rangement a rejoué l'inventaire, mais `02-ontologie.md` et `00-cadrage.md` citent encore les anciens chemins. Avant d'écrire une seule note :
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/../cortex-3b-rangement/scripts/range.py" --atelier <chemin de _cortex/> --chemins
+```
+
+Le JSON rendu porte `traductions` (ancien chemin vers nouveau) et `en_attente` (l'origine d'un déplacement que la personne doit faire elle-même dans son outil de partage, pas encore constaté). Tout chemin ancien cité par l'ontologie ou le cadrage se lit à travers `traductions`. Une source listée dans `en_attente` ne reçoit **aucune** note-pointeur : elle s'inscrit dans `04-ingest.md` avec la mention « en attente de déplacement », pour qu'aucun lien ne naisse sur un chemin appelé à changer. Quand la personne a fait le déplacement, « rangeons mes dossiers » le constate, et une relance de ce maillon écrit la note sur le nouveau chemin.
+
 **Lire aussi la clé `conduite` du `config.yaml`** — absente ⇒ `consultant`, comportement actuel à l'identique. En `solo`, le fond ne change pas : trier, pointer, ne jamais recopier. Changent l'adresse des arbitrages — ce qui déborde les plafonds se présente à la personne elle-même, dans ses mots : « voilà ce que je propose d'écarter, et pourquoi » — et le message de clôture, qui propose la suite au lieu de rendre la main.
 
 ## 1. Trier avant d'écrire
@@ -55,7 +63,7 @@ Le plafond de résumé est un contrôle dur. La source reste à son adresse : la
 
 ## 2 bis. Régime copie : les structurants, par lots de quatre
 
-En régime `copie`, le vault garde une copie markdown des documents **structurants** : ceux qui décrivent comment l'organisation tourne, et que personne ne retrouvera s'ils restent dans un dossier parmi mille. Les types éligibles sont ceux de `donnees.structurants` : `organigramme`, `process`, `fiche_de_poste`, `contrat`, `projet`, `acteur`, `tenants_aboutissants`, `fil_structurant`. Rien d'autre.
+En régime `copie`, le vault garde une copie markdown des documents **structurants** : ceux qui décrivent comment l'organisation tourne, et que personne ne retrouvera s'ils restent dans un dossier parmi mille. Les types éligibles sont ceux de `donnees.structurants` : `organigramme`, `fiche_de_poste`, `contrat`, `projet`, `acteur`, `tenants_aboutissants`, `fil_structurant`. Rien d'autre. **Une procédure n'en fait jamais partie**, régime copie compris (§2 ter) : le script refuse le type `process` et nomme la règle.
 
 **Candidats.** Les `signal_ontologique.structurant_candidat` de `01-inventaire.json`, plus ce que le cadrage a nommé. Les classer par type, puis par importance déclarée.
 
@@ -67,7 +75,7 @@ En régime `copie`, le vault garde une copie markdown des documents **structuran
 
 ```bash
 python3 "${CLAUDE_SKILL_DIR}/scripts/copie_structurant.py" --vault <vault> \
-    --source "<racine déclarée>/.../PROCESS-affaire.md" --type process --domaine "Ops"
+    --source "<racine déclarée>/.../Contrat cadre fournisseur.docx" --type contrat --domaine "Ops"
 ```
 
 Il convertit le document (`uvx --from "markitdown[all]" markitdown` pour les formats bureautiques, depuis un dossier temporaire ; lecture directe pour le texte), écrit `50 - Ressources/Structurants/<type>/<nom>.md` avec le frontmatter du contrat (`type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` sha256 de la source, `copie_le`) et un marqueur de provenance. Rejoué, il ne duplique pas : même hash, rien ; source changée, copie rafraîchie ; note écrite à la main, refus. Le lint suspend le plafond de lignes sur ce dossier et lève `structurant_perime` dès que la source diverge de la copie.
@@ -77,6 +85,28 @@ Il convertit le document (`uvx --from "markitdown[all]" markitdown` pour les for
 **Après la remise**, le même script vit dans le vault, déposé par `scaffold.py` en `.claude/skills/ingest/copie_structurant.py`. C'est lui que la personne rejoue pour rafraîchir une copie périmée, plugin installé ou non : la skill `ingest` du vault porte le mode d'emploi.
 
 **En régime `pointeur`**, cette section ne s'applique pas : le dossier `Structurants/` reste vide, et une demande de copie se refuse en nommant le régime.
+
+## 2 ter. Les procédures et le dossier commun
+
+Une procédure ne se copie jamais, quel que soit le régime : deux exemplaires divergent, et plus aucun assistant ne sait lequel fait foi.
+
+**Personnelle** (la façon de faire de la personne, classée ainsi au rangement ou sur sa réponse) : une note-pointeur `50 - Ressources/Procédures/<Objet>.md`, frontmatter `type: ressource`, `ressource: procedure`, `domaine`, `source_path` en forme `~` ; un résumé de dix lignes au plus et un lien vers son domaine. En cas de doute sur la classe, la question se pose : « Cette procédure vaut-elle pour toute l'entreprise, ou c'est votre façon de faire à vous ? »
+
+**Établie pour toute l'entreprise** : aucune note par document. Elle vit dans le dossier commun, et le vault y renvoie par une seule note.
+
+**La note du dossier commun.** Quand `referentiel.etat` vaut `existant` dans `config.yaml`, écrire `50 - Ressources/Référentiel commun.md` :
+
+```yaml
+---
+type: ressource
+ressource: referentiel
+chemin: "<referentiel.chemin, forme ~>"
+index: "AGENTS.md"
+visibilite: commun
+---
+```
+
+Corps de dix lignes au plus : ce que le dossier contient (procédures, charte, signatures, modèles, assistants), la règle « lire le sommaire `AGENTS.md` d'abord, puis le document », un lien vers [[Centre]] et vers chaque domaine concerné, pour qu'elle ne soit pas orpheline. Sans référentiel existant, pas de note.
 
 ## 3. Écriture idempotente — le diagnostic en trois branches
 
@@ -135,6 +165,7 @@ controles:
   ecartes_declares: passe        # ou `arbitre` avec motif
   structurants_valides_un_par_un: passe   # regime copie ; `arbitre` motif « regime pointeur » sinon
   aucun_corps_de_mail_copie: passe
+  aucune_procedure_copiee: passe   # personnelle pointée, d'entreprise renvoyée au dossier commun
   matrice_reportee: passe        # Architecture Mémoire §2 sans « _à renseigner_ »
 ```
 
@@ -195,6 +226,8 @@ Vérifier les trois fiches avant de proposer la suite : c'est le geste qui ne se
 - **Jamais tronquer en silence.** Ce qui est écarté se déclare avec son motif.
 - **Jamais de personne physique** dans `40 - Acteurs`.
 - **Jamais une copie en régime pointeur**, jamais un type hors `donnees.structurants`, jamais au-delà de `sante.max_structurants`.
+- **Jamais une procédure copiée**, ni une note par procédure d'entreprise : elle vit dans le dossier commun.
+- **Jamais une note-pointeur** sur une source dont le déplacement reste à faire.
 - **Jamais un corps de mail** dans le vault, quel que soit le régime. Un fil structurant entre en résumé anonymisé, ou n'entre pas.
 - **Jamais annoncer une écriture réussie sans l'avoir vérifiée.** Si une écriture échoue, le dire — un rapport de succès non vérifié empêche de savoir qu'il y a quelque chose à rattraper.
 
