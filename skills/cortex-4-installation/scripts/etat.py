@@ -212,6 +212,10 @@ def _rangement(e, atelier, fm):
     reste = [i for i in acceptees if i not in faits and i not in retires]
     if faits and reste:
         e["etat"], e["raison"] = "en_cours", "appliqué en partie : " + ", ".join(reste)
+    elif faits and statut != "applique":
+        # Des changements faits, rien en suspens, mais pas conclu (M1) : la clôture inscrit
+        # le dossier commun dans la config ; construire avant, c'est l'oublier.
+        e["etat"], e["raison"] = "en_cours", "appliqué, pas encore conclu"
     elif statut == "applique":
         e["etat"] = "faite"
     elif _aval(atelier, e["numero"]):
@@ -455,7 +459,11 @@ def _autotest():
         etat3, raison, phrase = trois_b("statut: propose\nacceptees: [r001, r002]", fait)
         assert etat3 == "en_cours" and "r002" in raison and phrase == PHRASES["3b"], (etat3, raison, phrase)
         assert trois_b("statut: propose\nacceptees: [r001, r002]",
-                       fait + '{"id": "r002", "resultat": "annule"}\n')[0] == "a_faire", "A5 : une ligne retirée"
+                       fait + '{"id": "r002", "resultat": "annule"}\n')[:2] == ("en_cours", "appliqué, pas encore conclu"), \
+            "M1 : fait, rien en suspens, pas conclu"
+        assert trois_b("statut: propose\nacceptees: [r001, r002]",
+                       fait + '{"id": "r002", "resultat": "annule"}\n{"id": "r001", "resultat": "annule"}\n')[0] \
+            == "a_faire", "tout défait : à faire"
         assert trois_b("statut: applique\nacceptees: [r001]", fait) == ("faite", "", PHRASES[4])
         assert trois_b("statut: passee\nacceptees: []")[:2] == ("arbitre", RAISON_PASSEE), "posé par l'installation"
         assert trois_b("statut: propose\nacceptees: [r001]", "pas du json\n")[0] == "illisible"

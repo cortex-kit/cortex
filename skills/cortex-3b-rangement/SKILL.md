@@ -24,7 +24,7 @@ Il ne supprime rien, n'écrase rien, ne duplique rien, ne convertit aucune proc�
 
 **Si un contrôle échoue, s'arrêter.** Ranger sans domaines signés, c'est nommer avec un vocabulaire qui changera.
 
-**Devant la personne**, ses mots, jamais ceux de l'outil (doctrine §8) : « vos dossiers », « la liste des changements », « le dossier commun », « le sommaire pour les IA », « défaire ». Jamais racine, journal, plan, geste, référentiel, `AGENTS.md`, régime, pointeur, profil, ni un nom de script. Un nom de fichier ou de dossier affiché dans une ligne de la liste (`…/Référentiel/AGENTS.md`) est une donnée, pas un mot de l'outil : il s'affiche tel quel.
+**Devant la personne**, ses mots, jamais ceux de l'outil (doctrine §8) : « vos dossiers », « la liste des changements », « le dossier commun », « le sommaire pour les IA », « défaire ». Jamais racine, journal, plan, JSON, geste, référentiel, `AGENTS.md`, régime, pointeur, profil, ni un nom de script. Un nom de fichier ou de dossier affiché dans une ligne de la liste (`…/Référentiel/AGENTS.md`) est une donnée, pas un mot de l'outil : il s'affiche tel quel.
 
 ## 1. Proposer
 
@@ -93,11 +93,11 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --
 
 ## 6. Le dossier commun et son sommaire
 
-Le sommaire est écrit par le script seul et se régénère à chaque passage : une note ajoutée à la main ne survit qu'à travers la colonne des propriétaires. Défaire le rend mot pour mot tel qu'il était. S'il n'est présent qu'en ligne, rien ne s'y écrit : demander de le rendre disponible sur le poste.
+Le sommaire est écrit par le script seul et se régénère après chaque lot qui touche le dossier commun, et à la clôture : il liste tout le dossier, quel que soit l'ordre des lots. Une note ajoutée à la main ne survit qu'à travers la colonne des propriétaires. Défaire le rend mot pour mot tel qu'il était. S'il n'est présent qu'en ligne, rien ne s'y écrit : demander de le rendre disponible sur le poste.
 
 **Existant** : « Votre dossier commun garde son organisation. J'y ajoute un sommaire que toute IA lira avant de répondre sur une procédure, la charte ou les signatures. » Le sommaire s'affiche en entier avant l'accord : le générer dans le message à partir de la liste (gabarit dans `references/nomenclature.md`). Un sommaire déjà présent sans la marque de Cortex (signalement `index_etranger`) se montre tel quel, et la question porte sur le fait de le laisser : il n'est jamais remplacé.
 
-**Absent** : « Votre entreprise n'a pas de dossier commun pour ses procédures. Je peux en créer un dans <dossier partagé> et y ranger les <N> procédures qui valent pour tous. Voyez avec qui de droit avant de dire oui. » Les lignes de création, de rangement et du sommaire forment un même lot renforcé.
+**Absent** : « Votre entreprise n'a pas de dossier commun pour ses procédures. Je peux en créer un dans <dossier partagé> et y ranger les <N> procédures qui valent pour tous. Voyez avec qui de droit avant de dire oui. » Les lignes de création viennent d'abord, celles du rangement ensuite, celle du sommaire en dernier, toutes en lots renforcés ; la création passe avant toute ligne qui en dépend.
 
 **Propriétaires** : pour chaque document du sommaire, demander qui en est responsable (par lots de quatre, réponse libre acceptée). La réponse passe par `--proprietaire "Procédures/<nom>=<Nom>"` sur la commande qui applique la ligne du sommaire ; sans réponse, `Non renseigné`.
 

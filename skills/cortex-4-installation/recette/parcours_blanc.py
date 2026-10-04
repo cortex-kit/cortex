@@ -1384,7 +1384,14 @@ def c10_paquet(tmp):
 
 # ── C11 : rangement (contrat 2.3) ──────────────────────────────────────────
 
-INTERDITS_RANGE = re.compile(r"os\.(remove|unlink|replace|chdir)|shutil\.(rmtree|copy|move)")
+# m1 : Path.unlink, Path.rename, Path.replace et os.rename comptent aussi ; `.replace("…")` d'une
+# chaîne n'est pas un appel de fichier. Les mentions entre accents graves (docstrings) sont retirées.
+INTERDITS_RANGE = re.compile(r"os\.(remove|unlink|replace|chdir|rename)\b|shutil\.(rmtree|copy|move)"
+                             r"|\.(unlink|rename)\(|\.replace\((?![\"'])")
+
+
+def appels_interdits(texte):
+    return [l for l in texte.splitlines() if INTERDITS_RANGE.search(re.sub(r"`[^`]*`", "", l))]
 
 
 def arbre_fichiers(*racines):
@@ -1411,13 +1418,18 @@ def c11_rangement(tmp, configs):
             (r.stdout + r.stderr)[-400:])
 
     # Appels interdits : seules les exceptions d'annulation, chacune commentée ; témoin sur un fichier jetable.
-    lignes = [l for l in RANGE.read_text(encoding="utf-8").splitlines() if INTERDITS_RANGE.search(l)]
-    verifie("range.py : aucun appel interdit hors des exceptions d'annulation commentées (contrat §5)",
-            all("exception" in l and "contrat §5" in l and "os.remove(" in l for l in lignes), str(lignes))
+    lignes = appels_interdits(RANGE.read_text(encoding="utf-8"))
+    fautives = [l for l in lignes if not (("os.remove(" in l and "exception 2 du contrat §5" in l)
+                                          or ("os.rename(" in l and "# exception :" in l)
+                                          or "# auto-test :" in l)]
+    verifie("range.py : aucun appel interdit (remove, unlink, replace, rename, chdir, rmtree, copy, move, "
+            "Path compris) hors des exceptions commentées et des gestes de l'auto-test",
+            lignes and not fautives, str(fautives or lignes))
     jetable = tmp / "jetable.py"
-    jetable.write_text("import os\nos.remove(x)\n", encoding="utf-8")
-    verifie("témoin : le même motif trouve un os.remove( dans un fichier jetable",
-            len([l for l in jetable.read_text(encoding="utf-8").splitlines() if INTERDITS_RANGE.search(l)]) == 1)
+    jetable.write_text("import os\nos.remove(x)\np.unlink()\np.replace(q)\nos.rename(a, b)\n"
+                       "s.replace('a', 'b')\n", encoding="utf-8")
+    verifie("témoin : le même motif trouve os.remove, Path.unlink, Path.replace et os.rename dans un fichier "
+            "jetable, pas str.replace", len(appels_interdits(jetable.read_text(encoding="utf-8"))) == 4)
 
     # Garde mordante : G1 désactivée dans une copie jetable de range.py, l'auto-test rougit.
     copie = tmp / "range-perturbe"
@@ -1509,12 +1521,27 @@ def c11_rangement(tmp, configs):
     verifie("G2 : le lot partagé sans accord renforcé rend 3 et laisse l'arbre identique",
             rg.returncode == 3 and arbre_fichiers(perso, commun) == avant, rg.stderr[:200])
     n_avant = len(avant[0])
-    ra = ranger("--appliquer", "--ids", ",".join(a_soi))
-    rb = ranger("--appliquer", "--ids", ",".join(partages), "--renforce")
+    # B1 : lot par lot, comme la skill les présente ; chaque lot s'applique seul.
+    codes = []
+    for lot in sorted({o["lot"] for o in plan["operations"]}):
+        ids_lot = [o for o in plan["operations"] if o["lot"] == lot and o["geste"] != "manuel"
+                   and o["classe"] != "a_demander"]
+        if ids_lot:
+            r = ranger("--appliquer", "--ids", ",".join(o["id"] for o in ids_lot),
+                       *(["--renforce"] if any(o["partage"] for o in ids_lot) else []))
+            codes.append((lot, r.returncode, r.stderr[:150]))
     apres = arbre_fichiers(perso, commun)
+    verifie("B1 : chaque lot s'applique seul, dans l'ordre de la liste (la création précède ce qui en dépend)",
+            codes and all(c == 0 for _, c, _ in codes), str(codes))
+    sommaire = (commun / "Référentiel" / "AGENTS.md").read_text(encoding="utf-8") \
+        if (commun / "Référentiel" / "AGENTS.md").is_file() else ""
+    objets = ["Facturation d'une affaire", "Relance d'un client", "Commande à un fournisseur",
+              "Réception d'un chantier", "Archivage d'une affaire"]
+    verifie("B1 : après le passage lot par lot, le sommaire liste les cinq procédures d'entreprise",
+            len(attendu["entreprise"]) >= 5 and all(o in sommaire for o in objets),
+            str([o for o in objets if o not in sommaire]))
     verifie("I-R1 : autant de fichiers après l'application, plus le seul sommaire du dossier commun",
-            ra.returncode == rb.returncode == 0 and len(apres[0]) == n_avant + 1
-            and (commun / "Référentiel" / "AGENTS.md").is_file(), (ra.stderr or rb.stderr)[:300])
+            len(apres[0]) == n_avant + 1 and bool(sommaire), f"{len(apres[0])} contre {n_avant} + 1")
     pivot = m_etat.generer(atelier)
     verifie("etat.json d'un atelier de recette compte dix étapes", len(pivot["etapes"]) == 10)
     rv = ranger("--verifier")
@@ -1557,6 +1584,14 @@ def c11_rangement(tmp, configs):
     plan["operations"].pop()
     (atelier / "03-rangement.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
 
+    # M1 (scénario x1 de l'audit) : tout est fait, rien en suspens, pas de clôture.
+    e3b = {e["numero"]: e for e in m_etat.generer(atelier)["etapes"]}["3b"]
+    r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
+    verifie("M1 : fait sans clôture, l'étape vaut en_cours ; le maillon 4 refuse et donne « rangeons mes dossiers »",
+            e3b["etat"] == "en_cours" and "pas encore conclu" in e3b.get("raison", "")
+            and r4.returncode == 2 and "rangeons mes dossiers" in r4.stderr and not vault.exists(),
+            f"{e3b} {r4.returncode} {r4.stderr[:200]}")
+
     # Clôture : le dossier commun créé s'inscrit dans config.yaml ; le vault le cite en forme ~.
     rc = ranger("--clore", "applique")
     conf = cortex_config.charger(atelier / "config.yaml")
@@ -1583,6 +1618,23 @@ def c11_rangement(tmp, configs):
     verifie("scaffold avec dossier commun : aucun {{…}} de scaffold, le chemin du dossier commun en forme ~ dans CLAUDE.md",
             r4.returncode == 0 and not moustaches and tilde(commun / "Référentiel") in claude
             and "/Users/" not in claude, f"{r4.stderr[:200]} {moustaches[:3]}")
+    # M4 : sur le même vault, la note Référentiel commun existe et aucune note ne porte une procédure
+    # d'entreprise ; témoin : une note jetable qui en porte une est vue par le même contrôle.
+    def notes_de_procedure(racine):
+        return [str(q.relative_to(racine)) for q in Path(racine).rglob("*.md")
+                if any(o in q.read_text(encoding="utf-8", errors="replace") for o in objets)]
+    note_ref = vault / "50 - Ressources" / "Référentiel commun.md"
+    lv = lint(vault)
+    verifie("M4 : le vault construit porte la note Référentiel commun et aucune note par procédure d'entreprise ; "
+            "lint à 0",
+            note_ref.is_file() and "ressource: referentiel" in note_ref.read_text(encoding="utf-8")
+            and not notes_de_procedure(vault) and lv.returncode == 0, f"{notes_de_procedure(vault)} {lv.stdout[-300:]}")
+    copie_v = tmp / "vault-temoin-procedure"
+    (copie_v / "50 - Ressources" / "Procédures").mkdir(parents=True)
+    (copie_v / "50 - Ressources" / "Procédures" / "Facturation.md").write_text(
+        f"---\ntype: ressource\n---\n# {objets[0]}\n", encoding="utf-8")
+    verifie("témoin M4 : une note de procédure d'entreprise posée dans un vault jetable est trouvée",
+            notes_de_procedure(copie_v) == [str(Path("50 - Ressources") / "Procédures" / "Facturation.md")])
     temoin = tmp / "gabarit-jetable.md"
     temoin.write_text("Dossier commun : {{REFERENTIEL}}\n", encoding="utf-8")
     verifie("témoin : un gabarit jetable qui garde {{REFERENTIEL}} est vu par le même contrôle",

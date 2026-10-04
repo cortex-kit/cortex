@@ -26,7 +26,7 @@ Tout le parcours tient en trois phrases.
 Entre deux étapes, cette page vous dit où vous en êtes et quelle phrase dire
 pour continuer. Elle ne lance rien à votre place : vous décidez d'enchaîner.
 
-## Les neuf étapes, en langage ordinaire
+## Les dix étapes, en langage ordinaire
 
 Elles se suivent dans l'ordre. Chacune demande votre accord avant d'agir et
 s'arrête si quelque chose manque.
@@ -47,6 +47,11 @@ s'arrête si quelque chose manque.
 - **3. Ontologie.** Vos grandes familles d'activité. L'outil compare ce que
   vous avez dit à ce qu'il a vu, pose une question sur chaque point à
   éclaircir, et vous confirmez la carte.
+- **3 bis. Rangement.** Facultatif. Si vous le voulez, vos dossiers prennent
+  des noms clairs et datés, et les procédures de l'entreprise rejoignent un
+  dossier commun, avec un sommaire que toute IA lit. Chaque changement se
+  montre avant, se fait sur votre accord, ligne par ligne, et se défait tant
+  que le second cerveau n'est pas construit. Rien n'est supprimé ni copié.
 - **4. Installation.** Le second cerveau est créé, vide et sain. Cette étape ne
   laisse pas de fichier de suivi : son résultat est le dossier lui-même, et sa
   preuve un contrôle de santé qui sort sans erreur.

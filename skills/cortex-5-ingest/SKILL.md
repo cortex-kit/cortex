@@ -103,7 +103,7 @@ Une procédure ne se copie jamais, quel que soit le régime : deux exemplaires d
 
 **Établie pour toute l'entreprise** : aucune note par document. Elle vit dans le dossier commun, et le vault y renvoie par une seule note.
 
-**La note du dossier commun.** Quand `referentiel.etat` vaut `existant` dans `config.yaml`, écrire `50 - Ressources/Référentiel commun.md` :
+**La note du dossier commun.** Quand `referentiel.etat` vaut `existant` dans `config.yaml`, l'installation a déjà écrit `50 - Ressources/Référentiel commun.md`. La vérifier, ne pas la réécrire ; si elle manque (dossier commun créé après la construction), l'écrire ainsi :
 
 ```yaml
 ---

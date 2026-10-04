@@ -287,10 +287,17 @@ def dirigeant(racine, alea):
     shutil.rmtree(commun, ignore_errors=True)
     c = Arbre(commun, alea)
     c.fichier("Divers/Process facturation.docx", "Facturation d'une affaire", BASE - timedelta(days=301))
+    for i, (nom, titre) in enumerate((("Process relance client", "Relance d'un client"),
+                                      ("Process commande fournisseur", "Commande à un fournisseur"),
+                                      ("Process reception chantier", "Réception d'un chantier"),
+                                      ("Process archivage", "Archivage d'une affaire"))):
+        c.fichier(f"Divers/{nom}.docx", titre, BASE - timedelta(days=310 + i))     # cinq procédures d'entreprise
     c.fichier("Divers/tarifs.xlsx", "Tarifs", BASE - timedelta(days=300))       # doublon probable
     c.fichier("Charte graphique.pdf", "Charte graphique", BASE - timedelta(days=400))
     attendu = {"renommer": ["Clients/Nouveau document (3).docx", "Clients/Scan_0042.pdf", "Clients/Budget (1).xlsx"],
-               "a_demander": ["PROCESS-affaire.md"], "entreprise": ["Divers/Process facturation.docx"],
+               "a_demander": ["PROCESS-affaire.md"], "entreprise": ["Divers/Process facturation.docx", "Divers/Process relance client.docx",
+                              "Divers/Process commande fournisseur.docx", "Divers/Process reception chantier.docx",
+                              "Divers/Process archivage.docx"],
                "en_ligne_seulement": ["Clients/Scan_0042.pdf"], "doublon": "tarifs.xlsx"}
     (Path(racine) / "RANGEMENT.json").write_text(json.dumps(attendu, ensure_ascii=False, indent=2) + "\n",
                                                  encoding="utf-8")

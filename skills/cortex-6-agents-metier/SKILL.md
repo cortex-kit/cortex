@@ -104,7 +104,8 @@ Avant d'écrire l'agent, une question (AskUserQuestion) : « Cet assistant sert-
 - `existant` : écrire l'assistant au format `SKILL.md` dans l'atelier, `_cortex/assistants/<nom>/SKILL.md` (frontmatter `name`, `description` avec déclencheurs et non-déclencheurs, `metier: true`, `revoir_le` ; corps : les contraintes du §3). L'afficher **en entier** à la personne, puis demander un accord à part, renforcé : « Cet assistant sera rangé dans le dossier commun. Vos collègues et leurs assistants le liront et s'y fieront, tel qu'il est ci-dessus. » Sur oui seulement :
 
   ```bash
-  python3 "${CLAUDE_SKILL_DIR}/../cortex-3b-rangement/scripts/range.py" --atelier <chemin de _cortex/>       --publier <chemin de _cortex/>/assistants/<nom>/SKILL.md --nom <nom> --renforce
+  python3 "${CLAUDE_SKILL_DIR}/../cortex-3b-rangement/scripts/range.py" --atelier <chemin de _cortex/> \
+      --publier <chemin de _cortex/>/assistants/<nom>/SKILL.md --nom <nom> --renforce
   ```
 
   Le script l'écrit dans `<dossier commun>/assistants/<nom>/SKILL.md`, réécrit le sommaire du dossier commun pour qu'il le référence, et journalise le geste, qui se défait comme un rangement. Aucune copie dans `.claude/agents/` du vault : la note du dossier commun y renvoie déjà.

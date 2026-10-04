@@ -240,6 +240,30 @@ def rangement_inacheve(dossier_atelier):
     return any(e.get("numero") == "3b" and e.get("etat") in ("en_cours", "illisible") for e in pivot["etapes"])
 
 
+def note_referentiel(conf, dest):
+    """`50 - Ressources/Référentiel commun.md` (contrat 2.3 §7) quand le dossier commun existe :
+    le vault y renvoie, il ne porte aucune note par procédure d'entreprise. Écrite ici, à la
+    construction, parce qu'elle ne dépend que de la config ; le remplissage la trouve faite."""
+    ref = conf.get("referentiel") or {}
+    if not isinstance(ref, dict) or ref.get("etat") != "existant" or not ref.get("chemin"):
+        return 0
+    chemin = forme_tilde(ref["chemin"])
+    domaines = [d.get("nom", "") for d in conf.get("domaines") or [] if isinstance(d, dict) and d.get("nom")]
+    note = dest / "50 - Ressources" / "Référentiel commun.md"
+    note.parent.mkdir(parents=True, exist_ok=True)
+    note.write_text(
+        "---\ntype: ressource\nressource: referentiel\n"
+        f'chemin: "{chemin}"\nindex: "AGENTS.md"\nvisibilite: commun\n---\n'
+        "# Référentiel commun\n\n"
+        "Le dossier commun de l'organisation porte ses documents de référence : procédures, charte "
+        "graphique, signatures, modèles et assistants. Une procédure n'y existe qu'en un exemplaire.\n\n"
+        f"Il vit hors de ce vault, à `{chemin}`. Lire d'abord son sommaire `AGENTS.md`, puis le document "
+        "qu'il désigne ; rien ne s'en recopie ici.\n\n"
+        "Remonte vers [[Centre]]." + (" Domaines concernés : " + ", ".join(f"[[{d}]]" for d in domaines) + "."
+                                       if domaines else "") + "\n", encoding="utf-8")
+    return 1
+
+
 def marquer_construction(dossier_atelier):
     """Inscrit dans `03-rangement.md` que le second cerveau est construit (`construit_le`) :
     `range.py` refuse ensuite de proposer ou d'appliquer, ses liens ne doivent plus bouger
@@ -249,6 +273,9 @@ def marquer_construction(dossier_atelier):
     if not (atelier / "02-ontologie.md").is_file():
         return
     md = atelier / "03-rangement.md"
+    # Un geste fait au journal : le rangement a eu lieu, il ne devient jamais « passé sans rangement ».
+    journal = atelier / "03-rangement-journal.jsonl"
+    fait = journal.is_file() and '"resultat": "fait"' in journal.read_text(encoding="utf-8")
     jour = date.today().isoformat()
     if not md.is_file():
         md.write_text("---\nmaillon: 3b\nproduit_par: cortex-4-installation\nstatut: passee\nacceptees: []\n"
@@ -259,7 +286,7 @@ def marquer_construction(dossier_atelier):
     texte = md.read_text(encoding="utf-8")
     if not texte.startswith("---\n") or "\nconstruit_le:" in texte.split("\n---", 2)[0]:
         return
-    if re.search(r"^statut: (propose|)$", texte, re.M):
+    if not fait and re.search(r"^statut: (propose|)$", texte, re.M):
         texte = re.sub(r"^statut: .*$", 'statut: passee\nraison: "passée sans rangement"', texte, count=1, flags=re.M)
     md.write_text(texte.replace("---\n", f"---\nconstruit_le: {jour}\n", 1), encoding="utf-8")
 
@@ -549,10 +576,16 @@ def main():
         return outillage_seul(dest, conf, table_vide=substitutions(conf))
 
     # Garde du maillon 4, en code et pas seulement dans la prose du SKILL.md.
-    # L'atelier est le dossier de la config (`_cortex/config.yaml`).
-    if rangement_inacheve(chemin_config.parent):
-        print("[X] Le rangement de vos dossiers est appliqué en partie, ou sa trace est illisible : "
-              "terminez-le ou défaites-le avant de construire. Dites « rangeons mes dossiers ».", file=sys.stderr)
+    # L'atelier est le dossier de `config.yaml` quand il porte la carte des domaines.
+    atelier = chemin_config.parent if (chemin_config.name == "config.yaml"
+                                       and (chemin_config.parent / "02-ontologie.md").is_file()) else None
+    if atelier is None:
+        print(f"[i] Aucun atelier à côté de {chemin_config} (config.yaml et 02-ontologie.md) : "
+              "l'état du rangement n'est pas vérifié, et rien n'y est inscrit.")
+    if atelier is not None and rangement_inacheve(atelier):
+        print("[X] Le rangement de vos dossiers n'est pas conclu (appliqué en partie, pas encore clos, ou sa "
+              "trace est illisible) : terminez-le ou défaites-le avant de construire. Dites « rangeons mes "
+              "dossiers ».", file=sys.stderr)
         return 2
 
     if dest.exists():
@@ -631,6 +664,7 @@ def main():
     # d'entree du vault, celui que la doctrine annonce comme le plus connecte,
     # etait livre avec autant de liens morts que le client a de domaines.
     ecrits += notes_domaines(conf, dest)
+    ecrits += note_referentiel(conf, dest)
 
     (dest / ".obsidian").mkdir(parents=True, exist_ok=True)
     (dest / ".obsidian" / "graph.json").write_text(
@@ -678,7 +712,8 @@ def main():
         git_ok = False
         print(f"[i] git non initialise ({e}), le vault reste utilisable.")
 
-    marquer_construction(chemin_config.parent)
+    if atelier is not None:
+        marquer_construction(atelier)
     print(f"✓ Vault instancie : {dest}")
     print(f"✎ {ecrits} fichier(s) du gabarit + config.yaml + graph.json + Configuration.md")
     print(f"✎ {len(cortex_config.codes_domaines(conf))} domaine(s), "
