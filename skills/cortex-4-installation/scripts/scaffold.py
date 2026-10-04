@@ -225,9 +225,19 @@ def regle_referentiel(conf):
     chemin = forme_tilde(ref.get("chemin", "")) if isinstance(ref, dict) else ""
     if not chemin or ref.get("etat") != "existant":
         return "Aucun dossier commun déclaré."
+    if not sommaire_present(chemin):
+        # Sommaire refusé au rangement (N12) : renvoyer au dossier lui-même, jamais à un fichier absent.
+        return ("Pour une procédure, la charte graphique, une signature, un modèle ou un assistant "
+                f"établi pour toute l'organisation, chercher d'abord dans le dossier commun `{chemin}`, "
+                "puis lire le document lui-même. Ne jamais en recopier un dans ce vault.")
     return ("Pour une procédure, la charte graphique, une signature, un modèle ou un assistant "
             "établi pour toute l'organisation, lire d'abord le sommaire `AGENTS.md` du dossier "
             f"commun `{chemin}`, puis le document lui-même. Ne jamais en recopier un dans ce vault.")
+
+
+def sommaire_present(chemin):
+    """Le dossier commun porte-t-il son sommaire ? Seule sa présence se teste, il ne s'ouvre pas."""
+    return (Path(os.path.expanduser(chemin)) / "AGENTS.md").is_file()
 
 
 def rangement_inacheve(dossier_atelier):
@@ -251,15 +261,19 @@ def note_referentiel(conf, dest):
     domaines = [d.get("nom", "") for d in conf.get("domaines") or [] if isinstance(d, dict) and d.get("nom")]
     note = dest / "50 - Ressources" / "Référentiel commun.md"
     note.parent.mkdir(parents=True, exist_ok=True)
+    sommaire = sommaire_present(chemin)
+    index = "AGENTS.md" if sommaire else ""
     note.write_text(
         "---\ntype: ressource\nressource: referentiel\n"
-        f'chemin: "{chemin}"\nindex: "AGENTS.md"\nvisibilite: commun\n---\n'
+        f'chemin: "{chemin}"\nindex: "{index}"\nvisibilite: commun\n---\n'
         "# Référentiel commun\n\n"
         "Le dossier commun de l'organisation porte ses documents de référence : procédures, charte "
         "graphique, signatures, modèles et assistants. Une procédure n'y existe qu'en un exemplaire.\n\n"
-        f"Il vit hors de ce vault, à `{chemin}`. Lire d'abord son sommaire `AGENTS.md`, puis le document "
-        "qu'il désigne ; rien ne s'en recopie ici.\n\n"
-        "Remonte vers [[Centre]]." + (" Domaines concernés : " + ", ".join(f"[[{d}]]" for d in domaines) + "."
+        + (f"Il vit hors de ce vault, à `{chemin}`. Lire d'abord son sommaire `AGENTS.md`, puis le document "
+           "qu'il désigne ; rien ne s'en recopie ici.\n\n" if sommaire else
+           f"Il vit hors de ce vault, à `{chemin}`, sans sommaire : y chercher le document, puis le lire ; "
+           "rien ne s'en recopie ici.\n\n")
+        + "Remonte vers [[Centre]]." + (" Domaines concernés : " + ", ".join(f"[[{d}]]" for d in domaines) + "."
                                        if domaines else "") + "\n", encoding="utf-8")
     return 1
 
@@ -818,6 +832,18 @@ def _autotest():
             restes = [f for f in out.rglob("*.md") if "Templates" not in f.parts
                       and re.search(r"\{\{[A-Z_]+\}\}", f.read_text(encoding="utf-8"))]
             assert not restes, (nom, restes[:3])
+        # N5 : la construction n'écrit jamais « passée sans rangement » quand un geste est fait ;
+        # témoin : sans geste fait, elle l'écrit.
+        for journal, attendu_statut in (('{"id": "r001", "resultat": "fait"}\n', "statut: propose"),
+                                        ("", "statut: passee")):
+            at = Path(tmp) / f"n5-{bool(journal)}"
+            at.mkdir()
+            (at / "02-ontologie.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
+            (at / "03-rangement.md").write_text("---\nstatut: propose\nacceptees: []\n---\n", encoding="utf-8")
+            (at / "03-rangement-journal.jsonl").write_text(journal, encoding="utf-8")
+            marquer_construction(at)
+            md = (at / "03-rangement.md").read_text(encoding="utf-8")
+            assert attendu_statut in md and "construit_le:" in md, (journal, md)
         # La garde du maillon 4 : un 3b `en_cours` refuse, en code 2, sans rien écrire.
         import etat
         avant = etat.generer

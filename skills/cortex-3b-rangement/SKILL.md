@@ -34,7 +34,13 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --
 
 Le script parcourt les dossiers déclarés et écrit la liste (`03-rangement.json`) et sa version lisible (`03-rangement.md`). Il propose un nom parlant pour chaque nom illisible, range les procédures d'entreprise dans le dossier commun, signale les doublons probables et les fichiers présents seulement en ligne. Règles de nom : `references/nomenclature.md`. Au-delà de `sante.max_gestes_rangement` changements, la liste s'arrête et le dit.
 
-**Dossier commun absent** (`referentiel.etat` à `aucun` ou `inconnu`) : avec un seul dossier partagé déclaré, la liste propose de le créer dedans. Avec plusieurs, la liste porte `dossier_commun_a_choisir` : demander lequel, puis relancer avec `--referentiel "<dossier partagé>/Référentiel"`. Sans aucun, la liste porte le signalement `dossier_commun_absent` : demander où l'entreprise range ce qu'elle partage ; ce dossier est un nouveau dossier de travail, qui se demande, s'ouvre une fois pour vérifier qu'il répond, s'écrit en forme `~` dans `collecte.racines` et `collecte.partagees`, jamais deviné. Puis relancer.
+**Dossier commun absent** (`referentiel.etat` à `aucun` ou `inconnu`) : avec un seul dossier partagé déclaré, la liste propose de le créer dedans. Avec plusieurs, la liste porte `dossier_commun_a_choisir` : demander lequel, puis relancer avec `--referentiel "<dossier partagé>/Référentiel"`. Sans aucun, la liste porte le signalement `dossier_commun_absent` : demander où l'entreprise range ce qu'elle partage ; ce dossier est un nouveau dossier de travail, qui se demande, s'ouvre une fois pour vérifier qu'il répond, s'écrit en forme `~` dans `collecte.racines` et `collecte.partagees`, jamais deviné. Avant tout geste, la config se valide ; une erreur se corrige avant de relancer :
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/../cortex-4-installation/scripts/cortex_config.py" <chemin de _cortex/>/config.yaml
+```
+
+Puis relancer la proposition.
 
 Un dossier de travail qui est un dépôt git ou un vault, ou qui s'y trouve, ne reçoit aucune proposition (signalement `racine_dans_un_depot`). Liste vide : le script écrit `statut: rien_a_ranger`. Le dire en une phrase et passer à la fin (§9).
 
@@ -65,7 +71,7 @@ Les lignes cochées s'appliquent aussitôt, lot par lot :
 python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --appliquer --ids r001,r003
 ```
 
-Code 3 : une garde a levé, rien n'a bougé ; lire la raison et la dire dans les mots de la personne (« ce nom est déjà pris dans ce dossier », « ce fichier a changé depuis tout à l'heure, je repropose »). Une ligne dont le fichier a changé se repropose par `--proposer`. Code 1 : un geste a échoué en route (droits, client de synchronisation) ; ce qui précède est fait, le lot s'arrête, le dire, et proposer de défaire ou de réessayer.
+Code 3 : une garde a levé, rien n'a bougé ; lire la raison et la dire dans les mots de la personne (« ce nom est déjà pris dans ce dossier », « ce fichier a changé depuis tout à l'heure, je repropose »). Une ligne dont le fichier a changé se repropose par `--proposer`. Code 1 : un geste a échoué en route (droits, client de synchronisation) ; ce qui précède est fait, le lot s'arrête, le dire, et proposer de défaire ou de réessayer. Code 1 aussi quand les gestes sont faits et que seul le sommaire n'a pas suivi (le message le dit) : le dire tel quel, la clôture le rafraîchira une fois la cause levée.
 
 ## 4. Les procédures au classement douteux
 
@@ -95,7 +101,13 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --
 
 Le sommaire est écrit par le script seul et se régénère après chaque lot qui touche le dossier commun, et à la clôture : il liste tout le dossier, quel que soit l'ordre des lots. Une note ajoutée à la main ne survit qu'à travers la colonne des propriétaires. Défaire le rend mot pour mot tel qu'il était. S'il n'est présent qu'en ligne, rien ne s'y écrit : demander de le rendre disponible sur le poste.
 
-**Existant** : « Votre dossier commun garde son organisation. J'y ajoute un sommaire que toute IA lira avant de répondre sur une procédure, la charte ou les signatures. » Le sommaire s'affiche en entier avant l'accord : le générer dans le message à partir de la liste (gabarit dans `references/nomenclature.md`). Un sommaire déjà présent sans la marque de Cortex (signalement `index_etranger`) se montre tel quel, et la question porte sur le fait de le laisser : il n'est jamais remplacé.
+**Existant** : « Votre dossier commun garde son organisation. J'y ajoute un sommaire que toute IA lira avant de répondre sur une procédure, la charte ou les signatures. » Le sommaire s'affiche en entier avant l'accord, tel qu'il s'écrira : le script l'imprime sans rien écrire, pour les lignes du lot qui le portent, et c'est ce texte-là que l'application écrit.
+
+```bash
+python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --montrer-index --ids <lignes du lot> [--proprietaire "Procédures/<nom>=<Nom>"]
+```
+
+Le recopier en entier dans le message, puis poser la question. Un sommaire déjà présent sans la marque de Cortex (signalement `index_etranger`) se montre tel quel, et la question porte sur le fait de le laisser : il n'est jamais remplacé.
 
 **Absent** : « Votre entreprise n'a pas de dossier commun pour ses procédures. Je peux en créer un dans <dossier partagé> et y ranger les <N> procédures qui valent pour tous. Voyez avec qui de droit avant de dire oui. » Les lignes de création viennent d'abord, celles du rangement ensuite, celle du sommaire en dernier, toutes en lots renforcés ; la création passe avant toute ligne qui en dépend.
 

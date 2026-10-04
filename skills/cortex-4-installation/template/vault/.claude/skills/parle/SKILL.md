@@ -19,7 +19,7 @@ Le compte s'arrête à **`sante.max_notes_parle`** notes (douze par défaut, val
 
 Pourquoi un plafond : lire quarante notes dans le fil principal coûte le contexte de toute la session, et la réponse devient plus longue que ce que la personne demandait. Le sous-agent lit large et rend dix lignes.
 
-**Le dossier commun d'abord.** Une question sur une procédure, la charte graphique, une signature, un modèle ou un assistant établi pour toute l'organisation se lit hors du vault. Si `config.yaml` du vault porte `referentiel.etat: existant`, lire d'abord le sommaire `AGENTS.md` à la racine de `referentiel.chemin`, puis le document qu'il désigne. Citer ce document par son chemin dans le dossier commun, jamais le recopier : la version qui fait foi est celle que lisent aussi les collègues. Sans dossier commun déclaré, le dire.
+**Le dossier commun d'abord.** Une question sur une procédure, la charte graphique, une signature, un modèle ou un assistant établi pour toute l'organisation se lit hors du vault. Si `config.yaml` du vault porte `referentiel.etat: existant`, lire d'abord le sommaire `AGENTS.md` à la racine de `referentiel.chemin` s'il existe, sinon chercher dans le dossier lui-même, puis le document. Citer ce document par son chemin dans le dossier commun, jamais le recopier : la version qui fait foi est celle que lisent aussi les collègues. Sans dossier commun déclaré, le dire.
 
 Pour une fiche projet, lire la fiche **complète** : frontmatter, `## Actions`, dernière entrée de `## Journal`. Une fiche lue à moitié donne un état sans sa raison.
 

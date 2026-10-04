@@ -466,6 +466,11 @@ def _autotest():
             == "a_faire", "tout défait : à faire"
         assert trois_b("statut: applique\nacceptees: [r001]", fait) == ("faite", "", PHRASES[4])
         assert trois_b("statut: passee\nacceptees: []")[:2] == ("arbitre", RAISON_PASSEE), "posé par l'installation"
+        # N5 : une liste proposée, rien de fait, et la suite déjà faite : passée sans rangement (A2).
+        (atelier / "04-ingest.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
+        assert trois_b("statut: propose\nacceptees: []")[:2] == ("arbitre", RAISON_PASSEE)
+        (atelier / "04-ingest.md").unlink()
+        assert trois_b("statut: propose\nacceptees: []")[0] == "a_faire", "témoin : sans la suite, à faire"
         assert trois_b("statut: propose\nacceptees: [r001]", "pas du json\n")[0] == "illisible"
     print("etat.py : auto-test OK")
     return 0

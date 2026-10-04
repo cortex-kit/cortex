@@ -28,6 +28,7 @@ Usage (`py` sous Windows vaut `python3`) :
     range.py --atelier <_cortex> --annuler [--ids r003]
     range.py --atelier <_cortex> --publier <SKILL.md de l'atelier> --nom <assistant> --renforce
     range.py --atelier <_cortex> --chemins
+    range.py --atelier <_cortex> --montrer-index --ids r005,r006,r007 [--proprietaire …]   # rien n'est écrit
     range.py --atelier <_cortex> --autorise <chemin>      # remplissage : une fiche peut-elle pointer ici ?
     range.py --atelier <_cortex> --clore applique|refuse
     range.py --autotest
@@ -761,13 +762,20 @@ def _description(skill):
     return "Non renseigné"
 
 
-def texte_index(ref, organisation, proprietaires):
+def texte_index(ref, organisation, proprietaires, ajouts=None, retraits=()):
+    """Le texte du sommaire. `ajouts` ({chemin: mtime}) et `retraits` projettent l'état
+    du dossier après des gestes pas encore faits : c'est ce que `--montrer-index` imprime,
+    et ce que le geste écrit ensuite (doctrine §10)."""
     ref = Path(ref)
     anciens = _proprietaires_existants(ref / "AGENTS.md")
     docs, assistants = [], []
-    for p in sorted(ref.rglob("*")):
+    retraits = {str(x) for x in retraits}
+    dates = {str(k): v for k, v in (ajouts or {}).items()}
+    tous = sorted({*[p for p in ref.rglob("*") if str(p) not in retraits], *[Path(k) for k in dates]})
+    for p in tous:
         rel = p.relative_to(ref)
-        if not p.is_file() or any(x.startswith(".") for x in rel.parts) or p.name.lower() in SYSTEME:
+        if (str(p) not in dates and not p.is_file()) or any(x.startswith(".") for x in rel.parts) \
+                or p.name.lower() in SYSTEME:
             continue
         if rel.parts[0] == "assistants":
             if len(rel.parts) == 3 and p.name == "SKILL.md":
@@ -787,7 +795,7 @@ def texte_index(ref, organisation, proprietaires):
         stem = p.stem
         j = _DATE_FINALE.search(stem)
         objet = stem[:j.start()] if j else stem
-        jour = j.group(0)[3:] if j else date.fromtimestamp(p.stat().st_mtime).isoformat()
+        jour = j.group(0)[3:] if j else date.fromtimestamp(dates.get(str(p)) or p.stat().st_mtime).isoformat()
         qui = proprietaires.get(rel) or anciens.get(p.name) or "Non renseigné"
         lignes.append(f"| [{p.name}]({quote(rel)}) | {objet} | {qui} | {jour} |")
     if len(docs) > MAX_LIGNES_INDEX:
@@ -801,6 +809,28 @@ def texte_index(ref, organisation, proprietaires):
 
 def sha(chemin):
     return hashlib.sha256(Path(chemin).read_bytes()).hexdigest()
+
+
+def montrer_index(atelier, ids, proprietaires):
+    """Le texte exact que la ligne du sommaire écrira si les lignes `ids` (et elle) se font
+    maintenant, sans rien écrire : la skill l'affiche en entier avant l'accord (doctrine §10)."""
+    plan, conf = lire_plan(atelier), charger_conf(atelier)
+    ops = {o["id"]: o for o in plan["operations"]}
+    faits = actifs(lire_journal(atelier))
+    index = [o for o in plan["operations"] if o["geste"] == "ecrire_index"]
+    if not index:
+        raise Usage("la liste ne porte aucun sommaire à écrire.")
+    agents = Path(os.path.expanduser(index[0]["vers"]))
+    ajouts, retraits = {}, []
+    for i in ids or []:
+        o = ops.get(i)
+        if o is None:
+            raise Usage(f"id inconnu : {i}")
+        if o["geste"] in ("renommer", "deplacer") and i not in faits:
+            ajouts[str(Path(os.path.expanduser(o["vers"])))] = o.get("mtime")
+            retraits.append(str(Path(os.path.expanduser(o["de"]))))
+    return texte_index(agents.parent, (conf.get("organisation") or {}).get("nom", "l'organisation"),
+                       proprietaires, ajouts, retraits)
 
 
 def ecrire_index(agents, conf, proprietaires, texte=None):
@@ -875,6 +905,13 @@ def renommer_exclusif(de, vers):
     os.rename(de, vers)   # exception : renommage simple, sous Windows il refuse lui-même une destination existante
 
 
+def ecart_identite(chemin, taille, mtime):
+    """"" si le fichier est celui du journal ; sinon « a disparu » ou « a changé (taille ou date) »."""
+    if not os.path.lexists(chemin):
+        return "a disparu"
+    return "" if _identique(chemin, taille, mtime) else "a changé (taille ou date)"
+
+
 def _identique(chemin, taille, mtime):
     """Même taille et même date (T3). Absent : faux. Illisible : l'erreur remonte telle
     quelle, elle ne se déguise pas en « changé »."""
@@ -907,8 +944,9 @@ def controler(o, racines, renforce, a_creer):
         raise Garde(f"G1 : {o['id']} : {tilde(vers)} existe déjà ; rien n'est écrasé.")
     if o["geste"] == "ecrire_index" and vers.exists() and MARQUEUR not in lire_index(vers):
         raise Garde(f"G7 : {tilde(vers)} existe sans la marque de Cortex ; le montrer et demander.")
-    if de is not None and not _identique(de, o["taille"], o["mtime"]):
-        raise Garde(f"G5 : {o['id']} : {tilde(de)} a changé ou disparu depuis la proposition ; reproposer.")
+    if de is not None and ecart_identite(de, o["taille"], o["mtime"]):
+        raise Garde(f"G5 : {o['id']} : {tilde(de)} {ecart_identite(de, o['taille'], o['mtime'])} depuis la "
+                    "proposition ; reproposer.")
     if not vers.parent.is_dir() and str(vers.parent) not in a_creer:
         raise Garde(f"{o['id']} : le dossier d'arrivée {tilde(vers.parent)} n'existe pas ; cocher aussi la ligne qui le crée.")
 
@@ -929,14 +967,30 @@ def rafraichir_index(atelier, conf, plan, touches=None):
         neuf = texte_index(agents.parent, (conf.get("organisation") or {}).get("nom", "l'organisation"), {})
         if neuf == lire_index(agents):
             continue
-        journal = lire_journal(atelier)
-        ident = "i{:03d}".format(1 + max([int(l["id"][1:]) for l in journal
-                                          if re.fullmatch(r"i\d+", str(l.get("id", "")))], default=0))
+        ident = _prochain_id(atelier, "i")
         _, empreinte, taille, avant = ecrire_index(agents, conf, {}, texte=neuf)
         journaliser(atelier, {"id": ident, "geste": "ecrire_index", "de": "", "vers": o["vers"], "taille": taille,
                               "sha256": empreinte, "cree": False, "avant": avant, "index": o["vers"],
                               "index_sha256": empreinte, "resultat": "fait"})
         print(f"fait  {ident} sommaire du dossier commun mis à jour")
+
+
+def _prochain_id(atelier, lettre):
+    return "{}{:03d}".format(lettre, 1 + max([int(l["id"][1:]) for l in lire_journal(atelier)
+                                               if re.fullmatch(lettre + r"\d+", str(l.get("id", "")))], default=0))
+
+
+def rafraichir_ou_dire(atelier, conf, plan, touches=None, apres="les changements sont faits"):
+    """Rafraîchit le sommaire sans faire mentir le code de sortie : un échec ici arrive
+    après des gestes faits, il se journalise (`i…` en `echec`) et sort 1, jamais 3."""
+    try:
+        rafraichir_index(atelier, conf, plan, touches)
+    except (Garde, OSError) as e:
+        journaliser(atelier, {"id": _prochain_id(atelier, "i"), "geste": "ecrire_index", "de": "", "vers": "",
+                              "resultat": "echec", "erreur": str(e)})
+        print(f"[échec] {apres} ; seul le sommaire du dossier commun n'a pas suivi : {e}", file=sys.stderr)
+        return ECART
+    return OK
 
 
 def appliquer(atelier, ids, renforce=False, proprietaires=None):
@@ -984,9 +1038,9 @@ def appliquer(atelier, ids, renforce=False, proprietaires=None):
             return ECART
         journaliser(atelier, dict(ligne, resultat="fait"))
         print(f"fait  {o['id']} {o['geste']} {o.get('de', '')} -> {o['vers']}")
-    rafraichir_index(atelier, conf, plan, [os.path.expanduser(o["vers"]) for o in choisis])
+    code = rafraichir_ou_dire(atelier, conf, plan, [os.path.expanduser(o["vers"]) for o in choisis])
     ecrire_lisible(atelier, plan, "propose", acceptees)
-    return OK
+    return code
 
 
 # ── Publier un assistant d'entreprise (maillon 6) ───────────────────────────
@@ -1058,8 +1112,9 @@ def verifier(atelier):
     for i, l in faits.items():
         vers = Path(os.path.expanduser(l["vers"]))
         if l["geste"] in ("renommer", "deplacer", "manuel"):
-            if not _identique(vers, l["taille"], l["mtime"]):
-                ecarts.append(f"{i} : {l['vers']} absent ou changé")
+            ecart = ecart_identite(vers, l["taille"], l["mtime"])
+            if ecart:
+                ecarts.append(f"{i} : {l['vers']} {ecart}")
             if l.get("de") and os.path.lexists(os.path.expanduser(l["de"])):
                 ecarts.append(f"{i} : {l['de']} existe encore")
         elif l["geste"] == "creer_dossier" and not vers.is_dir():
@@ -1133,8 +1188,9 @@ def annuler(atelier, ids=None):
             note, extra = "", {}
             if l["geste"] in ("renommer", "deplacer"):
                 de = Path(os.path.expanduser(l["de"]))
-                if not _identique(vers, l["taille"], l["mtime"]):
-                    raise OSError(f"{l['vers']} a changé ou disparu depuis le rangement")
+                ecart = ecart_identite(vers, l["taille"], l["mtime"])
+                if ecart:
+                    raise OSError(f"{l['vers']} {ecart} depuis le rangement")
                 if os.path.lexists(de):
                     raise OSError(f"{l['de']} existe de nouveau ; rien n'est écrasé")
                 renommer_exclusif(vers, de)
@@ -1185,8 +1241,14 @@ def annuler(atelier, ids=None):
         if (ids is None or i in ids) and i not in faits and i not in ret:
             journaliser(atelier, {"id": i, "geste": "", "resultat": "annule", "erreur": "retirée avant d'être faite"})
             print(f"retiré  {i}")
+    code = OK
+    if ids is not None:
+        # Une annulation partielle qui sort un document du dossier commun le sort aussi du sommaire (N6).
+        touches = [os.path.expanduser(l["vers"]) for l in cibles] + \
+                  [os.path.expanduser(l["de"]) for l in cibles if l.get("de")]
+        code = rafraichir_ou_dire(atelier, conf, plan, touches, apres="les changements sont défaits")
     ecrire_lisible(atelier, plan, "propose" if plan["operations"] else "rien_a_ranger", fm.get("acceptees") or [])
-    return OK
+    return code
 
 
 # ── Chemins pour le remplissage (A1, A4), clôture ───────────────────────────
@@ -1239,7 +1301,8 @@ def clore(atelier, statut):
         raise Garde(f"rangement appliqué en partie : {', '.join(reste)} accepté(s) et pas fait(s).")
     if not faits:
         raise Garde("rien n'a été fait : clore par « refuse » si la personne n'a rien retenu.")
-    rafraichir_index(atelier, charger_conf(atelier), plan)
+    if rafraichir_ou_dire(atelier, charger_conf(atelier), plan, apres="rien n'est clos") != OK:
+        return ECART
     # Le dossier commun existe dès qu'un geste fait y a posé quelque chose, sommaire
     # coché ou non : sans cela, une procédure rangée là serait introuvable (M6).
     refs = {Path(os.path.expanduser(o["vers"])).parent for o in plan["operations"] if o["geste"] == "ecrire_index"}
@@ -1416,11 +1479,17 @@ def _autotest():
         n_avant = len(arbre(racines)[0])
         r = ici("--appliquer", "--ids", f"{doc},{scan}")
         assert r.returncode == 0, r.stderr
+        # N10 : le sommaire montré avant l'accord est celui qui s'écrit, et le montrer n'écrit rien.
+        av_montre = arbre(racines)
+        montre = ici("--montrer-index", "--ids", f"{refd},{procd},{fact},{agents}",
+                     "--proprietaire", "Procédures/Facturation d'une affaire - 2025-11-04.md=Direction")
+        assert montre.returncode == 0 and arbre(racines) == av_montre, montre.stderr
         r = ici("--appliquer", "--ids", f"{refd},{procd},{fact},{agents}", "--renforce",
                 "--proprietaire", "Procédures/Facturation d'une affaire - 2025-11-04.md=Direction")
         assert r.returncode == 0, r.stderr
         ref = commun / "Référentiel"
         index = (ref / "AGENTS.md").read_text(encoding="utf-8")
+        assert index == montre.stdout, "N10 : le texte montré n'est pas celui écrit"
         assert MARQUEUR in index and "Facturation d'une affaire - 2025-11-04.md" in index and "| Direction |" in index
         assert len(arbre(racines)[0]) == n_avant + 1, "I-R1 : seuls s'ajoutent un dossier et le sommaire"
         assert ici("--verifier").returncode == 0
@@ -1449,15 +1518,34 @@ def _autotest():
         spec.mkdir(parents=True)
         (spec / "SKILL.md").write_text("---\nname: lecteur-de-baux\ndescription: Relève échéances et loyers d'un bail. Suite.\n---\n# x\n", encoding="utf-8")
         assert "aucun dossier commun" in garde(["--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce"]).stderr
+        # N1 : la marque retirée du sommaire entre deux lots ; le geste se fait, le sommaire ne suit
+        # pas : code 1 (pas 3), message qui le dit, échec journalisé sous un id i….
+        mon = ids["Mon process de devis.md"]
+        ici("--classer", f"{mon}=entreprise")
+        texte_index_ok = (ref / "AGENTS.md").read_text(encoding="utf-8")
+        sans_marque = "<!-- retiré".join(texte_index_ok.split(MARQUEUR))
+        (ref / "AGENTS.md").write_text(sans_marque, encoding="utf-8")
+        r = ici("--appliquer", "--ids", mon, "--renforce")
+        derniere = lire_journal(atelier)[-1]
+        assert r.returncode == ECART and "seul le sommaire" in r.stderr, (r.returncode, r.stderr)
+        assert derniere["id"].startswith("i") and derniere["resultat"] == "echec", derniere
+        assert (ref / "Procédures" / "Mes devis - 2025-07-01.md").is_file(), "le geste est fait"
+        (ref / "AGENTS.md").write_text(texte_index_ok, encoding="utf-8")
         # M2 : une ligne acceptée et pas faite interdit la clôture.
         md0 = (atelier / LISIBLE).read_text(encoding="utf-8")
-        (atelier / LISIBLE).write_text(md0.replace("acceptees: [", f"acceptees: [{ids['Mon process de devis.md']}, ", 1),
+        (atelier / LISIBLE).write_text(md0.replace("acceptees: [", f"acceptees: [{relance}, ", 1),
                                        encoding="utf-8")
         assert "appliqué en partie" in garde(["--clore", "applique"]).stderr
         (atelier / LISIBLE).write_text(md0, encoding="utf-8")
         assert ici("--clore", "applique").returncode == 0
         assert charger_conf(atelier)["referentiel"]["etat"] == "existant"
         assert ici("--clore", "applique").returncode == 0, "clore deux fois ne réécrit pas l'avant"
+        assert "Mes devis" in (ref / "AGENTS.md").read_text(encoding="utf-8"), "la clôture rafraîchit le sommaire"
+        # N6 : défaire un seul rangement vers le dossier commun le sort aussi du sommaire, journalisé.
+        r = ici("--annuler", "--ids", mon)
+        assert r.returncode == 0 and "Mes devis" not in (ref / "AGENTS.md").read_text(encoding="utf-8"), r.stderr
+        assert lire_journal(atelier)[-1]["id"].startswith("i") and lire_journal(atelier)[-1]["resultat"] == "fait"
+        assert ici("--clore", "applique").returncode == 0
         assert "G2" in garde(["--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux"]).stderr
         index_avant = (ref / "AGENTS.md").read_text(encoding="utf-8")
         # M3 : un sommaire présent seulement en ligne ne s'ouvre pas ; rien ne se publie (G6, code 3).
@@ -1467,6 +1555,15 @@ def _autotest():
         assert ici("--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce").returncode == 0
         # m2 : publier sur un assistant déjà publié, code 3 et rien ne bouge (G1).
         assert "G1" in garde(["--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce"]).stderr
+        # N3 : un assistant publié puis retouché par un collègue ne se retire pas : code 1, fichier intact.
+        publie = ref / "assistants" / "lecteur-de-baux" / "SKILL.md"
+        texte_publie = publie.read_text(encoding="utf-8")
+        publie.write_text(texte_publie + "Retouche d'un collègue.\n", encoding="utf-8")
+        derniere_pub = [l["id"] for l in lire_journal(atelier) if l.get("geste") == "publier" and l["resultat"] == "fait"][-1]
+        r = ici("--annuler", "--ids", derniere_pub)
+        assert r.returncode == ECART and "modifié" in r.stderr, (r.returncode, r.stderr)
+        assert publie.read_text(encoding="utf-8").endswith("Retouche d'un collègue.\n")
+        publie.write_text(texte_publie, encoding="utf-8")
         assert "lecteur-de-baux | Relève échéances et loyers d'un bail" in (ref / "AGENTS.md").read_text(encoding="utf-8")
         assert "| Direction |" in (ref / "AGENTS.md").read_text(encoding="utf-8"), "le propriétaire survit à la réécriture"
         # Défaire la publication rend le sommaire mot pour mot, quel que soit le jour (marque datée).
@@ -1526,6 +1623,9 @@ def _autotest():
         ici("--proposer")
         b = lire_plan(atelier)["bornes"]
         assert b["gestes"] == 2 and b["depassement"] and b["ecartes"] > 0, b
+        # N4 : la troncature garde d'abord la création du dossier commun et le sommaire.
+        assert {o["geste"] for o in lire_plan(atelier)["operations"]} <= {"creer_dossier", "ecrire_index"}, \
+            [o["geste"] for o in lire_plan(atelier)["operations"]]
         (atelier / "config.yaml").write_text(cfg.replace("max_gestes_rangement: 2", "max_gestes_rangement: 120"),
                                              encoding="utf-8")
         ici("--proposer")
@@ -1644,6 +1744,8 @@ def main():
     g.add_argument("--annuler", action="store_true")
     g.add_argument("--publier", metavar="SKILL.md")
     g.add_argument("--chemins", action="store_true")
+    g.add_argument("--montrer-index", action="store_true",
+                   help="imprime le sommaire exact que --appliquer écrira avec ces --ids, sans rien écrire")
     g.add_argument("--autorise", metavar="CHEMIN", help="0 si une note-pointeur peut viser ce chemin, 3 sinon (A4)")
     g.add_argument("--clore", choices=("applique", "refuse"))
     g.add_argument("--autotest", action="store_true")
@@ -1691,6 +1793,10 @@ def main():
             return publier(atelier, a.publier, a.nom, a.renforce)
         if a.chemins:
             print(json.dumps(chemins(atelier), ensure_ascii=False, indent=2))
+            return OK
+        if a.montrer_index:
+            proprios = dict(x.split("=", 1) for x in a.proprietaire if "=" in x)
+            print(montrer_index(atelier, ids, proprios), end="")
             return OK
         if a.autorise:
             c = chemins(atelier)

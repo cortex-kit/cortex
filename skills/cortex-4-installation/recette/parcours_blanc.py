@@ -1568,7 +1568,9 @@ def c11_rangement(tmp, configs):
             "sur le nouveau chemin",
             sans_note and rv.returncode == 0 and m_range.note_autorisee(atelier, proc)
             and trad.get(tilde(proc)) == tilde(dest), f"{sans_note} {rv.stdout[-200:]} {trad}")
-    os.rename(dest, proc)
+    # N2 : le document déplacé à la main n'entre au sommaire qu'à la clôture (--verifier ne le réécrit pas).
+    objet_manuel = "Process d'une affaire, du devis à la réception"
+    avant_cloture = objet_manuel in (commun / "Référentiel" / "AGENTS.md").read_text(encoding="utf-8")
 
     # Le maillon 4 refuse un rangement appliqué en partie ; il construit une fois la ligne retirée.
     fm = (atelier / "03-rangement.md").read_text(encoding="utf-8")
@@ -1603,6 +1605,9 @@ def c11_rangement(tmp, configs):
             rc.returncode == 0 and conf["referentiel"]["etat"] == "existant"
             and conf["referentiel"]["chemin"] == tilde(commun / "Référentiel")
             and not cortex_config.valider_installable(conf), rc.stderr[:200] + str(conf.get("referentiel")))
+    verifie("N2 : un geste manuel vers le dossier commun, constaté, n'est pas au sommaire avant la clôture et "
+            "y entre à la clôture",
+            not avant_cloture and objet_manuel in (commun / "Référentiel" / "AGENTS.md").read_text(encoding="utf-8"))
     # La construction se fait sur une copie de l'atelier : l'original sert ensuite à défaire (I-R2).
     construit = base / "_cortex-construit"
     shutil.copytree(atelier, construit)
@@ -1643,6 +1648,21 @@ def c11_rangement(tmp, configs):
     temoin.write_text("Dossier commun : {{REFERENTIEL}}\n", encoding="utf-8")
     verifie("témoin : un gabarit jetable qui garde {{REFERENTIEL}} est vu par le même contrôle",
             bool(re.search(r"\{\{[A-Z_]+\}\}", temoin.read_text(encoding="utf-8"))))
+    # N12 : dossier commun inscrit sans sommaire (refusé) : le vault renvoie au dossier, jamais à AGENTS.md.
+    cfg_n12 = tmp / "config-n12.yaml"
+    cfg_n12.write_text(re.sub(r'(?m)^  chemin: ".*Référentiel"$', f'  chemin: "{tilde(commun)}"',
+                              (atelier / "config.yaml").read_text(encoding="utf-8")), encoding="utf-8")
+    v12 = tmp / "vault-sans-sommaire"
+    r12 = scaffold("--config", str(cfg_n12), "--out", str(v12))
+    c12 = (v12 / "CLAUDE.md").read_text(encoding="utf-8") if (v12 / "CLAUDE.md").is_file() else ""
+    n12 = (v12 / "50 - Ressources" / "Référentiel commun.md")
+    n12_txt = n12.read_text(encoding="utf-8") if n12.is_file() else ""
+    verifie("N12 : sans sommaire, CLAUDE.md et la note renvoient au dossier commun lui-même, sans AGENTS.md ; "
+            "avec sommaire (vault précédent), ils renvoient à AGENTS.md",
+            r12.returncode == 0 and tilde(commun) in c12 and "chercher d'abord dans le dossier commun" in c12
+            and "AGENTS.md" not in c12 and 'index: ""' in n12_txt
+            and "`AGENTS.md`" in claude and 'index: "AGENTS.md"' in note_ref.read_text(encoding="utf-8"),
+            f"{r12.returncode} {r12.stderr[:200]}")
     sans_ref = tmp / "vault-sans-referentiel"
     r4 = scaffold("--config", str(configs["dirigeant"][0]), "--out", str(sans_ref))
     claude = (sans_ref / "CLAUDE.md").read_text(encoding="utf-8") if (sans_ref / "CLAUDE.md").is_file() else ""
@@ -1650,6 +1670,7 @@ def c11_rangement(tmp, configs):
             r4.returncode == 0 and "Aucun dossier commun déclaré." in claude and "{{REFERENTIEL}}" not in claude,
             r4.stderr[:200])
 
+    os.rename(dest, proc)                         # auto-test : la personne remet le document à sa place
     # I-R2 : appliquer puis annuler rend l'arbre d'avant ; témoin, un touch entre les deux.
     jalon = perso / "README.md"
     st = jalon.stat()
