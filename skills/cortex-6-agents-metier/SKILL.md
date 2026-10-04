@@ -57,6 +57,7 @@ Chaque agent naît d'une entrée dans `_cortex/05-agents-metier.md` :
   sortie: "table de 6 colonnes + les incertitudes marquées"
   revoir_le: 2027-02-17
   motif_revue: "la trame de bail change à chaque renouvellement de modèle"
+  portee: personnel          # personnel | entreprise (§3 bis)
 ```
 
 La spec se fait valider **avant** l'écriture de l'agent, et elle se valide vue : affichée en entier, telle qu'elle s'écrira, dans le message qui précède la question ou dans l'aperçu de l'option qui la valide (`cortex-1-cadrage/references/doctrine.md` §10). « Le cahier des charges est-il juste ? » sans le cahier à l'écran est une signature à l'aveugle. C'est aussi elle qui rend l'agent maintenable par quelqu'un d'autre : sans elle, personne ne sait plus ce qu'il était censé faire ni pourquoi.
@@ -92,6 +93,25 @@ L'agent écrit s'enregistre dans l'historique du vault par son script, jamais pa
 python3 "<vault>/.claude/skills/cloture/cloture.py" --vault "<vault>" --message "Assistant <nom>" ".claude/agents/<nom>.md"
 ```
 
+## 3 bis. Pour vous seul, ou pour toute l'entreprise
+
+Avant d'écrire l'agent, une question (AskUserQuestion) : « Cet assistant sert-il à vous seul, ou à toute l'entreprise ? » La réponse va dans `portee` de la spec. Même règle que pour les procédures : un exemplaire, à l'endroit que tous lisent.
+
+**Pour la personne seule** : rien ne change, l'agent s'écrit dans le vault comme au §3.
+
+**Pour toute l'entreprise** : il vit dans le dossier commun, pas dans le vault. Lire `referentiel.etat` dans `config.yaml`.
+
+- `existant` : écrire l'assistant au format `SKILL.md` dans l'atelier, `_cortex/assistants/<nom>/SKILL.md` (frontmatter `name`, `description` avec déclencheurs et non-déclencheurs, `metier: true`, `revoir_le` ; corps : les contraintes du §3). L'afficher **en entier** à la personne, puis demander un accord à part, renforcé : « Cet assistant sera rangé dans le dossier commun. Vos collègues et leurs assistants le liront et s'y fieront, tel qu'il est ci-dessus. » Sur oui seulement :
+
+  ```bash
+  python3 "${CLAUDE_SKILL_DIR}/../cortex-3b-rangement/scripts/range.py" --atelier <chemin de _cortex/>       --publier <chemin de _cortex/>/assistants/<nom>/SKILL.md --nom <nom> --renforce
+  ```
+
+  Le script l'écrit dans `<dossier commun>/assistants/<nom>/SKILL.md`, réécrit le sommaire du dossier commun pour qu'il le référence, et journalise le geste, qui se défait comme un rangement. Aucune copie dans `.claude/agents/` du vault : la note du dossier commun y renvoie déjà.
+- `a_creer`, `aucun` ou `inconnu` : pas de publication. Le dire : « Votre entreprise n'a pas encore de dossier commun où ranger cet assistant. » Proposer « rangeons mes dossiers », qui sait en créer un, puis revenir ici. En attendant, la personne peut le garder pour elle seule (§3).
+
+Le test sur du réel (§4) vaut pour les deux portées, et il se fait **avant** la publication.
+
 ## 4. Tester sur du réel
 
 Faire tourner l'agent sur **trois documents réels**, et vérifier chaque champ à la main.
@@ -110,6 +130,8 @@ controles:
   chaque_agent_a_une_date_de_revue: passe
   aucun_agent_ecrit: passe
   teste_sur_documents_reels: passe
+  portee_decidee_avec_la_personne: passe
+  aucun_assistant_entreprise_copie_dans_le_vault: passe   # `arbitre` motif « aucun assistant d'entreprise » sinon
 ```
 
 ## Message de clôture
@@ -133,6 +155,8 @@ Assistants sur mesure : <N | aucun pour l'instant — et c'est normal>.
 
 <Si N > 0 : la liste, avec la date de revue de chacun et ce qu'elle
 signifie — un assistant périmé répond quand même, d'où la date.>
+<Si l'un d'eux sert toute l'entreprise : il est rangé dans le dossier
+commun, où vos collègues et leurs assistants le lisent.>
 <Si N = 0 : aucun geste ne s'est encore assez répété pour en justifier
 un. Revenez après trois semaines de travail réel — cette étape se
 relance quand vous voulez.>
@@ -156,6 +180,7 @@ S'il manque un jalon, c'est-à-dire un fichier d'atelier ni validé ni arbitré,
 - **Jamais un agent sans date de revue.**
 - **Jamais un agent qui écrit.**
 - **Jamais un agent livré sans test sur du réel.**
+- **Jamais un assistant d'entreprise copié dans le vault**, ni publié sans l'accord renforcé et sans l'avoir montré en entier.
 - **Jamais forcer une création** parce que le client en attend une. Zéro agent métier avec le kit générique vaut mieux qu'un agent qui répondra faux dans six mois.
 
 ## Notice
