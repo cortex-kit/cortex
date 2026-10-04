@@ -84,7 +84,7 @@ RAISON_TROU_03 = (
 
 RAISON_SOLO = "vault solo"
 RAISON_PASSEE = "passée sans rangement"
-RANGEMENT_ARBITRE = {"refuse": "refusé", "rien_a_ranger": "rien à ranger"}
+RANGEMENT_ARBITRE = {"refuse": "refusé", "rien_a_ranger": "rien à ranger", "passee": RAISON_PASSEE}
 RAISON_NON_INSCRIT = "groupe non inscrit"
 RAISON_SEUL = "en attente d'un second rédacteur"
 
@@ -457,6 +457,7 @@ def _autotest():
         assert trois_b("statut: propose\nacceptees: [r001, r002]",
                        fait + '{"id": "r002", "resultat": "annule"}\n')[0] == "a_faire", "A5 : une ligne retirée"
         assert trois_b("statut: applique\nacceptees: [r001]", fait) == ("faite", "", PHRASES[4])
+        assert trois_b("statut: passee\nacceptees: []")[:2] == ("arbitre", RAISON_PASSEE), "posé par l'installation"
         assert trois_b("statut: propose\nacceptees: [r001]", "pas du json\n")[0] == "illisible"
     print("etat.py : auto-test OK")
     return 0

@@ -357,7 +357,9 @@ def generer(conf, commun, quand):
             "charte graphique, signatures, modèles et assistants. Une procédure n'y existe qu'en un exemplaire.\n\n"
             f"Il vit hors de ce vault, à `{referentiel}`. Toute IA lit d'abord son sommaire `AGENTS.md`, "
             "puis le document qu'il désigne ; rien ne s'en recopie ici.\n\n"
-            "Remonte vers [[Centre]].\n", encoding="utf-8")
+            "Remonte vers [[Centre]]."
+            + (" Domaines concernés : " + ", ".join(f"[[{d}]]" for d in sorted(domaines)) + "." if domaines else "")
+            + "\n", encoding="utf-8")
 
     (commun / "config.yaml").write_text(config_commun(nom, codes_domaines, cycles), encoding="utf-8")
     (commun / "README.md").write_text(

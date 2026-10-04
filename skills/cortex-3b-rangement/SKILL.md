@@ -17,13 +17,14 @@ Il ne supprime rien, n'écrase rien, ne duplique rien, ne convertit aucune proc�
 
 ## Étape 0 : bloquante
 
-1. `_cortex/02-ontologie.md` en `statut: valide` : les noms suivent le vocabulaire des domaines signés.
+1. `_cortex/02-ontologie.md` en `statut: valide` : les noms suivent le vocabulaire des domaines signés. Le script le vérifie lui-même (code 3 sinon).
 2. `_cortex/config.yaml` se charge et porte `collecte.racines`, `collecte.partagees` et le bloc `referentiel` posés au cadrage.
 3. Aucune commande n'entre dans un dossier de travail par `cd` : chaque chemin se nomme en entier (doctrine §9).
+4. Le second cerveau n'est pas construit. L'installation inscrit `construit_le` dans `03-rangement.md`, et le script refuse ensuite de proposer ou d'appliquer (code 3) : ranger après la construction casserait ses liens, et ranger après la remise est hors de cette étape. Le dire ainsi à la personne.
 
 **Si un contrôle échoue, s'arrêter.** Ranger sans domaines signés, c'est nommer avec un vocabulaire qui changera.
 
-**Devant la personne**, ses mots, jamais ceux de l'outil (doctrine §8) : « vos dossiers », « la liste des changements », « le dossier commun », « le sommaire pour les IA », « défaire ». Jamais racine, journal, plan, geste, référentiel, `AGENTS.md`, régime, pointeur, profil, ni un nom de script.
+**Devant la personne**, ses mots, jamais ceux de l'outil (doctrine §8) : « vos dossiers », « la liste des changements », « le dossier commun », « le sommaire pour les IA », « défaire ». Jamais racine, journal, plan, geste, référentiel, `AGENTS.md`, régime, pointeur, profil, ni un nom de script. Un nom de fichier ou de dossier affiché dans une ligne de la liste (`…/Référentiel/AGENTS.md`) est une donnée, pas un mot de l'outil : il s'affiche tel quel.
 
 ## 1. Proposer
 
@@ -33,9 +34,9 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --
 
 Le script parcourt les dossiers déclarés et écrit la liste (`03-rangement.json`) et sa version lisible (`03-rangement.md`). Il propose un nom parlant pour chaque nom illisible, range les procédures d'entreprise dans le dossier commun, signale les doublons probables et les fichiers présents seulement en ligne. Règles de nom : `references/nomenclature.md`. Au-delà de `sante.max_gestes_rangement` changements, la liste s'arrête et le dit.
 
-**Dossier commun absent** (`referentiel.etat` à `aucun` ou `inconnu`) : avec un seul dossier partagé déclaré, la liste propose de le créer dedans. Avec plusieurs, demander lequel, puis relancer avec `--referentiel "<dossier partagé>/Référentiel"`. Sans aucun, la liste porte le signalement `dossier_commun_absent` : demander où l'entreprise range ce qu'elle partage ; ce dossier est un nouveau dossier de travail, qui se demande, s'ouvre une fois pour vérifier qu'il répond, s'écrit en forme `~` dans `collecte.racines` et `collecte.partagees`, jamais deviné. Puis relancer.
+**Dossier commun absent** (`referentiel.etat` à `aucun` ou `inconnu`) : avec un seul dossier partagé déclaré, la liste propose de le créer dedans. Avec plusieurs, la liste porte `dossier_commun_a_choisir` : demander lequel, puis relancer avec `--referentiel "<dossier partagé>/Référentiel"`. Sans aucun, la liste porte le signalement `dossier_commun_absent` : demander où l'entreprise range ce qu'elle partage ; ce dossier est un nouveau dossier de travail, qui se demande, s'ouvre une fois pour vérifier qu'il répond, s'écrit en forme `~` dans `collecte.racines` et `collecte.partagees`, jamais deviné. Puis relancer.
 
-Liste vide : le script écrit `statut: rien_a_ranger`. Le dire en une phrase et passer à la fin (§9).
+Un dossier de travail qui est un dépôt git ou un vault, ou qui s'y trouve, ne reçoit aucune proposition (signalement `racine_dans_un_depot`). Liste vide : le script écrit `statut: rien_a_ranger`. Le dire en une phrase et passer à la fin (§9).
 
 ## 2. Le résumé
 
@@ -92,6 +93,8 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --
 
 ## 6. Le dossier commun et son sommaire
 
+Le sommaire est écrit par le script seul et se régénère à chaque passage : une note ajoutée à la main ne survit qu'à travers la colonne des propriétaires. Défaire le rend mot pour mot tel qu'il était. S'il n'est présent qu'en ligne, rien ne s'y écrit : demander de le rendre disponible sur le poste.
+
 **Existant** : « Votre dossier commun garde son organisation. J'y ajoute un sommaire que toute IA lira avant de répondre sur une procédure, la charte ou les signatures. » Le sommaire s'affiche en entier avant l'accord : le générer dans le message à partir de la liste (gabarit dans `references/nomenclature.md`). Un sommaire déjà présent sans la marque de Cortex (signalement `index_etranger`) se montre tel quel, et la question porte sur le fait de le laisser : il n'est jamais remplacé.
 
 **Absent** : « Votre entreprise n'a pas de dossier commun pour ses procédures. Je peux en créer un dans <dossier partagé> et y ranger les <N> procédures qui valent pour tous. Voyez avec qui de droit avant de dire oui. » Les lignes de création, de rangement et du sommaire forment un même lot renforcé.
@@ -127,7 +130,14 @@ Si la liste porte un bloc `base`, l'afficher comme une proposition : « Votre ba
    ```bash
    python3 "${CLAUDE_SKILL_DIR}/../cortex-2-inventaire/scripts/scan.py" --config <chemin de _cortex/>/config.yaml --out <chemin de _cortex/>/01-inventaire.json
    ```
-4. Afficher le bilan (message de clôture), puis la notice.
+4. En groupe (`mode: federe`), un dossier commun créé ici rejoint le fichier du groupe, pour que le commun le cite ; la commande est celle du cadrage, avec le chemin désormais inscrit dans `config.yaml` :
+   ```bash
+   python3 "${CLAUDE_SKILL_DIR}/../cortex-8-federation/scripts/federe.py" --inscrire <slug> --redacteur "<Prénom Nom>" \
+       --export "~/Cortex/<slug>/vault/_export/<slug>" --config "<commun.racine>/federation.yaml" \
+       --nom "<organisation>" --referentiel "<referentiel.chemin>"
+   ```
+   Si le groupe a déjà un dossier commun, le script garde le sien et le dit : le dire à la personne.
+5. Afficher le bilan (message de clôture), puis la notice.
 
 ## Défaire
 

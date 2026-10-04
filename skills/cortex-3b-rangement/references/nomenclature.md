@@ -44,7 +44,7 @@ Une procédure d'entreprise qui doit changer d'espace (d'un dossier à soi vers 
 ## Ce qui ne se renomme ni ne se déplace jamais
 
 - un fichier ou un dossier caché (nom commençant par un point), un fichier système (`.DS_Store`, `Thumbs.db`, `desktop.ini`), un fichier de verrou bureautique (`~$…`) ;
-- un dossier qui est un dépôt git, et tout ce qu'il contient ;
+- un dossier qui est un dépôt git, et tout ce qu'il contient ; un dossier de travail qui se trouve lui-même dans un dépôt git ou un vault n'est pas parcouru ;
 - un paquet d'application (`.app`, `.bundle`, `.photoslibrary`, `.pages`, `.numbers`, `.key`) ;
 - un vault Obsidian (dossier qui porte `.obsidian/`) ;
 - l'atelier `_cortex/` et le dossier du second cerveau ;
@@ -80,5 +80,6 @@ Ce dossier porte les documents de référence de l'organisation : procédures, c
 ```
 
 - **Documents** : tout fichier du dossier commun, hors `Archives/`, `assistants/`, fichiers cachés et le sommaire lui-même ; 200 lignes au plus, le reste se compte sur une dernière ligne.
+- **Réécriture** : le sommaire se régénère en entier à chaque passage. Une note ajoutée à la main ne survit pas, sauf la colonne des propriétaires ; l'annulation rend le texte d'avant, mot pour mot, si personne ne l'a touché depuis.
 - **Propriétaire** : il se demande. La réponse passe par `--proprietaire "<chemin relatif>=<nom>"` ; sans réponse, `Non renseigné`. Une réécriture garde les propriétaires déjà inscrits.
 - **Assistants** : un dossier `assistants/<nom>/SKILL.md` par assistant publié pour toute l'entreprise ; la colonne « Ce qu'il fait » reprend la première phrase de sa description.

@@ -233,10 +233,35 @@ def regle_referentiel(conf):
 def rangement_inacheve(dossier_atelier):
     """Vrai quand l'étape 3b du rangement vaut `en_cours` dans l'atelier : des
     changements acceptés sont faits, d'autres non (contrat 2.3 §8). Construire
-    là-dessus ferait naître des liens sur des chemins appelés à changer."""
+    là-dessus ferait naître des liens sur des chemins appelés à changer. Un journal
+    illisible bloque aussi : on ne sait plus ce qui a bougé."""
     import etat
     pivot = etat.generer(dossier_atelier)
-    return any(e.get("numero") == "3b" and e.get("etat") == "en_cours" for e in pivot["etapes"])
+    return any(e.get("numero") == "3b" and e.get("etat") in ("en_cours", "illisible") for e in pivot["etapes"])
+
+
+def marquer_construction(dossier_atelier):
+    """Inscrit dans `03-rangement.md` que le second cerveau est construit (`construit_le`) :
+    `range.py` refuse ensuite de proposer ou d'appliquer, ses liens ne doivent plus bouger
+    (D3). Un rangement jamais conclu passe `statut: passee`, arbitré « passée sans
+    rangement ». Rien n'est écrit hors d'un atelier (sans `02-ontologie.md`)."""
+    atelier = Path(dossier_atelier)
+    if not (atelier / "02-ontologie.md").is_file():
+        return
+    md = atelier / "03-rangement.md"
+    jour = date.today().isoformat()
+    if not md.is_file():
+        md.write_text("---\nmaillon: 3b\nproduit_par: cortex-4-installation\nstatut: passee\nacceptees: []\n"
+                      f'raison: "passée sans rangement"\nconstruit_le: {jour}\n---\n# Rangement des dossiers de travail\n\n'
+                      "Le second cerveau a été construit sans rangement : les dossiers gardent leurs noms.\n",
+                      encoding="utf-8")
+        return
+    texte = md.read_text(encoding="utf-8")
+    if not texte.startswith("---\n") or "\nconstruit_le:" in texte.split("\n---", 2)[0]:
+        return
+    if re.search(r"^statut: (propose|)$", texte, re.M):
+        texte = re.sub(r"^statut: .*$", 'statut: passee\nraison: "passée sans rangement"', texte, count=1, flags=re.M)
+    md.write_text(texte.replace("---\n", f"---\nconstruit_le: {jour}\n", 1), encoding="utf-8")
 
 
 def substituer(texte, table):
@@ -524,8 +549,8 @@ def main():
     # Garde du maillon 4, en code et pas seulement dans la prose du SKILL.md.
     # L'atelier est le dossier de la config (`_cortex/config.yaml`).
     if rangement_inacheve(chemin_config.parent):
-        print("[X] Le rangement de vos dossiers est appliqué en partie : terminez-le ou "
-              "défaites-le avant de construire. Dites « rangeons mes dossiers ».", file=sys.stderr)
+        print("[X] Le rangement de vos dossiers est appliqué en partie, ou sa trace est illisible : "
+              "terminez-le ou défaites-le avant de construire. Dites « rangeons mes dossiers ».", file=sys.stderr)
         return 2
 
     if dest.exists():
@@ -651,6 +676,7 @@ def main():
         git_ok = False
         print(f"[i] git non initialise ({e}), le vault reste utilisable.")
 
+    marquer_construction(chemin_config.parent)
     print(f"✓ Vault instancie : {dest}")
     print(f"✎ {ecrits} fichier(s) du gabarit + config.yaml + graph.json + Configuration.md")
     print(f"✎ {len(cortex_config.codes_domaines(conf))} domaine(s), "

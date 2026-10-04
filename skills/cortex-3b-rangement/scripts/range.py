@@ -35,6 +35,7 @@ Codes de sortie : 0 fait ; 1 erreur ou écart constaté ; 2 usage ; 3 garde lev�
 """
 
 import argparse
+import errno
 import hashlib
 import html
 import json
@@ -72,6 +73,11 @@ class Garde(Exception):
     """Une garde du contrat §5 a levé : rien ne bouge, code 3."""
 
 
+class Usage(ValueError):
+    """Une commande mal formée (id inconnu, option manquante) : code 2. Une autre
+    ValueError (journal illisible, inventaire cassé) est une erreur : code 1."""
+
+
 # ── Chemins ─────────────────────────────────────────────────────────────────
 
 def tilde(p):
@@ -106,6 +112,7 @@ class Racines:
         part = {tilde(os.path.expanduser(p)) for p in ([part] if isinstance(part, str) else part)}
         self.liste = [(tilde(os.path.expanduser(r)), reel(r)) for r in brutes if r]
         self.partagees = part
+        self._partagees_reelles = [reel(x) for x in part]
 
     def de(self, chemin):
         """La racine déclarée qui contient `chemin` (la plus profonde), ou None."""
@@ -116,7 +123,9 @@ class Racines:
         return max(candidates, key=lambda c: len(c[1].parts))[0]
 
     def partagee(self, chemin):
-        return self.de(chemin) in self.partagees
+        """Sous une racine partagée, même par une racine à soi déclarée plus bas (contrat §3)."""
+        r = reel(chemin)
+        return any(_sous(r, x) for x in self._partagees_reelles)
 
 
 # ── Fichiers « en ligne seulement » (G6) ────────────────────────────────────
@@ -249,8 +258,8 @@ def titre_local(chemin):
                 t = "".join(re.findall(r"<w:t[^>]*>(.*?)</w:t>", p, re.S))
                 if t.strip():
                     return html.unescape(t).strip()
-    except (OSError, KeyError, zipfile.BadZipFile, UnicodeError):
-        return ""
+    except (OSError, KeyError, zipfile.BadZipFile, UnicodeError) as e:
+        return None if not isinstance(e, KeyError) else ""   # None : lecture en échec, à signaler
     return ""
 
 
@@ -268,7 +277,7 @@ def plafond(conf):
 def lire_plan(atelier):
     p = Path(atelier) / PLAN
     if not p.is_file():
-        raise FileNotFoundError(f"{PLAN} absent : lancer --proposer d'abord.")
+        raise Usage(f"{PLAN} absent : lancer --proposer d'abord.")
     return json.loads(p.read_text(encoding="utf-8"))
 
 
@@ -347,6 +356,9 @@ def ecrire_lisible(atelier, plan, statut, acceptees, raison=""):
           "acceptees: [" + ", ".join(acceptees) + "]"]
     if raison:
         fm.append(f'raison: "{raison}"')
+    construit = lire_fm(atelier).get("construit_le")
+    if construit:
+        fm.append(f"construit_le: {construit}")
     fm.append(f"genere_le: {plan.get('genere_le', '')}")
     fm.append("---")
     b = plan["bornes"]
@@ -368,6 +380,27 @@ def ecrire_lisible(atelier, plan, statut, acceptees, raison=""):
         corps += ["## Base en ligne (proposition, rien ne s'y écrit)", ""] + [
             f"- {x['objet']} : {x['constat']}. {x['proposition']}" for x in plan["base"]] + [""]
     (Path(atelier) / LISIBLE).write_text("\n".join(fm + [""] + corps), encoding="utf-8")
+
+
+def pas_apres_construction(atelier):
+    """Le rangement précède la construction (D3) : une fois le second cerveau construit
+    (`construit_le`, posé par l'installation), plus rien ne se propose ni ne s'applique,
+    sans quoi ses liens pointeraient vers des noms qui n'existent plus."""
+    construit = lire_fm(atelier).get("construit_le")
+    if construit:
+        raise Garde(f"le second cerveau est construit depuis le {construit} : ranger maintenant casserait ses "
+                    "liens. Ranger après la remise est hors de cette étape.")
+
+
+def domaines_signes(atelier):
+    """Étape 0 : les noms suivent le vocabulaire des domaines signés."""
+    p = Path(atelier) / "02-ontologie.md"
+    lignes = p.read_text(encoding="utf-8").splitlines() if p.is_file() else []
+    fin = next((i for i, l in enumerate(lignes[1:], 1) if l.strip() == "---"), None) if lignes[:1] == ["---"] else None
+    fm = cortex_config.charger_texte("\n".join(lignes[1:fin])) if fin else {}
+    if fm.get("statut") != "valide":
+        raise Garde("la carte des domaines n'est pas signée (02-ontologie.md en statut valide) : "
+                    "les noms suivraient un vocabulaire qui va changer.")
 
 
 # ── Proposer ────────────────────────────────────────────────────────────────
@@ -403,17 +436,22 @@ def referentiel_cible(conf, racines, demande):
     else:
         return None, False
     if racines.de(chemin) is None or not racines.partagee(chemin):
-        raise ValueError(f"le dossier commun {chemin} doit être sous un dossier de travail déclaré partagé "
+        raise Usage(f"le dossier commun {chemin} doit être sous un dossier de travail déclaré partagé "
                          "(collecte.partagees).")
     return tilde(os.path.expanduser(chemin)), reel(chemin).is_dir()
 
 
 def proposer(atelier, demande_ref=""):
     atelier = Path(atelier)
+    domaines_signes(atelier)
+    pas_apres_construction(atelier)
     conf = charger_conf(atelier)
     racines = Racines(conf)
     ref, ref_existe = referentiel_cible(conf, racines, demande_ref)
     ref_reel = reel(ref) if ref else None
+    # Les chemins écrits gardent la forme déclarée (pas la forme résolue) : le remplissage
+    # les rapproche de l'inventaire, qui écrit la forme déclarée.
+    ref_decl = Path(os.path.expanduser(ref)) if ref else None
     exclus = [reel(atelier)]          # le vault, lui, porte .obsidian/ et s'écarte comme tel
     candidats, signalements, absentes = [], [], []
     par_nom = {}
@@ -432,11 +470,18 @@ def proposer(atelier, demande_ref=""):
         pris.add(nom.lower())
         return nom
 
+    dans_depot = []
     for nom_r, rr in racines.liste:
         if not rr.is_dir():
             absentes.append(nom_r)
             continue
-        for p in parcourir(rr, exclus):
+        # Un dossier qui est un dépôt git ou un vault, ou qui s'y trouve, ne se touche pas (§6).
+        if any((d / ".git").exists() or (d / ".obsidian").is_dir() for d in [rr, *rr.parents]):
+            dans_depot.append(nom_r)
+            continue
+        # Une racine déclarée sous celle-ci se parcourt pour elle-même, une seule fois.
+        internes = [x for _, x in racines.liste if x != rr and _sous(x, rr)]
+        for p in parcourir(Path(os.path.expanduser(nom_r)), exclus + internes):
             st = p.stat()
             par_nom.setdefault((p.name.lower(), st.st_size), []).append(p)
             dans_ref = ref_reel is not None and _sous(reel(p), ref_reel)
@@ -449,6 +494,10 @@ def proposer(atelier, demande_ref=""):
             if not bad and not proc:
                 continue
             titre = "" if ligne else titre_local(p)
+            if titre is None:
+                signalements.append({"type": "titre_illisible", "chemins": [tilde(p)],
+                                     "motif": "document non lisible (droits ou fichier abîmé) ; nom déduit du dossier"})
+                titre = ""
             if titre and illisible(titre)[0]:
                 titre = ""
             dossier_nom = p.parent.name if p.parent != rr else Path(nom_r).name
@@ -476,7 +525,7 @@ def proposer(atelier, demande_ref=""):
                     candidats.append({"geste": "renommer", "de": p, "vers": vers, "classe": "personnelle",
                                       "motif": "procédure à vous ; nom illisible", "st": st})
                     continue
-                cible_dossier = ref_reel / "Procédures"
+                cible_dossier = ref_decl / "Procédures"
                 vers = cible_dossier / libre(cible_dossier, nom)
                 meme = racines.de(p) == racines.de(ref)
                 candidats.append({"geste": "deplacer" if meme else "manuel", "de": p, "vers": vers,
@@ -493,8 +542,15 @@ def proposer(atelier, demande_ref=""):
             candidats.append({"geste": "renommer", "de": p, "vers": vers, "classe": "", "motif": motif, "st": st})
 
     if procedures_sans_commun:
-        signalements.append({"type": "dossier_commun_absent", "chemins": sorted(procedures_sans_commun),
-                             "motif": "procédures sans dossier commun où les ranger : demander où le créer"})
+        if len(racines.partagees) > 1:
+            signalements.append({"type": "dossier_commun_a_choisir", "chemins": sorted(procedures_sans_commun),
+                                 "motif": "plusieurs dossiers partagés : demander lequel porte le dossier commun"})
+        else:
+            signalements.append({"type": "dossier_commun_absent", "chemins": sorted(procedures_sans_commun),
+                                 "motif": "procédures sans dossier commun où les ranger : demander où le créer"})
+    if dans_depot:
+        signalements.append({"type": "racine_dans_un_depot", "chemins": dans_depot,
+                             "motif": "dépôt git ou vault : rien n'y est proposé"})
     if absentes:
         signalements.append({"type": "racine_absente", "chemins": absentes, "motif": "dossier déclaré introuvable"})
     for (nom, _), chemins in sorted(par_nom.items()):
@@ -505,15 +561,18 @@ def proposer(atelier, demande_ref=""):
                                  "motif": "même nom, même taille"})
 
     vers_ref = [c for c in candidats if c["classe"] in ("entreprise", "a_demander")]
-    if ref is not None and (vers_ref or not ref_existe or not (ref_reel / "AGENTS.md").exists()):
+    if ref is not None and (vers_ref or not ref_existe or not (ref_decl / "AGENTS.md").exists()):
         if not ref_existe:
-            candidats.append({"geste": "creer_dossier", "vers": ref_reel, "classe": "", "motif": "dossier commun de l'entreprise"})
-        if vers_ref and not (ref_reel / "Procédures").is_dir():
-            candidats.append({"geste": "creer_dossier", "vers": ref_reel / "Procédures", "classe": "",
+            candidats.append({"geste": "creer_dossier", "vers": ref_decl, "classe": "", "motif": "dossier commun de l'entreprise"})
+        if vers_ref and not (ref_decl / "Procédures").is_dir():
+            candidats.append({"geste": "creer_dossier", "vers": ref_decl / "Procédures", "classe": "",
                               "motif": "dossier commun des procédures"})
-        agents = ref_reel / "AGENTS.md"
+        agents = ref_decl / "AGENTS.md"
         candidats.append({"geste": "ecrire_index", "vers": agents, "classe": "", "motif": "sommaire pour les IA"})
-        if agents.exists() and MARQUEUR not in agents.read_text(encoding="utf-8", errors="replace"):
+        if agents.exists() and en_ligne_seulement(agents):
+            signalements.append({"type": "en_ligne_seulement", "chemins": [tilde(agents)],
+                                 "motif": "sommaire non ouvert : le rendre disponible sur ce poste avant de l'écrire"})
+        elif agents.exists() and MARQUEUR not in lire_index(agents):
             signalements.append({"type": "index_etranger", "chemins": [tilde(agents)],
                                  "motif": "un sommaire existe déjà sans la marque de Cortex : le montrer et demander"})
 
@@ -575,8 +634,9 @@ def base_en_ligne(atelier):
     inv = Path(atelier) / "01-inventaire.json"
     try:
         bases = json.loads(inv.read_text(encoding="utf-8")).get("bases") or [] if inv.is_file() else []
-    except ValueError:
-        return []
+    except (ValueError, OSError) as e:
+        raise ValueError(f"01-inventaire.json illisible ({e}) : la proposition pour la base en ligne "
+                         "ne peut pas se faire ; relancer l'inventaire.") from e
     out = []
     for b in bases:
         for prop, valeurs in sorted(((b.get("signal_ontologique") or {}).get("enums") or {}).items()):
@@ -593,7 +653,7 @@ def _paires(texte):
     out = {}
     for morceau in texte.split(","):
         if "=" not in morceau:
-            raise ValueError(f"attendu id=valeur, lu {morceau!r}")
+            raise Usage(f"attendu id=valeur, lu {morceau!r}")
         k, v = morceau.split("=", 1)
         out[k.strip()] = v.strip().strip('"')
     return out
@@ -601,11 +661,12 @@ def _paires(texte):
 
 def classer(atelier, paires):
     """La réponse à « pour vous seul ou pour toute l'entreprise ? » réécrit la ligne."""
+    pas_apres_construction(atelier)
     plan = lire_plan(atelier)
     ops = {o["id"]: o for o in plan["operations"]}
     for i, classe in paires.items():
         if i not in ops or classe not in ("personnelle", "entreprise"):
-            raise ValueError(f"{i}={classe} : id inconnu ou classe hors personnelle|entreprise")
+            raise Usage(f"{i}={classe} : id inconnu ou classe hors personnelle|entreprise")
         o = ops[i]
         o["classe"] = classe
         if classe == "personnelle":
@@ -629,14 +690,15 @@ def classer(atelier, paires):
 
 def nommer(atelier, paires):
     """Le nom donné par la personne remplace l'objet ; la date et l'extension restent."""
+    pas_apres_construction(atelier)
     plan = lire_plan(atelier)
     ops = {o["id"]: o for o in plan["operations"]}
     for i, objet in paires.items():
         o = ops.get(i)
         if o is None or o["geste"] not in ("renommer", "deplacer", "manuel"):
-            raise ValueError(f"{i} : id inconnu ou ligne sans nom à donner")
+            raise Usage(f"{i} : id inconnu ou ligne sans nom à donner")
         if not nettoyer(objet):
-            raise ValueError(f"{i} : nom vide une fois retirés les caractères interdits")
+            raise Usage(f"{i} : nom vide une fois retirés les caractères interdits")
         v = Path(o["vers"])
         jour = _DATE_FINALE.search(v.stem)
         o["vers"] = str(v.parent / nom_parlant(objet, jour.group(0)[3:] if jour else date.today().isoformat(), v.suffix))
@@ -648,11 +710,21 @@ def nommer(atelier, paires):
 
 # ── Index du dossier commun (contrat §7) ────────────────────────────────────
 
-def _proprietaires_existants(agents):
+def lire_index(agents):
+    """Le texte d'un AGENTS.md, ou "" s'il n'existe pas. G6 : présent seulement en
+    ligne, il ne s'ouvre pas, et rien de ce qui le réécrirait ne se fait."""
+    agents = Path(agents)
     if not agents.is_file():
-        return {}
+        return ""
+    if en_ligne_seulement(agents):
+        raise Garde(f"G6 : {tilde(agents)} n'est présent qu'en ligne ; le rendre disponible sur ce poste "
+                    "dans l'outil de partage, puis relancer.")
+    return agents.read_text(encoding="utf-8", errors="replace")
+
+
+def _proprietaires_existants(agents):
     out = {}
-    for l in agents.read_text(encoding="utf-8", errors="replace").splitlines():
+    for l in lire_index(agents).splitlines():
         m = re.match(r"^\| \[(.+?)\]\((.+?)\) \| .*? \| (.*?) \| .*? \|$", l)
         if m:
             out[m.group(1)] = m.group(3)
@@ -660,6 +732,8 @@ def _proprietaires_existants(agents):
 
 
 def _description(skill):
+    if en_ligne_seulement(skill):
+        return "Non renseigné"
     for l in skill.read_text(encoding="utf-8", errors="replace").splitlines()[:20]:
         if l.startswith("description:"):
             d = l.split(":", 1)[1].strip().strip('"')
@@ -709,13 +783,18 @@ def sha(chemin):
     return hashlib.sha256(Path(chemin).read_bytes()).hexdigest()
 
 
-def ecrire_index(agents, conf, proprietaires):
-    """Écrit le sommaire. Rend (créé, sha256, taille). G7 : un AGENTS.md sans la marque
-    n'est pas à Cortex, il ne se réécrit pas."""
+def ecrire_index(agents, conf, proprietaires, texte=None):
+    """Écrit le sommaire (ou `texte` tel quel, pour une restauration). Rend (créé,
+    sha256, taille, texte d'avant). G7 : un AGENTS.md sans la marque n'est pas à
+    Cortex, il ne se réécrit pas. Le texte d'avant part au journal : l'annulation
+    le rend tel qu'il était, notes à la main comprises."""
     agents = Path(agents)
-    texte = texte_index(agents.parent, (conf.get("organisation") or {}).get("nom", "l'organisation"), proprietaires)
+    avant = lire_index(agents)
+    if texte is None:
+        texte = texte_index(agents.parent, (conf.get("organisation") or {}).get("nom", "l'organisation"),
+                            proprietaires)
     if agents.exists():
-        if MARQUEUR not in agents.read_text(encoding="utf-8", errors="replace"):
+        if MARQUEUR not in avant:
             raise Garde(f"G7 : {tilde(agents)} existe sans la marque de Cortex ; le montrer et demander.")
         agents.write_text(texte, encoding="utf-8")
         cree = False
@@ -723,10 +802,49 @@ def ecrire_index(agents, conf, proprietaires):
         with open(agents, "x", encoding="utf-8") as f:   # « x » : jamais d'écrasement, même en course
             f.write(texte)
         cree = True
-    return cree, sha(agents), agents.stat().st_size
+    return cree, sha(agents), agents.stat().st_size, avant
+
+
+def dernier_sha_index(journal, chemin):
+    """L'empreinte du dernier sommaire écrit par Cortex à ce chemin, réécritures
+    d'annulation comprises : ce qui est à comparer pour savoir si une main l'a touché."""
+    out = None
+    for l in journal:
+        if l.get("index") == chemin and l.get("index_sha256") and l.get("resultat") in ("fait", "annule"):
+            out = l["index_sha256"]
+    return out
 
 
 # ── Appliquer ───────────────────────────────────────────────────────────────
+
+def renommer_exclusif(de, vers):
+    """Renomme sans jamais écraser (G1, jusque dans la fenêtre entre la garde et le geste).
+    Sous POSIX, `os.rename` remplace une destination existante en silence : on passe par
+    l'appel système exclusif (macOS renamex_np RENAME_EXCL, Linux renameat2
+    RENAME_NOREPLACE), qui lève FileExistsError. Windows refuse déjà de lui-même. Sans
+    l'appel exclusif (libc introuvable), la garde rejouée juste avant reste la seule
+    barrière, et la fenêtre est celle de deux appels système."""
+    de, vers = os.fsencode(str(de)), os.fsencode(str(vers))
+    if sys.platform in ("darwin", "linux"):
+        import ctypes
+        import ctypes.util
+        try:
+            libc = ctypes.CDLL(ctypes.util.find_library("c"), use_errno=True)
+            if sys.platform == "darwin":
+                rc = libc.renamex_np(de, vers, ctypes.c_uint(0x4))                    # RENAME_EXCL
+            else:
+                rc = libc.renameat2(-100, de, -100, vers, ctypes.c_uint(1))          # AT_FDCWD, NOREPLACE
+        except (OSError, AttributeError):
+            rc = None
+        if rc is not None:
+            if rc != 0:
+                e = ctypes.get_errno()
+                raise OSError(e, os.strerror(e), os.fsdecode(vers))
+            return
+    if os.path.lexists(vers):
+        raise FileExistsError(errno.EEXIST, "destination existante", os.fsdecode(vers))
+    os.rename(de, vers)
+
 
 def _identique(chemin, taille, mtime):
     try:
@@ -753,8 +871,7 @@ def controler(o, racines, renforce, a_creer):
         raise Garde(f"G2 : {o['id']} touche un dossier partagé ; il faut l'accord renforcé (--renforce).")
     if o["geste"] != "ecrire_index" and os.path.lexists(vers):
         raise Garde(f"G1 : {o['id']} : {tilde(vers)} existe déjà ; rien n'est écrasé.")
-    if o["geste"] == "ecrire_index" and vers.exists() and \
-            MARQUEUR not in vers.read_text(encoding="utf-8", errors="replace"):
+    if o["geste"] == "ecrire_index" and vers.exists() and MARQUEUR not in lire_index(vers):
         raise Garde(f"G7 : {tilde(vers)} existe sans la marque de Cortex ; le montrer et demander.")
     if de is not None and not _identique(de, o["taille"], o["mtime"]):
         raise Garde(f"G5 : {o['id']} : {tilde(de)} a changé ou disparu depuis la proposition ; reproposer.")
@@ -764,13 +881,14 @@ def controler(o, racines, renforce, a_creer):
 
 def appliquer(atelier, ids, renforce=False, proprietaires=None):
     atelier = Path(atelier)
+    pas_apres_construction(atelier)
     conf, plan = charger_conf(atelier), lire_plan(atelier)
     racines = Racines(conf)
     journal = lire_journal(atelier)
     ops = {o["id"]: o for o in plan["operations"]}
     inconnus = [i for i in ids if i not in ops]
     if inconnus:
-        raise ValueError(f"id inconnu(s) : {', '.join(inconnus)}")
+        raise Usage(f"id inconnu(s) : {', '.join(inconnus)}")
     faits = actifs(journal)
     choisis = sorted((ops[i] for i in ids if i not in faits), key=lambda o: (PRIORITE.get(o["geste"], 1), o["id"]))
     a_creer = {str(Path(os.path.expanduser(o["vers"]))) for o in choisis if o["geste"] == "creer_dossier"}
@@ -788,15 +906,16 @@ def appliquer(atelier, ids, renforce=False, proprietaires=None):
             # peut avoir créé la destination ou touché l'origine entre-temps.
             controler(o, racines, renforce, a_creer)
             if o["geste"] in ("renommer", "deplacer"):
-                os.rename(os.path.expanduser(o["de"]), vers)      # rename, qui refuse ou signale ; jamais un remplacement
+                renommer_exclusif(os.path.expanduser(o["de"]), vers)
                 st = os.stat(vers)
                 ligne = dict(base, taille=st.st_size, mtime=st.st_mtime)
             elif o["geste"] == "creer_dossier":
                 os.mkdir(vers)
                 ligne = dict(base, taille=0, mtime=os.stat(vers).st_mtime)
             else:   # ecrire_index
-                cree, empreinte, taille = ecrire_index(vers, conf, proprietaires or {})
-                ligne = dict(base, taille=taille, sha256=empreinte, cree=cree)
+                cree, empreinte, taille, avant = ecrire_index(vers, conf, proprietaires or {})
+                ligne = dict(base, taille=taille, sha256=empreinte, cree=cree, avant="" if cree else avant,
+                             index=o["vers"], index_sha256=empreinte)
         except (Garde, OSError) as e:
             journaliser(atelier, dict(base, resultat="echec", erreur=str(e)))
             ecrire_lisible(atelier, plan, "propose", acceptees)
@@ -817,9 +936,9 @@ def publier(atelier, source, nom, renforce):
     ref = conf.get("referentiel") or {}
     source = Path(os.path.expanduser(source))
     if not _sous(reel(source), reel(atelier)) or source.name != "SKILL.md" or not source.is_file():
-        raise ValueError("--publier attend un fichier SKILL.md de l'atelier.")
+        raise Usage("--publier attend un fichier SKILL.md de l'atelier.")
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{1,60}", nom):
-        raise ValueError(f"--nom {nom!r} : minuscules, chiffres et tirets.")
+        raise Usage(f"--nom {nom!r} : minuscules, chiffres et tirets.")
     if ref.get("etat") != "existant" or not ref.get("chemin"):
         raise Garde("aucun dossier commun déclaré : le créer d'abord (« rangeons mes dossiers »).")
     racines = Racines(conf)
@@ -832,7 +951,7 @@ def publier(atelier, source, nom, renforce):
     if os.path.lexists(vers):
         raise Garde(f"G1 : {tilde(vers)} existe déjà ; rien n'est écrasé.")
     agents = base / "AGENTS.md"
-    if agents.exists() and MARQUEUR not in agents.read_text(encoding="utf-8", errors="replace"):
+    if agents.exists() and MARQUEUR not in lire_index(agents):
         raise Garde(f"G7 : {tilde(agents)} existe sans la marque de Cortex ; le montrer et demander.")
     ident = "p{:03d}".format(1 + max([int(l["id"][1:]) for l in lire_journal(atelier)
                                       if re.fullmatch(r"p\d+", str(l.get("id", "")))], default=0))
@@ -843,13 +962,18 @@ def publier(atelier, source, nom, renforce):
             os.mkdir(d)
         with open(vers, "x", encoding="utf-8") as f:
             f.write(source.read_text(encoding="utf-8"))
-        cree, empreinte, _ = ecrire_index(agents, conf, {})
-    except OSError as e:
-        journaliser(atelier, dict(ligne, resultat="echec", erreur=str(e)))
-        print(f"[échec] publication : {e}", file=sys.stderr)
+        cree, empreinte, _, avant = ecrire_index(agents, conf, {})
+    except (Garde, OSError) as e:
+        # Ce qui a été posé avant l'échec reste en place et se nomme : rien ne
+        # disparaît en silence, et la personne sait quoi retirer à la main.
+        restes = [tilde(d) for d in crees if d.exists()] + ([tilde(vers)] if vers.exists() else [])
+        journaliser(atelier, dict(ligne, resultat="echec", erreur=str(e), restes=restes))
+        print(f"[échec] publication : {e}" + (f" ; laissé en place : {', '.join(restes)}" if restes
+                                              else " ; rien n'a été écrit"), file=sys.stderr)
         return ECART
     journaliser(atelier, dict(ligne, resultat="fait", taille=vers.stat().st_size, sha256=sha(vers),
-                              dossiers_crees=[tilde(d) for d in crees], index_cree=cree, index_sha256=empreinte))
+                              dossiers_crees=[tilde(d) for d in crees], index=tilde(agents), index_cree=cree,
+                              index_sha256=empreinte, index_avant="" if cree else avant))
     print(f"fait  {ident} publier {tilde(vers)} ; sommaire mis à jour")
     return OK
 
@@ -874,7 +998,7 @@ def verifier(atelier):
             ecarts.append(f"{i} : {l['vers']} absent")
     try:
         plan = lire_plan(atelier)
-    except FileNotFoundError:
+    except Usage:
         plan = {"operations": []}
     for o in plan["operations"]:
         if o["geste"] != "manuel" or o["id"] in faits or o["id"] in ret:
@@ -902,6 +1026,24 @@ def _vide_ou_systeme(d):
     return all(n.lower() in SYSTEME for n in reste), reste
 
 
+def _defaire_index(index, cree, avant, journal, conf):
+    """Défait une écriture du sommaire : retiré s'il a été créé, rendu tel qu'avant sinon,
+    et seulement si personne ne l'a touché depuis la dernière écriture de Cortex.
+    Rend (note, champs à journaliser)."""
+    agents = Path(os.path.expanduser(index))
+    if not agents.is_file():
+        return "sommaire déjà absent", {}
+    if en_ligne_seulement(agents):
+        return "sommaire présent seulement en ligne : laissé tel quel", {}
+    if sha(agents) != dernier_sha_index(journal, index):
+        return "sommaire modifié à la main depuis son écriture : laissé tel quel", {}
+    if cree:
+        os.remove(agents)   # exception 2 du contrat §5 : écrit par Cortex, inchangé depuis le journal
+        return "", {}
+    _, empreinte, _, _ = ecrire_index(agents, conf, {}, texte=avant)
+    return "", {"index": index, "index_sha256": empreinte}
+
+
 def annuler(atelier, ids=None):
     """Rejoue le journal à l'envers (T4). Ne retire que ce que Cortex a créé."""
     atelier = Path(atelier)
@@ -915,14 +1057,14 @@ def annuler(atelier, ids=None):
         vers = Path(os.path.expanduser(l["vers"]))
         base = {"id": l["id"], "geste": l["geste"], "de": l.get("de", ""), "vers": l["vers"]}
         try:
-            note = ""
+            note, extra = "", {}
             if l["geste"] in ("renommer", "deplacer"):
                 de = Path(os.path.expanduser(l["de"]))
                 if not _identique(vers, l["taille"], l["mtime"]):
                     raise OSError(f"{l['vers']} a changé ou disparu depuis le rangement")
                 if os.path.lexists(de):
                     raise OSError(f"{l['de']} existe de nouveau ; rien n'est écrasé")
-                os.rename(vers, de)
+                renommer_exclusif(vers, de)
             elif l["geste"] == "manuel":
                 note = "déplacé par vous : à remettre vous-même dans votre outil si vous le souhaitez"
             elif l["geste"] == "creer_dossier":
@@ -934,38 +1076,30 @@ def annuler(atelier, ids=None):
                 elif reste:
                     note = "dossier laissé : il ne contient qu'un fichier système"
             elif l["geste"] == "ecrire_index":
-                if vers.is_file() and sha(vers) == l.get("sha256"):
-                    if l.get("cree"):
-                        os.remove(vers)   # exception 2 du contrat §5 : écrit par Cortex, inchangé depuis le journal
-                    else:
-                        ecrire_index(vers, conf, {})
-                else:
-                    note = "sommaire modifié depuis son écriture : laissé tel quel"
+                note, extra = _defaire_index(l.get("index") or l["vers"], l.get("cree"), l.get("avant", ""),
+                                             journal, conf)
             elif l["geste"] == "publier":
-                if vers.is_file() and sha(vers) == l.get("sha256"):
-                    os.remove(vers)       # exception 2 du contrat §5 : écrit par Cortex, inchangé depuis le journal
-                    for d in reversed(l.get("dossiers_crees") or []):
-                        dd = Path(os.path.expanduser(d))
-                        if dd.is_dir() and not any(dd.iterdir()):
-                            os.rmdir(dd)  # exception 1 du contrat §5
-                    agents = vers.parents[2] / "AGENTS.md"
-                    if agents.is_file():
-                        if l.get("index_cree") and sha(agents) == l.get("index_sha256"):
-                            os.remove(agents)  # exception 2 du contrat §5
-                        elif MARQUEUR in agents.read_text(encoding="utf-8", errors="replace"):
-                            ecrire_index(agents, conf, {})
-                else:
-                    note = "assistant modifié depuis sa publication : laissé tel quel"
+                if en_ligne_seulement(vers) or not vers.is_file() or sha(vers) != l.get("sha256"):
+                    raise OSError("assistant modifié ou absent depuis sa publication : laissé tel quel")
+                os.remove(vers)           # exception 2 du contrat §5 : écrit par Cortex, inchangé depuis le journal
+                for d in reversed(l.get("dossiers_crees") or []):
+                    dd = Path(os.path.expanduser(d))
+                    if dd.is_dir() and not any(dd.iterdir()):
+                        os.rmdir(dd)      # exception 1 du contrat §5 : dossier créé par Cortex et resté vide
+                note, extra = _defaire_index(l.get("index") or tilde(vers.parents[2] / "AGENTS.md"),
+                                             l.get("index_cree"), l.get("index_avant", ""), journal, conf)
         except (OSError, Garde) as e:
             journaliser(atelier, dict(base, resultat="echec", erreur=f"annulation : {e}"))
             print(f"[échec] {l['id']} : {e}. L'annulation s'arrête là.", file=sys.stderr)
             return ECART
-        journaliser(atelier, dict(base, resultat="annule", erreur=note))
+        fin = dict(base, resultat="annule", erreur=note, **extra)
+        journaliser(atelier, fin)
+        journal.append(fin)
         print(f"défait  {l['id']} {l['geste']}" + (f" ({note})" if note else ""))
     # A5 : une ligne acceptée jamais faite, ou un geste manuel en attente, se retire.
     try:
         plan = lire_plan(atelier)
-    except FileNotFoundError:
+    except Usage:
         return OK
     attente = set(fm.get("acceptees") or []) | {o["id"] for o in plan["operations"] if o["geste"] == "manuel"}
     for i in sorted(attente):
@@ -1012,6 +1146,7 @@ def _maj_config_referentiel(atelier, chemin):
 
 def clore(atelier, statut):
     atelier = Path(atelier)
+    pas_apres_construction(atelier)
     plan, journal, fm = lire_plan(atelier), lire_journal(atelier), lire_fm(atelier)
     faits = actifs(journal)
     if statut == "refuse":
@@ -1024,9 +1159,12 @@ def clore(atelier, statut):
         raise Garde(f"rangement appliqué en partie : {', '.join(reste)} accepté(s) et pas fait(s).")
     if not faits:
         raise Garde("rien n'a été fait : clore par « refuse » si la personne n'a rien retenu.")
-    for l in faits.values():
-        if l["geste"] == "ecrire_index":
-            _maj_config_referentiel(atelier, tilde(Path(os.path.expanduser(l["vers"])).parent))
+    # Le dossier commun existe dès qu'un geste fait y a posé quelque chose, sommaire
+    # coché ou non : sans cela, une procédure rangée là serait introuvable (M6).
+    refs = {Path(os.path.expanduser(o["vers"])).parent for o in plan["operations"] if o["geste"] == "ecrire_index"}
+    for ref in refs:
+        if ref.is_dir() and any(_sous(reel(os.path.expanduser(l["vers"])), reel(ref)) for l in faits.values()):
+            _maj_config_referentiel(atelier, tilde(ref))
     ecrire_lisible(atelier, plan, "applique", fm.get("acceptees") or [])
     return OK
 
@@ -1085,6 +1223,9 @@ def _autotest():
                                   capture_output=True, text=True)
         racines = [perso, commun]
         avant = arbre(racines)
+        r = ici("--proposer")
+        assert r.returncode == GARDE and "carte des domaines" in r.stderr, "étape 0 : domaines signés"
+        (atelier / "02-ontologie.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
         r = ici("--proposer")
         assert r.returncode == 0, r.stderr
         plan = lire_plan(atelier)
@@ -1146,6 +1287,15 @@ def _autotest():
         ecrire_plan(atelier, plan)
         assert "G4" in garde(["--appliquer", "--ids", "r900"]).stderr
         plan["operations"].remove(intrus)
+        # G3 : une ligne ordinaire dont l'arrivée est sous une autre racine déclarée.
+        travers = dict(intrus, id="r901", de=str(perso / "Divers" / "tarifs.md"), vers=str(commun / "tarifs-2.md"),
+                       taille=(perso / "Divers" / "tarifs.md").stat().st_size,
+                       mtime=(perso / "Divers" / "tarifs.md").stat().st_mtime, partage=True)
+        plan["operations"].append(travers)
+        ecrire_plan(atelier, plan)
+        r3 = garde(["--appliquer", "--ids", "r901", "--renforce"])
+        assert "G3" in r3.stderr and "différents" in r3.stderr, r3.stderr
+        plan["operations"].remove(travers)
         ecrire_plan(atelier, plan)
         # I-R3 : appliquer sans lire un octet ; la source est rendue illisible.
         if hasattr(os, "geteuid") and os.geteuid() != 0:
@@ -1161,6 +1311,18 @@ def _autotest():
         assert MARQUEUR in index and "Facturation d'une affaire - 2025-11-04.md" in index and "| Direction |" in index
         assert len(arbre(racines)[0]) == n_avant + 1, "I-R1 : seuls s'ajoutent un dossier et le sommaire"
         assert ici("--verifier").returncode == 0
+        # G7 par la ligne de commande : un sommaire sans la marque, code 3, arbre identique.
+        etranger = plan["operations"][0] | {"id": "r902", "geste": "ecrire_index", "partage": True, "classe": ""}
+        etranger.pop("de", None)
+        (commun / "Divers" / "AGENTS.md").write_text("# à quelqu'un\n", encoding="utf-8")
+        etranger["vers"] = str(commun / "Divers" / "AGENTS.md")
+        plan = lire_plan(atelier)
+        plan["operations"].append(etranger)
+        ecrire_plan(atelier, plan)
+        assert "G7" in garde(["--appliquer", "--ids", "r902", "--renforce"]).stderr
+        plan["operations"].remove(etranger)
+        ecrire_plan(atelier, plan)
+        (commun / "Divers" / "AGENTS.md").unlink()
         # G7 témoin : un sommaire sans la marque ne se réécrit pas.
         (tmp / "etranger").mkdir()
         (tmp / "etranger" / "AGENTS.md").write_text("# à quelqu'un\n", encoding="utf-8")
@@ -1177,9 +1339,15 @@ def _autotest():
         assert ici("--clore", "applique").returncode == 0
         assert charger_conf(atelier)["referentiel"]["etat"] == "existant"
         assert "G2" in garde(["--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux"]).stderr
+        index_avant = (ref / "AGENTS.md").read_text(encoding="utf-8")
         assert ici("--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce").returncode == 0
         assert "lecteur-de-baux | Relève échéances et loyers d'un bail" in (ref / "AGENTS.md").read_text(encoding="utf-8")
         assert "| Direction |" in (ref / "AGENTS.md").read_text(encoding="utf-8"), "le propriétaire survit à la réécriture"
+        # Défaire la publication rend le sommaire mot pour mot, quel que soit le jour (marque datée).
+        r = ici("--annuler", "--ids", "p001")
+        assert r.returncode == 0 and (ref / "AGENTS.md").read_text(encoding="utf-8") == index_avant, r.stderr
+        assert not (ref / "assistants").exists()
+        assert ici("--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce").returncode == 0
         # Geste manuel : en attente (A4), puis constaté par --verifier.
         c = json.loads(ici("--chemins").stdout)
         assert c["en_attente"] == [tilde(perso / "Process relance.md")] and not note_autorisee(atelier, perso / "Process relance.md")
@@ -1226,8 +1394,57 @@ def _autotest():
         b = lire_plan(atelier)["bornes"]
         assert not b["depassement"] and b["ecartes"] == 0, b
         assert arbre(racines) == avant
+        # D3 : une fois le second cerveau construit, plus rien ne se propose ni ne s'applique.
+        md = (atelier / LISIBLE).read_text(encoding="utf-8").replace("---\n", "---\nconstruit_le: 2026-10-04\n", 1)
+        (atelier / LISIBLE).write_text(md, encoding="utf-8")
+        assert "construit" in garde(["--proposer"]).stderr
+        assert "construit" in garde(["--appliquer", "--ids", "r001"]).stderr
     os.environ.pop("CORTEX_RECETTE_EN_LIGNE", None)
     _SIMULES = None
+    # M2 : une racine à soi déclarée sous une racine partagée reste partagée (contrat §3).
+    rr = Racines({"collecte": {"racines": ["/x/Equipe", "/x/Equipe/Mes projets"], "partagees": ["/x/Equipe"]}})
+    assert rr.partagee("/x/Equipe/Mes projets/a.pdf") and rr.de("/x/Equipe/Mes projets/a.pdf") == "/x/Equipe/Mes projets"
+    with tempfile.TemporaryDirectory() as t:
+        t = Path(os.path.realpath(t))
+        # M1 : une racine dans un dépôt git ne reçoit aucune proposition ; témoin : la même sans .git.
+        depot, at = t / "Depot", t / "w" / "_cortex"
+        (depot / "src").mkdir(parents=True)
+        at.mkdir(parents=True)
+        (depot / "Untitled.txt").write_text("x", encoding="utf-8")
+        (at / "config.yaml").write_text(f'collecte:\n  racines: ["{depot}"]\n', encoding="utf-8")
+        (at / "02-ontologie.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
+        assert proposer(at)["operations"], "témoin : sans dépôt, le nom illisible se propose"
+        (depot / ".git").mkdir()
+        p = proposer(at)
+        assert not p["operations"] and any(x["type"] == "racine_dans_un_depot" for x in p["signalements"]), p
+        # M3 : un sommaire marqué, complété à la main, revient mot pour mot à l'annulation.
+        ag = t / "AGENTS.md"
+        ag.write_text(f"# Dossier commun\n\n{MARQUEUR} 2020-01-01 -->\n\nNote ajoutée à la main.\n", encoding="utf-8")
+        texte0 = ag.read_text(encoding="utf-8")
+        cree, empreinte, _, avant = ecrire_index(ag, {}, {})
+        assert not cree and avant == texte0 and "Note ajoutée" not in ag.read_text(encoding="utf-8")
+        note, _ = _defaire_index(str(ag), cree, avant, [{"index": str(ag), "index_sha256": empreinte,
+                                                          "resultat": "fait"}], {})
+        assert note == "" and ag.read_text(encoding="utf-8") == texte0
+        # Témoin : touché à la main depuis, il reste tel quel.
+        cree, empreinte, _, avant = ecrire_index(ag, {}, {})
+        ag.write_text(ag.read_text(encoding="utf-8") + "retouche\n", encoding="utf-8")
+        note, _ = _defaire_index(str(ag), cree, avant, [{"index": str(ag), "index_sha256": empreinte,
+                                                          "resultat": "fait"}], {})
+        assert "laissé tel quel" in note and ag.read_text(encoding="utf-8").endswith("retouche\n")
+    # Le renommage exclusif refuse une destination existante, même sans la garde G1 devant lui.
+    with tempfile.TemporaryDirectory() as t:
+        a_, b_ = Path(t) / "a", Path(t) / "b"
+        a_.write_text("a", encoding="utf-8")
+        b_.write_text("b", encoding="utf-8")
+        try:
+            renommer_exclusif(a_, b_)
+            raise AssertionError("renommer_exclusif a écrasé une destination")
+        except FileExistsError:
+            pass
+        assert b_.read_text(encoding="utf-8") == "b" and a_.is_file()
+        renommer_exclusif(a_, Path(t) / "c")
+        assert (Path(t) / "c").is_file() and not a_.exists()
     # Nomenclature : chaque forme illisible du contrat §6, et ses témoins parlants.
     for n in ("Nouveau document (3)", "Sans titre", "Untitled", "Document1", "Classeur1", "Scan_0042", "IMG_1234",
               "DSC01234", "Budget (1)", "Copie de tarifs", "rapport final", "devis v2", "20240312", "v2"):
@@ -1306,9 +1523,12 @@ def main():
     except Garde as e:
         print(f"[garde] {e} Rien n'a bougé.", file=sys.stderr)
         return GARDE
-    except (ValueError, FileNotFoundError) as e:
+    except Usage as e:
         print(f"[usage] {e}", file=sys.stderr)
         return USAGE
+    except (ValueError, OSError) as e:
+        print(f"[erreur] {e}", file=sys.stderr)
+        return ECART
     p.print_help()
     return USAGE
 

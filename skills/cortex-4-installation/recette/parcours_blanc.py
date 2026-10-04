@@ -1431,8 +1431,10 @@ def c11_rangement(tmp, configs):
     verifie("témoin : G1 désactivée dans une copie jetable, l'auto-test rougit", perturbe != src and r.returncode != 0,
             f"code {r.returncode}")
 
-    # La fixture dirigeant, copiée sous l'atelier de recette : un arbre en désordre et un dossier partagé.
-    base = ATELIER_RECETTE / "rangement"
+    # La fixture dirigeant, copiée hors du dépôt : un arbre en désordre et un dossier partagé.
+    # Hors du dépôt, parce qu'un dossier qui se trouve dans un dépôt git ne se range pas (§6) :
+    # copiée sous recette/fixtures/, elle ne recevrait aucune proposition.
+    base = tmp / "rangement"
     shutil.rmtree(base, ignore_errors=True)
     perso, commun = base / "dirigeant", base / "dirigeant-commun"
     shutil.copytree(FIXTURES / "dirigeant", perso)
@@ -1445,6 +1447,8 @@ def c11_rangement(tmp, configs):
         f'racines: ["{tilde(perso)}", "{tilde(commun)}"]\n  partagees: ["{tilde(commun)}"]')
     cfg_txt += 'referentiel:\n  etat: aucun\n  chemin: ""\n'
     (atelier / "config.yaml").write_text(cfg_txt, encoding="utf-8")
+    (atelier / "02-ontologie.md").write_text(FM_ATELIER.format(m=3, p="cortex-3-ontologie", s="valide", v="passe"),
+                                             encoding="utf-8")
     verifie("la config de la fixture rangement est installable", not cortex_config.valider_installable(
         cortex_config.charger(atelier / "config.yaml")), str(cortex_config.valider_installable(
             cortex_config.charger(atelier / "config.yaml"))[:2]))
@@ -1550,8 +1554,6 @@ def c11_rangement(tmp, configs):
             r4.returncode == 2 and "rangement" in r4.stderr and e3b["etat"] == "en_cours" and not vault.exists(),
             f"code {r4.returncode} {e3b['etat']} {r4.stderr[:200]}")
     ranger("--annuler", "--ids", suspendue)
-    r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
-    verifie("témoin : la ligne retirée, le maillon 4 construit", r4.returncode == 0, r4.stderr[:300])
     plan["operations"].pop()
     (atelier / "03-rangement.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
 
@@ -1562,8 +1564,13 @@ def c11_rangement(tmp, configs):
             rc.returncode == 0 and conf["referentiel"]["etat"] == "existant"
             and conf["referentiel"]["chemin"] == tilde(commun / "Référentiel")
             and not cortex_config.valider_installable(conf), rc.stderr[:200] + str(conf.get("referentiel")))
-    shutil.rmtree(vault, ignore_errors=True)
     r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
+    verifie("témoin : la ligne retirée et le rangement clos, le maillon 4 construit", r4.returncode == 0, r4.stderr[:300])
+    rp = ranger("--proposer")
+    fm3 = (atelier / "03-rangement.md").read_text(encoding="utf-8")
+    verifie("D3 : la construction inscrit construit_le, et le rangement refuse ensuite de proposer (code 3)",
+            "construit_le:" in fm3 and "statut: applique" in fm3 and rp.returncode == 3 and "construit" in rp.stderr,
+            rp.stderr[:200])
     claude = (vault / "CLAUDE.md").read_text(encoding="utf-8") if (vault / "CLAUDE.md").is_file() else ""
     moustaches = [str(q.relative_to(vault)) for q in vault.rglob("*.md")
                   if "Templates" not in q.parts and re.search(r"\{\{[A-Z_]+\}\}", q.read_text(encoding="utf-8"))]
