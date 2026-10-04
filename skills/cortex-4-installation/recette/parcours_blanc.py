@@ -5,7 +5,7 @@ Sections 1 a 9 : la recette v1 (parcours a blanc du 2026-08-17, phase 5 du
 2026-08-23), conservee telle quelle. Chaque assertion y correspond a un defaut
 REEL deja paye.
 
-Criteres C1 a C10 : la cible v2 (chantiers/cortex-v2/04-contrat.md). Chaque
+Criteres C1 a C10 : la cible v2 (chantiers/cortex-v2/04-contrat.md) ; C11 : le rangement 2.3. Chaque
 controle cite la section du contrat qu'il verifie et porte son defaut PLAUSIBLE.
 Tant que les lanes B a F ne sont pas mergees, ces criteres sont rouges : c'est
 attendu, la recette est la cible, pas le constat. Un script d'une lane absente
@@ -48,6 +48,8 @@ SOUS_HOME = FIXTURES.is_relative_to(Path.home())
 POSTE = SKILLS / "cortex-0-poste" / "scripts" / "poste.py"
 SCAN = SKILLS / "cortex-2-inventaire" / "scripts" / "scan.py"
 FEDERE = SKILLS / "cortex-8-federation" / "scripts" / "federe.py"
+RANGE = SKILLS / "cortex-3b-rangement" / "scripts" / "range.py"
+COPIE = SKILLS / "cortex-5-ingest" / "scripts" / "copie_structurant.py"
 GABARIT = RACINE / "template" / "vault"
 
 sys.path.insert(0, str(SCRIPTS))
@@ -89,10 +91,10 @@ MOTS_DE_LA_CHAINE = re.compile(r"`[^`\n]+`|\.py\b|cortex-\d|\bmaillons?\b|\bscaf
 BINAIRES = {".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".docx", ".xlsx", ".pyc", ".woff", ".woff2", ".ttf"}
 PROFILS = ("employe", "dirigeant", "societe")
 ETAPES_CONTRAT = {0: "poste.json", 1: "00-cadrage.md", 2: "01-inventaire.md", 3: "02-ontologie.md",
-                  4: None, 5: "04-ingest.md", 6: "05-agents-metier.md", 7: "06-passation.md",
+                  "3b": "03-rangement.md", 4: None, 5: "04-ingest.md", 6: "05-agents-metier.md", 7: "06-passation.md",
                   8: "07-federation.md"}
 CRITERES = [
-    ("C1", "Neuf étapes, maillon 0, notice", "§3 §5 §10", "B"),
+    ("C1", "Dix étapes, maillon 0, notice", "§3 §5 §10", "B"),
     ("C2", "Trois profils, régime, section Notice", "§2 §10", "C"),
     ("C3", "Inventaire outillé sur les fixtures", "§4", "D"),
     ("C4", "Couche vault : permissions, hooks, skills, agents", "§9", "E"),
@@ -102,6 +104,7 @@ CRITERES = [
     ("C8", "White-label", "01-cadrage", "toutes"),
     ("C9", "Zéro chemin absolu", "I2, §11", "toutes"),
     ("C10", "Paquet, notice hors ligne, README", "§11", "B"),
+    ("C11", "Rangement, dossier commun, procédures", "2.3 §1-§8", "rangement"),
 ]
 MANUELS = [("M1", "Installation vivante du plugin (marketplace add, install, details)"),
            ("M2", "Sonde Cowork bureau : uvx --from \"markitdown[all]\" markitdown --version dans le bac à sable"),
@@ -275,7 +278,7 @@ chemins:
   dossiers_projets: "~/Documents/Affaires"
 donnees:
   regime: {regime}
-  structurants: [organigramme, process, fiche_de_poste, contrat, projet, acteur, tenants_aboutissants, fil_structurant]
+  structurants: [organigramme, fiche_de_poste, contrat, projet, acteur, tenants_aboutissants, fil_structurant]
 marque:
   produit_nom: "Cortex"
   mentions_interdites: [{", ".join(MARQUES)}]
@@ -377,6 +380,7 @@ def poste_json(notice_ouverte=True):
     return json.dumps(p, ensure_ascii=False, indent=2)
 
 
+RANGEMENT_APPLIQUE = "---\nmaillon: 3b\nstatut: applique\nacceptees: []\n---\n# x\n"
 FM_ATELIER = ("---\nmaillon: {m}\nproduit_par: {p}\nstatut: {s}\ncontroles:\n"
               "  premier_controle: passe\n  second_controle: {v}\n---\n# x\n")
 ARTEFACTS_MD = (("00-cadrage", 1, "cortex-1-cadrage"), ("01-inventaire", 2, "cortex-2-inventaire"),
@@ -583,11 +587,11 @@ def recette_v1(tmp):
 # ── C1 : neuf etapes ────────────────────────────────────────────────────────
 
 def c1_neuf_etapes(tmp, cfg):
-    section("C1", "Neuf étapes, maillon 0, notice (§3 §5 §10 ; lane B) : défaut plausible : "
-                  "un tableau de bord qui compte sept quand la chaîne en a neuf")
-    verifie("etat.py porte neuf étapes numérotées 0 à 8", [e[0] for e in m_etat.ETAPES] == list(range(9)),
-            str([e[0] for e in m_etat.ETAPES]))
-    verifie("les artefacts des neuf étapes sont ceux du contrat §5",
+    section("C1", "Dix étapes, maillon 0, notice (§3 §5 §10, 2.3 §8 ; lanes B et rangement) : défaut plausible : "
+                  "un tableau de bord qui compte neuf quand la chaîne en a dix")
+    verifie("etat.py porte dix étapes : 0 à 3, « 3b », 4 à 8",
+            [e[0] for e in m_etat.ETAPES] == [0, 1, 2, 3, "3b", 4, 5, 6, 7, 8], str([e[0] for e in m_etat.ETAPES]))
+    verifie("les artefacts des dix étapes sont ceux du contrat §5 et du contrat 2.3 §8",
             {e[0]: e[3] for e in m_etat.ETAPES} == ETAPES_CONTRAT)
 
     atelier = tmp / "_cortex"
@@ -605,7 +609,7 @@ def c1_neuf_etapes(tmp, cfg):
     p1, pivot = m_etat.ecrire(atelier, tmp / "pivot-1.json")
     p2, _ = m_etat.ecrire(atelier, tmp / "pivot-2.json")
     etapes = {e["numero"]: e for e in pivot["etapes"]}
-    verifie("le pivot porte les neuf étapes", len(pivot["etapes"]) == 9, str(len(pivot["etapes"])))
+    verifie("le pivot porte les dix étapes", len(pivot["etapes"]) == 10, str(len(pivot["etapes"])))
     verifie("le pivot se régénère à l'identique hors horodatage", sans_horodatage(p1) == sans_horodatage(p2))
     e0 = etapes.get(0, {})
     verifie("le maillon 0 est lu depuis poste.json : fait quand notice_ouverte_le est renseigné",
@@ -641,12 +645,13 @@ def c1_neuf_etapes(tmp, cfg):
     (complet / "poste.json").write_text(poste_json(), encoding="utf-8")
     for nom, m, p in ARTEFACTS_MD:
         (complet / f"{nom}.md").write_text(FM_ATELIER.format(m=m, p=p, s="valide", v="passe"), encoding="utf-8")
+    (complet / "03-rangement.md").write_text(RANGEMENT_APPLIQUE, encoding="utf-8")
     pivot_complet = m_etat.generer(complet)
     etats = [e["etat"] for e in pivot_complet["etapes"]]
     # §5 amende : en mode solo l'etape 8 vaut `arbitre`. Un atelier solo complet
-    # annonce donc « 8 faites et 1 arbitree », jamais 9/9, et n'a plus de suite.
-    verifie("atelier solo complet : 8 faites et 1 arbitrée (§5 amendé), jamais 9/9",
-            m_etat.faites(pivot_complet) == 8 and etats[8] == "arbitre"
+    # annonce donc « 9 faites et 1 arbitree », jamais 10/10, et n'a plus de suite.
+    verifie("atelier solo complet : 9 faites et 1 arbitrée (§5 amendé), jamais 10/10",
+            m_etat.faites(pivot_complet) == 9 and etats[-1] == "arbitre"
             and m_etat.suivante(pivot_complet["etapes"]) is None, str(etats))
     # Le 9/9 se mesure la ou il existe : un atelier `mode: federe`, ou l'etape 8
     # porte un artefact comme les huit autres.
@@ -658,9 +663,14 @@ def c1_neuf_etapes(tmp, cfg):
     (federe / "poste.json").write_text(poste_json(), encoding="utf-8")
     for nom, m, pr in ARTEFACTS_MD:
         (federe / f"{nom}.md").write_text(FM_ATELIER.format(m=m, p=pr, s="valide", v="passe"), encoding="utf-8")
+    (federe / "03-rangement.md").write_text(RANGEMENT_APPLIQUE, encoding="utf-8")
     pivot_federe = m_etat.generer(federe)
-    verifie("atelier fédéré complet : le compteur annonce 9 sur 9",
-            m_etat.faites(pivot_federe) == 9, str([e["etat"] for e in pivot_federe["etapes"]]))
+    verifie("atelier fédéré complet : le compteur annonce 10 sur 10",
+            m_etat.faites(pivot_federe) == 10, str([e["etat"] for e in pivot_federe["etapes"]]))
+    (federe / "03-rangement.md").unlink()
+    e3b = {e["numero"]: e for e in m_etat.generer(federe)["etapes"]}["3b"]
+    verifie("2.3 A2 : un rangement jamais fait alors que la suite l'est vaut arbitré, « passée sans rangement »",
+            e3b["etat"] == "arbitre" and e3b.get("raison") == m_etat.RAISON_PASSEE, str(e3b))
 
     # H2 §3 : en groupe, l'étape 8 attend que chaque rédacteur soit remis.
     groupe = tmp / "groupe-h2"
@@ -684,7 +694,7 @@ def c1_neuf_etapes(tmp, cfg):
 
     def huit():
         p = m_etat.generer(attend)
-        return p["etapes"][8], p["phrase_suivante"]
+        return {e["numero"]: e for e in p["etapes"]}[8], p["phrase_suivante"]
     (commun_g / "federation.yaml").write_text(
         "version: 1\nmembres:\n" + membre("helene", True) + 'attendus: ["Karim B"]\n', encoding="utf-8")
     e8, phrase = huit()
@@ -714,9 +724,9 @@ def c1_neuf_etapes(tmp, cfg):
     vierge.mkdir()
     html_vierge = m_rend.rendre(m_etat.generer(vierge))
     # §5 amende : l'etape courante est rendue en tete, hors tableau ; il reste
-    # donc huit pastilles « A faire » sur les neuf etapes d'une page vierge.
-    verifie("le tableau de bord vierge affiche 8 pastilles « À faire », la 9e étant la courante en tête",
-            html_vierge.count("À faire") == 8 and "courante" in html_vierge,
+    # donc neuf pastilles « A faire » sur les dix etapes d'une page vierge.
+    verifie("le tableau de bord vierge affiche 9 pastilles « À faire », la 10e étant la courante en tête",
+            html_vierge.count("À faire") == 9 and "courante" in html_vierge,
             str(html_vierge.count("À faire")))
     verifie("aucune URL distante dans la notice",
             not re.search(r"https?://", html_vierge) and not re.search(r"""(href|src)\s*=\s*["']//""", html_vierge))
@@ -825,8 +835,8 @@ def c2_profils(tmp, configs):
     maillons = sorted(SKILLS.glob("cortex-*/SKILL.md"))
     sans_notice = [m.parent.name for m in maillons
                    if "## Notice" not in m.read_text(encoding="utf-8") or "notice.py" not in m.read_text(encoding="utf-8")]
-    verifie("neuf SKILL.md maillons, chacun avec la section Notice et l'appel de notice.py (I10)",
-            len(maillons) == 9 and not sans_notice, f"{len(maillons)} maillons, sans notice : {sans_notice}")
+    verifie("dix SKILL.md maillons (3 bis compris), chacun avec la section Notice et l'appel de notice.py (I10)",
+            len(maillons) == 10 and not sans_notice, f"{len(maillons)} maillons, sans notice : {sans_notice}")
     longs = [(m.parent.name, len(m.read_text(encoding="utf-8").splitlines())) for m in maillons
              if len(m.read_text(encoding="utf-8").splitlines()) >= 300]
     verifie("chaque SKILL.md maillon fait moins de 300 lignes", not longs, str(longs))
@@ -1355,9 +1365,9 @@ def c10_paquet(tmp):
                                                       provenance, re.M)]
         verifie("chaque emprunt du zip est couvert par PROVENANCE.md", not decouverts, str(decouverts))
         lisezmoi = z.read("LISEZ-MOI.html").decode("utf-8")
-        # §5 amende : huit pastilles « A faire », la courante etant en tete hors tableau.
-        verifie("LISEZ-MOI.html du zip : 8 pastilles « À faire » (la 9e en tête), zéro URL distante",
-                lisezmoi.count("À faire") == 8 and not re.search(r"https?://", lisezmoi)
+        # §5 amende : neuf pastilles « A faire », la courante etant en tete hors tableau.
+        verifie("LISEZ-MOI.html du zip : 9 pastilles « À faire » (la 10e en tête), zéro URL distante",
+                lisezmoi.count("À faire") == 9 and not re.search(r"https?://", lisezmoi)
                 and not re.search(r"""(href|src)\s*=\s*["']//""", lisezmoi), str(lisezmoi.count("À faire")))
     notice = DEPOT / "notice" / "LISEZ-MOI.html"
     verifie("notice/LISEZ-MOI.html présente, hors ligne (zéro URL)",
@@ -1372,10 +1382,302 @@ def c10_paquet(tmp):
             and "installe mon second cerveau" in readme.lower() and "clôture" in readme.lower())
 
 
+# ── C11 : rangement (contrat 2.3) ──────────────────────────────────────────
+
+INTERDITS_RANGE = re.compile(r"os\.(remove|unlink|replace|chdir)|shutil\.(rmtree|copy|move)")
+
+
+def arbre_fichiers(*racines):
+    """Chemins, tailles et dates des fichiers ; liste des dossiers (I-R1, I-R2)."""
+    fichiers, dossiers = [], []
+    for r in racines:
+        for q in sorted(Path(r).rglob("*")):
+            if q.is_dir():
+                dossiers.append(str(q))
+            else:
+                st = q.stat()
+                fichiers.append((str(q), st.st_size, st.st_mtime))
+    return fichiers, dossiers
+
+
+def c11_rangement(tmp, configs):
+    section("C11", "Rangement, dossier commun, procédures (contrat 2.3 ; lane rangement) : défaut plausible : "
+                   "un rangement qui supprime, écrase, copie une procédure ou casse les liens")
+    if not RANGE.is_file():
+        verifie("range.py présent", False, "attendu au merge de la lane rangement")
+        return
+    r = lancer(RANGE, "--autotest", timeout=180)
+    verifie("range.py --autotest sort en 0 (G1 à G9 dans les deux sens, I-R1 à I-R3)", r.returncode == 0,
+            (r.stdout + r.stderr)[-400:])
+
+    # Appels interdits : seules les exceptions d'annulation, chacune commentée ; témoin sur un fichier jetable.
+    lignes = [l for l in RANGE.read_text(encoding="utf-8").splitlines() if INTERDITS_RANGE.search(l)]
+    verifie("range.py : aucun appel interdit hors des exceptions d'annulation commentées (contrat §5)",
+            all("exception" in l and "contrat §5" in l and "os.remove(" in l for l in lignes), str(lignes))
+    jetable = tmp / "jetable.py"
+    jetable.write_text("import os\nos.remove(x)\n", encoding="utf-8")
+    verifie("témoin : le même motif trouve un os.remove( dans un fichier jetable",
+            len([l for l in jetable.read_text(encoding="utf-8").splitlines() if INTERDITS_RANGE.search(l)]) == 1)
+
+    # Garde mordante : G1 désactivée dans une copie jetable de range.py, l'auto-test rougit.
+    copie = tmp / "range-perturbe"
+    copie.mkdir()
+    shutil.copyfile(SCRIPTS / "cortex_config.py", copie / "cortex_config.py")
+    src = RANGE.read_text(encoding="utf-8")
+    perturbe = src.replace('if o["geste"] != "ecrire_index" and os.path.lexists(vers):',
+                           'if False and o["geste"] != "ecrire_index" and os.path.lexists(vers):')
+    (copie / "range.py").write_text(perturbe, encoding="utf-8")
+    r = lancer(copie / "range.py", "--autotest", timeout=180)
+    verifie("témoin : G1 désactivée dans une copie jetable, l'auto-test rougit", perturbe != src and r.returncode != 0,
+            f"code {r.returncode}")
+
+    # La fixture dirigeant, copiée sous l'atelier de recette : un arbre en désordre et un dossier partagé.
+    base = ATELIER_RECETTE / "rangement"
+    shutil.rmtree(base, ignore_errors=True)
+    perso, commun = base / "dirigeant", base / "dirigeant-commun"
+    shutil.copytree(FIXTURES / "dirigeant", perso)
+    shutil.copytree(FIXTURES / "dirigeant-commun", commun)
+    attendu = json.loads((perso / "RANGEMENT.json").read_text(encoding="utf-8"))
+    atelier = base / "_cortex"
+    atelier.mkdir()
+    cfg_txt = configs["dirigeant"][0].read_text(encoding="utf-8").replace(
+        'racines: ["' + tilde(FIXTURES / "dirigeant") + '", "~/Desktop/Travail"]',
+        f'racines: ["{tilde(perso)}", "{tilde(commun)}"]\n  partagees: ["{tilde(commun)}"]')
+    cfg_txt += 'referentiel:\n  etat: aucun\n  chemin: ""\n'
+    (atelier / "config.yaml").write_text(cfg_txt, encoding="utf-8")
+    verifie("la config de la fixture rangement est installable", not cortex_config.valider_installable(
+        cortex_config.charger(atelier / "config.yaml")), str(cortex_config.valider_installable(
+            cortex_config.charger(atelier / "config.yaml"))[:2]))
+    liste = base / "en-ligne.txt"
+    liste.write_text("\n".join(str(perso / c) for c in attendu["en_ligne_seulement"]) + "\n", encoding="utf-8")
+    env = dict(os.environ, CORTEX_RECETTE_EN_LIGNE=str(liste))
+
+    def ranger(*args):
+        return subprocess.run([sys.executable, str(RANGE), "--atelier", str(atelier), *args],
+                              capture_output=True, text=True, timeout=120, env=env)
+    avant = arbre_fichiers(perso, commun)
+    r1 = ranger("--proposer")
+    t1 = [l for l in (atelier / "03-rangement.json").read_text(encoding="utf-8").splitlines() if "genere_le" not in l]
+    r2 = ranger("--proposer")
+    t2 = [l for l in (atelier / "03-rangement.json").read_text(encoding="utf-8").splitlines() if "genere_le" not in l]
+    verifie("deux propositions sur la même fixture rendent la même liste, genere_le excepté",
+            r1.returncode == r2.returncode == 0 and t1 == t2, (r1.stderr or r2.stderr)[:200])
+    verifie("proposer ne touche à rien", arbre_fichiers(perso, commun) == avant)
+    plan = json.loads((atelier / "03-rangement.json").read_text(encoding="utf-8"))
+    par = {}
+    for o in plan["operations"]:
+        par[Path(os.path.expanduser(o.get("de") or o["vers"])).relative_to(base).as_posix()] = o
+    texte_plan = json.dumps(plan, ensure_ascii=False)
+    verifie("la liste relève les noms illisibles, la procédure à demander, celle de l'entreprise, le dossier commun",
+            all(f"dirigeant/{c}" in par and par[f"dirigeant/{c}"]["geste"] == "renommer" for c in attendu["renommer"])
+            and par["dirigeant/PROCESS-affaire.md"]["classe"] == "a_demander"
+            and par["dirigeant/PROCESS-affaire.md"]["geste"] == "manuel"
+            and par["dirigeant-commun/Divers/Process facturation.docx"]["classe"] == "entreprise"
+            and par["dirigeant-commun/Divers/Process facturation.docx"]["geste"] == "deplacer"
+            and any(o["geste"] == "creer_dossier" for o in plan["operations"])
+            and any(o["geste"] == "ecrire_index" for o in plan["operations"]), str(sorted(par))[:300])
+    verifie("aucun champ contenu dans la liste, aucun lot de plus de quatre lignes",
+            "contenu" not in cles_recursives(plan)
+            and max(sum(1 for o in plan["operations"] if o["lot"] == n) for n in {o["lot"] for o in plan["operations"]}) <= 4)
+    scan = par["dirigeant/Clients/Scan_0042.pdf"]
+    doc = par["dirigeant/Clients/Nouveau document (3).docx"]
+    verifie("G6 : le fichier en ligne seulement n'est pas ouvert (nom tiré du dossier), le fichier local l'est (titre lu)",
+            Path(scan["vers"]).name.startswith("Clients - ") and "Accueil d'un nouveau client" in doc["vers"]
+            and any(x["type"] == "en_ligne_seulement" for x in plan["signalements"]), scan["vers"] + " / " + doc["vers"])
+    verifie("le doublon probable se signale, il ne devient pas un geste",
+            any(x["type"] == "doublon_probable" and all(attendu["doublon"] in c for c in x["chemins"])
+                for x in plan["signalements"]) and "tarifs" not in " ".join(o["vers"] for o in plan["operations"]))
+    verifie("I-R4 : la liste ne porte aucune adresse de base en ligne", "http" not in texte_plan)
+
+    # Refus entier : statut refuse, étape arbitrée.
+    r = ranger("--clore", "refuse")
+    e3b = {e["numero"]: e for e in m_etat.generer(atelier)["etapes"]}["3b"]
+    verifie("un refus entier écrit statut: refuse, l'étape vaut arbitré « refusé »",
+            r.returncode == 0 and "statut: refuse" in (atelier / "03-rangement.md").read_text(encoding="utf-8")
+            and e3b["etat"] == "arbitre" and e3b.get("raison") == "refusé", f"{r.stderr[:200]} {e3b}")
+
+    # Appliquer tout ce qui est à soi, puis le lot partagé avec accord renforcé.
+    ranger("--proposer")
+    plan = json.loads((atelier / "03-rangement.json").read_text(encoding="utf-8"))
+    a_soi = [o["id"] for o in plan["operations"] if not o["partage"] and o["geste"] == "renommer"]
+    partages = [o["id"] for o in plan["operations"] if o["partage"] and o["geste"] != "manuel"]
+    rg = ranger("--appliquer", "--ids", ",".join(partages))
+    verifie("G2 : le lot partagé sans accord renforcé rend 3 et laisse l'arbre identique",
+            rg.returncode == 3 and arbre_fichiers(perso, commun) == avant, rg.stderr[:200])
+    n_avant = len(avant[0])
+    ra = ranger("--appliquer", "--ids", ",".join(a_soi))
+    rb = ranger("--appliquer", "--ids", ",".join(partages), "--renforce")
+    apres = arbre_fichiers(perso, commun)
+    verifie("I-R1 : autant de fichiers après l'application, plus le seul sommaire du dossier commun",
+            ra.returncode == rb.returncode == 0 and len(apres[0]) == n_avant + 1
+            and (commun / "Référentiel" / "AGENTS.md").is_file(), (ra.stderr or rb.stderr)[:300])
+    pivot = m_etat.generer(atelier)
+    verifie("etat.json d'un atelier de recette compte dix étapes", len(pivot["etapes"]) == 10)
+    rv = ranger("--verifier")
+    verifie("--verifier sort en 0 après application", rv.returncode == 0, rv.stdout[-300:])
+
+    # A4 : le geste manuel en attente prive la source de note ; constaté, elle la reçoit.
+    sys.path.insert(0, str(RANGE.parent))
+    import importlib
+    m_range = importlib.import_module("range")   # note_autorisee : la décision du remplissage (A4)
+    ranger("--classer", par["dirigeant/PROCESS-affaire.md"]["id"] + "=entreprise")
+    proc = perso / "PROCESS-affaire.md"
+    sans_note = not m_range.note_autorisee(atelier, proc)
+    manuel = next(o for o in json.loads((atelier / "03-rangement.json").read_text(encoding="utf-8"))["operations"]
+                  if o["id"] == par["dirigeant/PROCESS-affaire.md"]["id"])
+    dest = Path(os.path.expanduser(manuel["vers"]))
+    os.rename(proc, dest)                         # la personne, dans son outil de partage
+    rv = ranger("--verifier")
+    trad = json.loads(ranger("--chemins").stdout)["traductions"]
+    verifie("A4 : un geste manuel en attente prive la source de note ; constaté par --verifier, elle la reçoit "
+            "sur le nouveau chemin",
+            sans_note and rv.returncode == 0 and m_range.note_autorisee(atelier, proc)
+            and trad.get(tilde(proc)) == tilde(dest), f"{sans_note} {rv.stdout[-200:]} {trad}")
+    os.rename(dest, proc)
+
+    # Le maillon 4 refuse un rangement appliqué en partie ; il construit une fois la ligne retirée.
+    fm = (atelier / "03-rangement.md").read_text(encoding="utf-8")
+    suspendue = "r999"           # une ligne acceptée, jamais faite
+    (atelier / "03-rangement.md").write_text(re.sub(r"acceptees: \[(.*?)\]", lambda m: f"acceptees: [{m.group(1)}, {suspendue}]",
+                                                    fm, count=1), encoding="utf-8")
+    plan = json.loads((atelier / "03-rangement.json").read_text(encoding="utf-8"))
+    plan["operations"].append(dict(plan["operations"][0], id=suspendue))
+    (atelier / "03-rangement.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
+    vault = tmp / "vault-rangement"
+    r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
+    e3b = {e["numero"]: e for e in m_etat.generer(atelier)["etapes"]}["3b"]
+    verifie("le maillon 4 refuse quand le rangement est appliqué en partie (une ligne faite, une acceptée non faite)",
+            r4.returncode == 2 and "rangement" in r4.stderr and e3b["etat"] == "en_cours" and not vault.exists(),
+            f"code {r4.returncode} {e3b['etat']} {r4.stderr[:200]}")
+    ranger("--annuler", "--ids", suspendue)
+    r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
+    verifie("témoin : la ligne retirée, le maillon 4 construit", r4.returncode == 0, r4.stderr[:300])
+    plan["operations"].pop()
+    (atelier / "03-rangement.json").write_text(json.dumps(plan, ensure_ascii=False), encoding="utf-8")
+
+    # Clôture : le dossier commun créé s'inscrit dans config.yaml ; le vault le cite en forme ~.
+    rc = ranger("--clore", "applique")
+    conf = cortex_config.charger(atelier / "config.yaml")
+    verifie("--clore applique inscrit le dossier commun créé (existant, chemin ~), config toujours installable",
+            rc.returncode == 0 and conf["referentiel"]["etat"] == "existant"
+            and conf["referentiel"]["chemin"] == tilde(commun / "Référentiel")
+            and not cortex_config.valider_installable(conf), rc.stderr[:200] + str(conf.get("referentiel")))
+    shutil.rmtree(vault, ignore_errors=True)
+    r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
+    claude = (vault / "CLAUDE.md").read_text(encoding="utf-8") if (vault / "CLAUDE.md").is_file() else ""
+    moustaches = [str(q.relative_to(vault)) for q in vault.rglob("*.md")
+                  if "Templates" not in q.parts and re.search(r"\{\{[A-Z_]+\}\}", q.read_text(encoding="utf-8"))]
+    verifie("scaffold avec dossier commun : aucun {{…}} de scaffold, le chemin du dossier commun en forme ~ dans CLAUDE.md",
+            r4.returncode == 0 and not moustaches and tilde(commun / "Référentiel") in claude
+            and "/Users/" not in claude, f"{r4.stderr[:200]} {moustaches[:3]}")
+    temoin = tmp / "gabarit-jetable.md"
+    temoin.write_text("Dossier commun : {{REFERENTIEL}}\n", encoding="utf-8")
+    verifie("témoin : un gabarit jetable qui garde {{REFERENTIEL}} est vu par le même contrôle",
+            bool(re.search(r"\{\{[A-Z_]+\}\}", temoin.read_text(encoding="utf-8"))))
+    sans_ref = tmp / "vault-sans-referentiel"
+    r4 = scaffold("--config", str(configs["dirigeant"][0]), "--out", str(sans_ref))
+    claude = (sans_ref / "CLAUDE.md").read_text(encoding="utf-8") if (sans_ref / "CLAUDE.md").is_file() else ""
+    verifie("scaffold sans dossier commun : « Aucun dossier commun déclaré. », aucun {{…}}",
+            r4.returncode == 0 and "Aucun dossier commun déclaré." in claude and "{{REFERENTIEL}}" not in claude,
+            r4.stderr[:200])
+
+    # I-R2 : appliquer puis annuler rend l'arbre d'avant ; témoin, un touch entre les deux.
+    jalon = perso / "README.md"
+    st = jalon.stat()
+    os.utime(jalon, (st.st_atime, st.st_mtime + 30))
+    ru = ranger("--annuler")
+    touche = arbre_fichiers(perso, commun) != avant
+    os.utime(jalon, (st.st_atime, st.st_mtime))
+    verifie("I-R2 : appliquer puis annuler rend chemins, tailles et dates d'avant ; témoin : un fichier touché "
+            "entre les deux fait différer la comparaison",
+            ru.returncode == 0 and touche and arbre_fichiers(perso, commun) == avant, (ru.stdout + ru.stderr)[-300:])
+    verifie("le dossier commun créé par Cortex et son sommaire disparaissent à l'annulation",
+            not (commun / "Référentiel").exists())
+
+    # Config : les refus du contrat §1 et leur témoin.
+    conf0 = cortex_config.charger(configs["dirigeant"][0])
+    def refus(conf, cle):
+        return any(e.startswith(cle) or cle in e for e in cortex_config.valider_installable(conf))
+    struct = dict(conf0["donnees"], structurants=["organigramme", "process"])
+    hors = dict(conf0, referentiel={"etat": "existant", "chemin": "~/Ailleurs/Référentiel"})
+    sous = dict(conf0, collecte=dict(conf0["collecte"], partagees=["~/Pas/Declare"]))
+    exemple = cortex_config.charger(RACINE / "template" / "config.example.yaml")
+    verifie("cortex_config refuse process dans structurants (message qui nomme la règle), un dossier commun hors "
+            "racine, des dossiers partagés non déclarés ; accepte config.example.yaml",
+            any("procédure ne se copie jamais" in e for e in cortex_config.valider_installable(dict(conf0, donnees=struct)))
+            and refus(hors, "referentiel") and refus(sous, "partagees")
+            and not cortex_config.valider_installable(exemple)
+            and "process" not in (exemple.get("donnees") or {}).get("structurants", []),
+            str(cortex_config.valider_installable(exemple)[:2]))
+
+    # Une procédure ne se copie jamais ; un contrat, si (assertion négative et sa positive).
+    vault_copie = tmp / "vault-copie"
+    source = ATELIER_RECETTE / "sources" / "Process relance.md"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_text("# Relance d'un impayé\n\nÉtapes.\n", encoding="utf-8")
+    rp = lancer(COPIE, "--vault", str(vault_copie), "--source", str(source), "--type", "process", "--domaine", "Agencement magasin")
+    rc = lancer(COPIE, "--vault", str(vault_copie), "--source", str(source), "--type", "contrat", "--domaine", "Agencement magasin")
+    structurants = vault_copie / "50 - Ressources" / "Structurants"
+    verifie("copie_structurant refuse --type process en nommant la règle ; --type contrat sur la même source réussit (I-R5)",
+            rp.returncode != 0 and "ne se copie jamais" in (rp.stderr + rp.stdout)
+            and not (structurants / "process").exists()
+            and rc.returncode == 0 and any((structurants / "contrat").glob("*.md")),
+            f"{rp.returncode} {(rp.stderr + rp.stdout)[:200]} / {rc.returncode} {rc.stderr[:200]}")
+
+    # Fédération : la clé referentiel donne la note et la ligne du Centre ; sans elle, ni l'une ni l'autre.
+    groupe = ATELIER_RECETTE / "commun-referentiel"
+    shutil.rmtree(groupe, ignore_errors=True)
+    groupe.mkdir(parents=True)
+    exps = {slug: export_fictif(ATELIER_RECETTE / "vaults-ref", slug, m_fixtures.CLIENTS[i:i + 2])
+            for i, slug in ((0, "camille"), (2, "yasmine"))}
+    fy = groupe / "federation.yaml"
+    entete = 'version: 1\nnom: "Ateliers Roumier"\n'
+    membres = "membres:\n" + "".join(f'  - {{ slug: {sl}, export: "{tilde(e)}" }}\n' for sl, e in exps.items())
+    fy.write_text(entete + f'referentiel: "{tilde(commun / "Référentiel")}"\n' + membres, encoding="utf-8")
+    g1 = lancer(FEDERE, "--config", str(fy))
+    e1 = empreinte_commun(groupe)
+    g2 = lancer(FEDERE, "--config", str(fy))
+    note = groupe / "50 - Ressources" / "Référentiel commun.md"
+    centre = (groupe / "00 - Centre" / "Centre.md").read_text(encoding="utf-8") if (groupe / "00 - Centre" / "Centre.md").is_file() else ""
+    verifie("federe.py avec referentiel : la note Référentiel commun et sa ligne au Centre, deux générations identiques "
+            "hors genere_le, aucune note par procédure",
+            g1.returncode == g2.returncode == 0 and note.is_file() and "Référentiel commun" in centre
+            and "ressource: referentiel" in note.read_text(encoding="utf-8") and empreinte_commun(groupe) == e1
+            and not (groupe / "50 - Ressources" / "Procédures").exists(), (g1.stderr or g2.stderr)[:300])
+    fy.write_text(entete + membres, encoding="utf-8")
+    g3 = lancer(FEDERE, "--config", str(fy))
+    centre = (groupe / "00 - Centre" / "Centre.md").read_text(encoding="utf-8")
+    verifie("federe.py sans referentiel : ni la note ni la ligne du Centre",
+            g3.returncode == 0 and not note.exists() and "Référentiel commun" not in centre, g3.stderr[:200])
+
+    # Prose : Notice identique, doctrine, cd, white-label et chemins absolus sur la nouvelle skill.
+    def notice(p):
+        t = p.read_text(encoding="utf-8")
+        return t[t.index("## Notice"):]
+    skill3b = SKILLS / "cortex-3b-rangement" / "SKILL.md"
+    verifie("la section Notice de cortex-3b-rangement est identique octet pour octet à celle de cortex-3-ontologie",
+            notice(skill3b) == notice(SKILLS / "cortex-3-ontologie" / "SKILL.md"))
+    doctrine = (SKILLS / "cortex-1-cadrage" / "references" / "doctrine.md").read_text(encoding="utf-8")
+    s5 = doctrine[doctrine.index("## 5."):doctrine.index("## 6.")]
+    verifie("doctrine : un §12, et un amendement daté 2026-10-04 au §5",
+            len(re.findall(r"^## 12", doctrine, re.M)) == 1 and "2026-10-04" in s5)
+    cd = [l for l in skill3b.read_text(encoding="utf-8").splitlines() if re.search(r"(^|[ ;&])cd [^.]", l)]
+    verifie("cortex-3b-rangement/SKILL.md ne cite cd que pour l'interdire",
+            all(re.search(r"\b(jamais|aucune|n'entre)\b", l, re.I) for l in cd), str(cd))
+    couverts = [rel for _, rel in fichiers_texte(PERIMETRE_WHITE_LABEL) if rel.startswith("skills/cortex-3b-rangement/")]
+    verifie("les contrôles white-label et « zéro chemin absolu » parcourent skills/cortex-3b-rangement/",
+            {"skills/cortex-3b-rangement/SKILL.md", "skills/cortex-3b-rangement/scripts/range.py",
+             "skills/cortex-3b-rangement/references/nomenclature.md"} <= set(couverts), str(couverts))
+    verifie("la notice propose « rangeons mes dossiers » après la carte des domaines",
+            m_etat.PHRASES.get("3b") == "rangeons mes dossiers"
+            and "rangeons mes dossiers" in (SKILLS / "cortex-3-ontologie" / "SKILL.md").read_text(encoding="utf-8"))
+    shutil.rmtree(base, ignore_errors=True)
+
+
 # ── Tableau ─────────────────────────────────────────────────────────────────
 
 def tableau():
-    print("\nTableau C1 à C10 (contrôles passés / total)")
+    print("\nTableau C1 à C11 (contrôles passés / total)")
     for code, titre, contrat, lane in CRITERES:
         ok, xx = BILAN.get(code, [0, 0])
         etat = "VERT" if xx == 0 and ok else "ROUGE"
@@ -1414,6 +1716,7 @@ def main():
         c8_white_label()
         c9_chemins_absolus()
         c10_paquet(tmp)
+        c11_rangement(tmp, configs)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(ATELIER_RECETTE, ignore_errors=True)

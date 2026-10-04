@@ -4,7 +4,10 @@
 employe/    Camille Perrin, cheffe de projet chez Nordaline (PME fictive) : ~150 fichiers,
             cinq écarts injectés, listés dans ECARTS.json (ce que l'entretien du maillon 3
             doit relever entre ce que la personne déclare et ce que l'inventaire montre).
-dirigeant/  Ateliers Roumier, menuiserie d'agencement : ~374 fichiers.
+dirigeant/  Ateliers Roumier, menuiserie d'agencement : ~380 fichiers, dont un coin en désordre
+            pour le rangement (noms illisibles, une procédure au classement douteux, un
+            doublon), et à côté dirigeant-commun/, le dossier partagé de l'équipe où traîne
+            une procédure d'entreprise. RANGEMENT.json liste ce que le rangement doit relever.
 societe/    Ateliers Roumier vus par trois rédacteurs (camille, yasmine, marc), pour la
             fédération : deux affaires apparaissent chez deux rédacteurs.
 
@@ -274,6 +277,24 @@ def dirigeant(racine, alea):
     moi = "c.roumier@exemple.test"
     for j, de in enumerate(("expert-comptable@cabinet.test", "banque@agence.test", "malbrun@client.test")):
         a.mail(f"Mails/{j + 1:03d}.eml", de, moi, "Suivi")
+
+    # Le désordre que l'étape 3 bis range (contrat 2.3, recette du rangement).
+    a.fichier("Clients/Nouveau document (3).docx", "Accueil d'un nouveau client", BASE - timedelta(days=200))
+    a.fichier("Clients/Scan_0042.pdf", "Scan", BASE - timedelta(days=100))      # simulé « en ligne seulement »
+    a.fichier("Clients/Budget (1).xlsx", "Budget", BASE - timedelta(days=90))
+    a.fichier("Divers/tarifs.xlsx", "Tarifs", BASE - timedelta(days=300))
+    commun = Path(racine).parent / "dirigeant-commun"
+    shutil.rmtree(commun, ignore_errors=True)
+    c = Arbre(commun, alea)
+    c.fichier("Divers/Process facturation.docx", "Facturation d'une affaire", BASE - timedelta(days=301))
+    c.fichier("Divers/tarifs.xlsx", "Tarifs", BASE - timedelta(days=300))       # doublon probable
+    c.fichier("Charte graphique.pdf", "Charte graphique", BASE - timedelta(days=400))
+    attendu = {"renommer": ["Clients/Nouveau document (3).docx", "Clients/Scan_0042.pdf", "Clients/Budget (1).xlsx"],
+               "a_demander": ["PROCESS-affaire.md"], "entreprise": ["Divers/Process facturation.docx"],
+               "en_ligne_seulement": ["Clients/Scan_0042.pdf"], "doublon": "tarifs.xlsx"}
+    (Path(racine) / "RANGEMENT.json").write_text(json.dumps(attendu, ensure_ascii=False, indent=2) + "\n",
+                                                 encoding="utf-8")
+    a._date_fixe(Path(racine) / "RANGEMENT.json", None)
     return len(a.fichiers)
 
 
