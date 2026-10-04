@@ -279,7 +279,10 @@ def generer(conf, commun, quand):
                       int(n["fm"].get("progression") or 0))
                      for n in par_type["20 - Projets"] if n["fm"].get("phase")})
 
-    presents = ({"Centre"} | set(domaines) | set(acteurs)
+    # Contrat 2.3 §2 : le dossier commun de l'entreprise, décision de groupe.
+    # Absente ou vide, le commun reste celui de la 2.2.0.
+    referentiel = str(conf.get("referentiel") or "").strip()
+    presents = ({"Centre"} | ({"Référentiel commun"} if referentiel else set()) | set(domaines) | set(acteurs)
                 | {n["stem"] for n in par_type["20 - Projets"] + par_type["60 - Journal"]})
     neutralises, renommes = [], []
 
@@ -333,12 +336,28 @@ def generer(conf, commun, quand):
         centre += [f"- [[{a}]]" for a, g in sorted(acteurs.items()) if any(n["slug"] == slug for n in g)]
         centre += [f"- [[{n['stem']}]]" for n in sorted(par_type["60 - Journal"], key=lambda n: n["stem"]) if n["slug"] == slug]
         centre.append("")
+    if referentiel:
+        centre += ["## Dossier commun", "",
+                   "- [[Référentiel commun]] : procédures, charte, signatures, modèles et assistants "
+                   "de l'entreprise, à lire dans le dossier commun et jamais ici.", ""]
     centre += ["## Par domaine", ""]
     for nom_d, d in sorted(domaines.items()):
         centre += [f"### [[{nom_d}]]", ""]
         centre += [f"- [[{n['stem']}]]" for n in sorted(d["projets"], key=lambda n: n["stem"])] or ["- aucun projet"]
         centre.append("")
     (commun / "00 - Centre" / "Centre.md").write_text(_fm(["type: hub", "tags:", "  - hub"]) + "\n".join(centre), encoding="utf-8")
+
+    if referentiel:
+        (commun / "50 - Ressources").mkdir()
+        (commun / "50 - Ressources" / "Référentiel commun.md").write_text(
+            _fm(["type: ressource", "ressource: referentiel", f"chemin: {_cite(referentiel)}",
+                 'index: "AGENTS.md"', "visibilite: commun"])
+            + "# Référentiel commun\n\n"
+            "Le dossier commun de l'entreprise porte ses documents de référence : procédures, "
+            "charte graphique, signatures, modèles et assistants. Une procédure n'y existe qu'en un exemplaire.\n\n"
+            f"Il vit hors de ce vault, à `{referentiel}`. Toute IA lit d'abord son sommaire `AGENTS.md`, "
+            "puis le document qu'il désigne ; rien ne s'en recopie ici.\n\n"
+            "Remonte vers [[Centre]].\n", encoding="utf-8")
 
     (commun / "config.yaml").write_text(config_commun(nom, codes_domaines, cycles), encoding="utf-8")
     (commun / "README.md").write_text(
@@ -384,11 +403,13 @@ def _nom_cle(nom):
     return " ".join(str(nom).split()).casefold()
 
 
-def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
+def inscrire(cfg, slug, redacteur, export, nom="", attendus=(), referentiel=""):
     """Inscrit un rédacteur dans <commun>/federation.yaml, crée le dossier et le
     fichier s'il le faut, n'écrit rien d'autre. Idempotent. Un --attendu déjà
     membre (même rédacteur) est ignoré et rendu dans `ignores`, pour que l'étape 8
-    n'attende jamais quelqu'un d'inscrit ; l'inscription d'un rédacteur l'en retire."""
+    n'attende jamais quelqu'un d'inscrit ; l'inscription d'un rédacteur l'en retire.
+    `referentiel` (contrat 2.3 §2) est une décision de groupe : posé par le premier
+    rédacteur qui le donne, gardé tel quel ensuite ; un autre chemin est ignoré et rendu."""
     cfg = Path(cfg).expanduser()
     commun = cfg.parent
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug or ""):
@@ -415,14 +436,21 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=()):
         if _nom_cle(a) not in deja and _nom_cle(a) not in {_nom_cle(x) for x in liste}:
             liste.append(a)
     liste = [a for a in liste if _nom_cle(a) not in deja]
-    lignes = [f"version: {VERSION_FEDERATION}", f"nom: {_cite(conf.get('nom') or nom)}", "membres:"]
+    ref_lu = str(conf.get("referentiel") or "").strip()
+    ref_donne = _tilde(referentiel) if str(referentiel or "").strip() else ""
+    ref = ref_lu or ref_donne
+    ref_ignore = ref_donne if ref_donne and ref_lu and ref_donne != ref_lu else ""
+    lignes = [f"version: {VERSION_FEDERATION}", f"nom: {_cite(conf.get('nom') or nom)}"]
+    lignes += [f"referentiel: {_cite(ref)}"] if ref else []
+    lignes.append("membres:")
     for m in membres:
         champs = [f"slug: {m['slug']}"] + ([f"redacteur: {_cite(m['redacteur'])}"] if m.get("redacteur") else [])
         lignes.append("  - { " + ", ".join(champs + [f"export: {_cite(m['export'])}"]) + " }")
     lignes.append("attendus: [" + ", ".join(_cite(a) for a in liste) + "]")
     commun.mkdir(parents=True, exist_ok=True)
     cfg.write_text("\n".join(lignes) + "\n", encoding="utf-8")
-    return {"membres": [str(m["slug"]) for m in membres], "attendus": liste, "ignores": ignores}
+    return {"membres": [str(m["slug"]) for m in membres], "attendus": liste, "ignores": ignores,
+            "referentiel": ref, "referentiel_ignore": ref_ignore}
 
 
 # ── Exports fictifs (recette) ───────────────────────────────────────────────
@@ -594,7 +622,8 @@ def _autotest():
         exp_h = Path.home() / "Cortex" / "helene" / "vault" / "_export" / "helene"
         b = inscrire(groupe, "helene", "Hélène Vasseur", exp_h, nom="Alcyon Promotion",
                      attendus=["Karim Benali", "Hélène Vasseur"])
-        assert b == {"membres": ["helene"], "attendus": ["Karim Benali"], "ignores": ["Hélène Vasseur"]}, b
+        assert b == {"membres": ["helene"], "attendus": ["Karim Benali"], "ignores": ["Hélène Vasseur"],
+                     "referentiel": "", "referentiel_ignore": ""}, b
         assert sorted(q.name for q in groupe.parent.iterdir()) == ["federation.yaml"]
         c = cortex_config.charger(groupe)
         assert c["nom"] == "Alcyon Promotion" and c["attendus"] == ["Karim Benali"], c
@@ -614,7 +643,8 @@ def _autotest():
                      attendus=["Hélène Vasseur"])
         # Témoin : un --attendu qui nomme un membre déjà inscrit est ignoré, sans erreur,
         # et l'étape 8 n'aura personne à attendre.
-        assert b == {"membres": ["helene", "karim"], "attendus": [], "ignores": ["Hélène Vasseur"]}, b
+        assert b == {"membres": ["helene", "karim"], "attendus": [], "ignores": ["Hélène Vasseur"],
+                     "referentiel": "", "referentiel_ignore": ""}, b
         c = cortex_config.charger(groupe)
         assert c["attendus"] == [] and c["nom"] == "Alcyon Promotion" and len(c["membres"]) == 2, c
         # Un dossier étranger non vide : refus, rien d'écrit.
@@ -631,6 +661,37 @@ def _autotest():
             except Refus:
                 pass
         assert len(cortex_config.charger(groupe)["membres"]) == 2
+        # Contrat 2.3 §2 : le dossier commun, posé par le premier qui le donne, gardé ensuite.
+        assert "referentiel" not in cortex_config.charger(groupe), "sans --referentiel, aucune clé"
+        b = inscrire(groupe, "helene", "Hélène Vasseur", "~/Ailleurs/_export/helene",
+                     referentiel="~/Partage/Commun/Référentiel")
+        assert b["referentiel"] == "~/Partage/Commun/Référentiel" and not b["referentiel_ignore"], b
+        b = inscrire(groupe, "karim", "Karim Benali", "~/Cortex/karim/vault/_export/karim",
+                     referentiel="~/Autre/Référentiel")
+        assert b["referentiel_ignore"] == "~/Autre/Référentiel", b
+        c = cortex_config.charger(groupe)
+        assert c["referentiel"] == "~/Partage/Commun/Référentiel" and len(c["membres"]) == 2, c
+
+        # Sans la clé : ni note du dossier commun, ni ligne au Centre (s2, plus haut).
+        note_ref = Path("50 - Ressources") / "Référentiel commun.md"
+        assert str(note_ref) not in s2 and "Référentiel commun" not in s2["00 - Centre/Centre.md"]
+        # Avec la clé : la note, la ligne du Centre, l'idempotence et le lint vert.
+        conf_ref = dict(conf, referentiel="~/Partage/Commun/Référentiel")
+        b4 = generer(conf_ref, commun, "2026-01-06T00:00:00")
+        r1 = _instantane(commun)
+        b5 = generer(conf_ref, commun, "2026-01-07T00:00:00")
+        assert r1 == _instantane(commun) and b4["empreinte"] == b5["empreinte"], "le dossier commun casse l'idempotence"
+        assert b4["empreinte"] != b2["empreinte"], "l'empreinte ne couvre pas la note du dossier commun"
+        fm = lint_sante.parse_frontmatter((commun / note_ref).read_text(encoding="utf-8"))
+        assert (fm["type"], fm["ressource"], fm["index"], fm["visibilite"]) == \
+            ("ressource", "referentiel", "AGENTS.md", "commun") and fm["chemin"] == "~/Partage/Commun/Référentiel", fm
+        assert len((commun / note_ref).read_text(encoding="utf-8").split("---\n", 2)[2].strip().splitlines()) <= 10
+        assert "[[Référentiel commun]]" in (commun / "00 - Centre" / "Centre.md").read_text(encoding="utf-8")
+        f = lint_sante.lint(commun, cortex_config.charger(commun / "config.yaml"))
+        durs = {k: f[k] for k in lint_sante.DURS if f.get(k)}
+        assert not durs, f"lint rouge sur le commun avec dossier commun : {durs}"
+        generer(conf, commun, "2026-01-08T00:00:00")
+        assert not (commun / "50 - Ressources").exists(), "la clé retirée, la note doit disparaître"
     print(f"OK : commun de {b2['projets']} projets, {b2['acteurs']} acteurs ({b2['fusionnes']} fusionnés), "
           f"{b2['domaines']} domaines, identique sur deux générations, lint v1 vert")
     return 0
@@ -646,6 +707,9 @@ def main():
     p.add_argument("--nom", default="", help="avec --inscrire : nom de l'organisation, à la création")
     p.add_argument("--attendu", action="append", default=[],
                    help="avec --inscrire : un autre rédacteur annoncé, pas encore cadré (répétable)")
+    p.add_argument("--referentiel", default="",
+                   help="avec --inscrire : chemin du dossier commun de l'entreprise (forme ~), "
+                        "posé par le premier rédacteur, gardé ensuite")
     p.add_argument("--autotest", action="store_true")
     a = p.parse_args()
     if a.autotest:
@@ -660,7 +724,7 @@ def main():
             p.error("--inscrire exige --redacteur et --export")
         try:
             b = inscrire(a.config, a.inscrire, a.redacteur.strip(), a.export.strip(), a.nom.strip(),
-                         [x.strip() for x in a.attendu if x.strip()])
+                         [x.strip() for x in a.attendu if x.strip()], a.referentiel.strip())
         except (Refus, ValueError) as e:
             print(f"[X] {e}", file=sys.stderr)
             return 1
@@ -669,6 +733,10 @@ def main():
               f"  attendus : {', '.join(b['attendus']) or 'aucun'}")
         for nom in b["ignores"]:
             print(f"  [i] {nom} est déjà membre du groupe : non ajouté aux attendus")
+        if b["referentiel"]:
+            print(f"  dossier commun : {b['referentiel']}")
+        if b["referentiel_ignore"]:
+            print(f"  [i] {b['referentiel_ignore']} ignoré : le groupe a déjà fixé son dossier commun")
         return 0
     cfg = Path(a.config).expanduser().resolve()
     try:

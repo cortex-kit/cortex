@@ -37,6 +37,7 @@ C'est le seul fichier du commun qui ne se régénère pas, et il vit là parce q
 ```yaml
 version: 1
 nom: "Ateliers Roumier"
+referentiel: "~/Library/CloudStorage/OneDrive-Exemple/Commun/Référentiel"
 membres:
   - { slug: camille, redacteur: "Camille Roumier", export: "~/Cortex/camille/vault/_export/camille" }
   - { slug: yasmine, redacteur: "Yasmine Haddad", export: "~/Cortex/yasmine/vault/_export/yasmine" }
@@ -48,6 +49,7 @@ Règles :
 - `slug` est le code du rédacteur, identique au nom de son dossier d'export. Il devient le préfixe des projets et des notes de journal dans le commun : `20 - Projets/<SLUG> - <titre>.md`, `60 - Journal/<SLUG> - <titre>.md`.
 - `export` pointe le dossier `_export/<slug>/` du membre, en forme `~`. Un chemin relatif se lit depuis le dossier du commun.
 - `redacteur` et `attendus` servent au tableau de bord : un nom dans `attendus` est un rédacteur annoncé au cadrage et pas encore cadré. `federe.py --config` les ignore pour générer le commun.
+- `referentiel` est le dossier commun de l'entreprise (procédures, charte, signatures, modèles, assistants), en forme `~`. C'est une décision de groupe : le premier rédacteur qui le déclare au cadrage le pose par `federe.py --inscrire … --referentiel "<chemin>"`, les suivants le reprennent tel quel, et un autre chemin donné plus tard est ignoré avec un message. Vide ou absent, le groupe n'en a pas, et le commun reste ce qu'il était. Présent, `federe.py` écrit `50 - Ressources/Référentiel commun.md` (le chemin et son sommaire `AGENTS.md`) et une ligne « Dossier commun » dans `00 - Centre/Centre.md` ; aucune procédure n'entre dans le commun, il y renvoie.
 - Un membre s'ajoute par `federe.py --inscrire`, au cadrage. Un membre se retire par la suppression de sa ligne : ses notes disparaissent du commun au passage suivant.
 - Le fichier se lit avec le même parseur que `config.yaml` : une ligne par membre, dict inline, pas de commentaire en fin de ligne.
 
@@ -109,6 +111,7 @@ Chez chaque membre, le lint en `mode: federe` ajoute un contrôle : toute note d
 - **Être édité.** Une correction faite dans le commun disparaît au passage suivant, sans avertissement : c'est le fonctionnement voulu, pas un accident. Le README le dit, chaque note le porte en tête.
 - **Porter une note privée.** `cloture` n'exporte pas une note `visibilite: prive` ; si une telle note arrive quand même dans un export, `federe.py` s'arrête avant d'écrire.
 - **Devenir un vault de travail.** Pas de clôture, pas de `nouveau-projet`, pas d'agent qui y écrit. On l'ouvre dans l'éditeur de notes pour lire, on ferme.
+- **Recopier une procédure.** Le dossier commun de l'entreprise garde le seul exemplaire ; le commun le cite par une note, rien de plus.
 - **Fusionner des projets.** Deux rédacteurs sur la même affaire, ce sont deux points de vue, préfixés chacun par son slug. La fusion n'a lieu que pour les acteurs et les domaines, qui sont des référentiels.
 
 ## 5. Écrire l'état
@@ -131,6 +134,7 @@ controles:
   regeneration_identique: passe     # diff -r hors genere_le et ligne datée du README : vide
   readme_et_sceau_presents: passe
   aucune_note_hors_index: passe     # sinon, relancer la cloture du membre
+  dossier_commun_cite: passe        # `arbitre` motif « le groupe n'a pas de dossier commun » sans `referentiel`
 ```
 
 Un contrôle qui n'est ni `passe` ni `arbitre` avec motif laisse le maillon en `statut: en_cours`.
