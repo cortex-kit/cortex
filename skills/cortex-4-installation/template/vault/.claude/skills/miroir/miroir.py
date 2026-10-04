@@ -26,10 +26,13 @@ Usage :
   python3 .claude/skills/miroir/miroir.py --autotest
 """
 import argparse
+import http.client
 import json
 import os
 import re
+import socket
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -63,11 +66,27 @@ def notion(jeton):
             props = json.load(r).get("properties", {})
         out = {}
         for nom, p in props.items():
-            v = p.get(p.get("type", ""))
-            if isinstance(v, dict) and "name" in v:      # select, status
-                out[nom] = v["name"]
+            if p.get("type") in ("select", "status"):
+                v = p.get(p["type"])
+                # Une liste fermée vide reste présente : « vide » n'est pas « absente ».
+                out[nom] = v.get("name", "") if isinstance(v, dict) else ""
         return out
     return lire
+
+
+def cause(e):
+    """La raison d'une lecture ratée, en une expression : le geste qui la répare
+    n'est pas le même pour un jeton refusé, une page supprimée ou une coupure."""
+    if isinstance(e, urllib.error.HTTPError):
+        if e.code in (401, 403):
+            return f"droits refusés, HTTP {e.code}"
+        if e.code == 404:
+            return "page absente ou non partagée avec l'intégration, HTTP 404"
+        return f"HTTP {e.code}"
+    if isinstance(e, (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError,
+                      http.client.IncompleteRead)):
+        return f"réseau, {type(e).__name__}"
+    return f"autre, {type(e).__name__} : {e}"
 
 
 def frontmatter(texte):
@@ -114,6 +133,7 @@ def recaler(vault, conf, lire):
     statuts = {str(x.get("source")): str(x.get("vault")) for x in conf.get("miroir_statuts") or []}
     progressions = {(c.get("cycle"), c.get("phase")): c.get("progression") for c in conf.get("cycles") or []}
     changements, constats = [], []
+    sans_pointeur, lues, proprietes = 0, 0, set()
     for md in sorted((vault / "20 - Projets").glob("*.md")):
         texte = md.read_text(encoding="utf-8")
         fm = frontmatter(texte)
@@ -121,14 +141,24 @@ def recaler(vault, conf, lire):
 
         def nom(canon):
             return cortex_config.cle_effective(presentes, canon, conf)
-        pid = identifiant(champ(fm, nom("url_canonique")))
-        if champ(fm, "type") != "projet" or not pid:
+        if champ(fm, "type") != "projet":
+            continue
+        brut = champ(fm, nom("url_canonique"))
+        pid = identifiant(brut)
+        if not pid:
+            # Une fiche sautée sans trace ferait croire qu'elle est alignée.
+            if brut:
+                constats.append(f"{md.stem} : pointeur « {brut} » sans identifiant de page lisible, fiche non reliée")
+            else:
+                sans_pointeur += 1
             continue
         try:
             source = lire(pid)
-        except Exception as e:  # réseau, droits, page supprimée : constat, jamais arrêt
-            constats.append(f"{md.stem} : base injoignable ({type(e).__name__})")
+        except Exception as e:  # une fiche injoignable n'arrête pas les autres ; sa cause est nommée
+            constats.append(f"{md.stem} : base injoignable ({cause(e)})")
             continue
+        lues += 1
+        proprietes |= set(source)
         cycle = champ(fm, nom("cycle"))
         phase, progression, statut = nom("phase"), nom("progression"), nom("statut")
         if m.get("phase"):
@@ -147,6 +177,14 @@ def recaler(vault, conf, lire):
                 constats.append(f"{md.stem} : statut « {v} » sans correspondance dans miroir_statuts")
             elif v and statuts[v] != champ(fm, statut):
                 changements.append((md, statut, champ(fm, statut), statuts[v]))
+    if sans_pointeur:
+        constats.append(f"{sans_pointeur} fiche(s) projet sans pointeur vers la base "
+                        "(url_canonique ou son alias), non reliée(s)")
+    for cle in ("phase", "statut"):
+        prop = m.get(cle)
+        if prop and lues and prop not in proprietes:
+            constats.append(f"miroir.{cle} = « {prop} » : aucune des {lues} page(s) lue(s) ne porte cette "
+                            "propriété en liste fermée. Nom mal écrit dans config.yaml ?")
     return changements, constats
 
 
@@ -257,6 +295,31 @@ def _autotest():
         assert alias_orphelins(v, ca) == []
         orph = alias_orphelins(v, dict(conf, alias={"statut": "etta"}))
         assert len(orph) == 1 and "etta" in orph[0], orph
+        # Propriété mal orthographiée : signalée, jamais « alignées » (cas rouge
+        # sur le nom faux, vert sur le vrai).
+        _, co = recaler(v, dict(conf, miroir=dict(conf["miroir"], statut="Statu")), lire)
+        assert any("miroir.statut" in c and "Statu" in c for c in co), co
+        assert not any(c.startswith("miroir.") for c in recaler(v, conf, lire)[1])
+        # Pointeur illisible ou absent : compté, pas sauté.
+        (v / "20 - Projets" / "Zeta.md").write_text(
+            '---\ntype: projet\nurl_canonique: "https://base.exemple.test/fiche-sans-id"\n---\n', encoding="utf-8")
+        (v / "20 - Projets" / "Eta.md").write_text('---\ntype: projet\nstatut: actif\n---\n', encoding="utf-8")
+        _, co = recaler(v, conf, lire)
+        assert any(c.startswith("Zeta : pointeur") for c in co), co
+        # Eta, et Epsilon dont `notion_bdd` ne se lit pas sans alias.
+        assert any(c.startswith("2 fiche(s) projet sans pointeur") for c in co), co
+        (v / "20 - Projets" / "Zeta.md").unlink()
+        (v / "20 - Projets" / "Eta.md").unlink()
+        # Causes distinctes : le code HTTP est lu, la coupure réseau n'est pas un refus.
+        err = urllib.error.HTTPError
+        assert cause(err("u", 403, "x", {}, None)).startswith("droits refusés, HTTP 403")
+        assert cause(err("u", 401, "x", {}, None)).endswith("HTTP 401")
+        assert cause(err("u", 404, "x", {}, None)).startswith("page absente")
+        assert cause(err("u", 500, "x", {}, None)) == "HTTP 500"
+        assert cause(urllib.error.URLError("dns")).startswith("réseau")
+        assert cause(http.client.IncompleteRead(b"")).startswith("réseau")
+        assert cause(socket.timeout()).startswith("réseau")
+        assert cause(ValueError("json")).startswith("autre, ValueError")
         # Une clé absente de la fiche s'ajoute au lieu d'être annoncée sans être écrite.
         assert "progression: 90" in remplacer("---\ntype: projet\n---\n# X\n", "progression", "90")
         assert identifiant("https://www.notion.so/Titre-" + "e" * 32 + "?pvs=4") == "e" * 32

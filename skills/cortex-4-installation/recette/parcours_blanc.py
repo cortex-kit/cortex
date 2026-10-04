@@ -570,6 +570,12 @@ def recette_v1(tmp):
     r = lint(vault, "--config", str(faux))
     verifie("un alias qu'aucune fiche ne porte est signale", r.returncode == 1 and "natrue" in r.stdout,
             r.stdout[-300:])
+    double = tmp / "config-alias-double.yaml"
+    double.write_text(cfg.read_text(encoding="utf-8")
+                      + "alias:\n  cycle: nature\n  statut: nature\n", encoding="utf-8")
+    erreurs = cortex_config.valider_installable(cortex_config.charger(double))
+    verifie("deux cles lues sous le meme alias sont refusees",
+            any("se lisent toutes sous 'nature'" in e for e in erreurs), str(erreurs[:2]))
     adoptee.unlink()
     return cfg
 

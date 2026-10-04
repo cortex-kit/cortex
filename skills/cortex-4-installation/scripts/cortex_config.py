@@ -426,6 +426,13 @@ def erreurs_alias(conf):
         elif nom in CLES_ALIASABLES:
             erreurs.append(f"alias.{canon} = {nom!r} : {nom!r} est déjà une clé canonique, "
                            "les deux se confondraient.")
+    # Deux clés canoniques lues sous le même nom : la fiche ne porte qu'une
+    # valeur, elle remplirait les deux, et le miroir écrirait l'une sur l'autre.
+    noms = [n for n in bloc.values() if isinstance(n, str)]
+    for nom in sorted({n for n in noms if noms.count(n) > 1}):
+        canons = sorted(c for c, n in bloc.items() if n == nom)
+        erreurs.append(f"alias : {', '.join(canons)} se lisent toutes sous {nom!r}. "
+                       "Un nom de fiche ne porte qu'une clé.")
     return erreurs
 
 
@@ -569,7 +576,8 @@ def _autotest():
     assert cle_effective({"cycle", "nature"}, "cycle", ca) == "cycle"
     assert cle_effective(set(), "cycle", ca) == "cycle", "un alias ne crée jamais de clé"
     # Un alias mal écrit se signale au lieu de rendre un cycle vide.
-    for mauvais in ({"cylce": "nature"}, {"cycle": "phase"}, {"cycle": "a b"}, "nature"):
+    for mauvais in ({"cylce": "nature"}, {"cycle": "phase"}, {"cycle": "a b"}, "nature",
+                    {"cycle": "etat", "statut": "etat"}):
         e = valider_installable(dict(conf, alias=mauvais))
         assert any(x.startswith("alias") for x in e), (mauvais, e)
         assert appliquer_alias(fm, dict(conf, alias=mauvais)) == fm, mauvais
