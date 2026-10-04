@@ -20,7 +20,7 @@ Il ne supprime rien, n'écrase rien, ne duplique rien, ne convertit aucune proc�
 1. `_cortex/02-ontologie.md` en `statut: valide` : les noms suivent le vocabulaire des domaines signés. Le script le vérifie lui-même (code 3 sinon).
 2. `_cortex/config.yaml` se charge et porte `collecte.racines`, `collecte.partagees` et le bloc `referentiel` posés au cadrage.
 3. Aucune commande n'entre dans un dossier de travail par `cd` : chaque chemin se nomme en entier (doctrine §9).
-4. Le second cerveau n'est pas construit. L'installation inscrit `construit_le` dans `03-rangement.md`, et le script refuse ensuite de proposer ou d'appliquer (code 3) : ranger après la construction casserait ses liens, et ranger après la remise est hors de cette étape. Le dire ainsi à la personne.
+4. Le second cerveau n'est pas construit. L'installation inscrit `construit_le` dans `03-rangement.md`, et le script refuse ensuite de proposer, d'appliquer ou de défaire (code 3) : ranger après la construction casserait ses liens, et ranger après la remise est hors de cette étape. Le dire ainsi à la personne.
 
 **Si un contrôle échoue, s'arrêter.** Ranger sans domaines signés, c'est nommer avec un vocabulaire qui changera.
 
@@ -147,7 +147,7 @@ Si la liste porte un bloc `base`, l'afficher comme une proposition : « Votre ba
 python3 "${CLAUDE_SKILL_DIR}/scripts/range.py" --atelier <chemin de _cortex/> --annuler
 ```
 
-Le journal se rejoue à l'envers : chaque fichier reprend son nom et sa place, un dossier créé et resté vide disparaît, un sommaire inchangé depuis son écriture disparaît. Ce que la personne a déplacé elle-même dans son outil, elle le remet elle-même : le dire. Après la construction, défaire casserait les liens du second cerveau : le dire avant d'agir. Pour une seule ligne : `--annuler --ids r003`.
+Le journal se rejoue à l'envers : chaque fichier reprend son nom et sa place, un dossier créé et resté vide disparaît, un sommaire inchangé depuis son écriture disparaît. Ce que la personne a déplacé elle-même dans son outil, elle le remet elle-même : le dire. Après la construction, le script refuse : défaire casserait les liens du second cerveau. Le dire, sans chercher à contourner. Pour une seule ligne : `--annuler --ids r003`.
 
 ## Interdits
 

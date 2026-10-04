@@ -1564,13 +1564,19 @@ def c11_rangement(tmp, configs):
             rc.returncode == 0 and conf["referentiel"]["etat"] == "existant"
             and conf["referentiel"]["chemin"] == tilde(commun / "Référentiel")
             and not cortex_config.valider_installable(conf), rc.stderr[:200] + str(conf.get("referentiel")))
-    r4 = scaffold("--config", str(atelier / "config.yaml"), "--out", str(vault))
+    # La construction se fait sur une copie de l'atelier : l'original sert ensuite à défaire (I-R2).
+    construit = base / "_cortex-construit"
+    shutil.copytree(atelier, construit)
+    r4 = scaffold("--config", str(construit / "config.yaml"), "--out", str(vault))
     verifie("témoin : la ligne retirée et le rangement clos, le maillon 4 construit", r4.returncode == 0, r4.stderr[:300])
-    rp = ranger("--proposer")
-    fm3 = (atelier / "03-rangement.md").read_text(encoding="utf-8")
-    verifie("D3 : la construction inscrit construit_le, et le rangement refuse ensuite de proposer (code 3)",
-            "construit_le:" in fm3 and "statut: applique" in fm3 and rp.returncode == 3 and "construit" in rp.stderr,
-            rp.stderr[:200])
+    apres_construction = [subprocess.run([sys.executable, str(RANGE), "--atelier", str(construit), *a],
+                                         capture_output=True, text=True, timeout=120, env=env)
+                          for a in (["--proposer"], ["--annuler"])]
+    fm3 = (construit / "03-rangement.md").read_text(encoding="utf-8")
+    verifie("D3 : la construction inscrit construit_le ; le rangement refuse ensuite de proposer et de défaire (code 3)",
+            "construit_le:" in fm3 and "statut: applique" in fm3
+            and all(r.returncode == 3 and "construit" in r.stderr for r in apres_construction),
+            str([(r.returncode, r.stderr[:100]) for r in apres_construction]))
     claude = (vault / "CLAUDE.md").read_text(encoding="utf-8") if (vault / "CLAUDE.md").is_file() else ""
     moustaches = [str(q.relative_to(vault)) for q in vault.rglob("*.md")
                   if "Templates" not in q.parts and re.search(r"\{\{[A-Z_]+\}\}", q.read_text(encoding="utf-8"))]
@@ -1598,8 +1604,11 @@ def c11_rangement(tmp, configs):
     verifie("I-R2 : appliquer puis annuler rend chemins, tailles et dates d'avant ; témoin : un fichier touché "
             "entre les deux fait différer la comparaison",
             ru.returncode == 0 and touche and arbre_fichiers(perso, commun) == avant, (ru.stdout + ru.stderr)[-300:])
-    verifie("le dossier commun créé par Cortex et son sommaire disparaissent à l'annulation",
-            not (commun / "Référentiel").exists())
+    conf_apres = cortex_config.charger(atelier / "config.yaml")
+    verifie("le dossier commun créé par Cortex et son sommaire disparaissent à l'annulation, et la config "
+            "reprend sa valeur d'avant (aucun sommaire fantôme pour le vault)",
+            not (commun / "Référentiel").exists() and conf_apres.get("referentiel") == {"etat": "aucun", "chemin": ""},
+            str(conf_apres.get("referentiel")))
 
     # Config : les refus du contrat §1 et leur témoin.
     conf0 = cortex_config.charger(configs["dirigeant"][0])

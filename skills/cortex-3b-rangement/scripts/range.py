@@ -382,6 +382,12 @@ def ecrire_lisible(atelier, plan, statut, acceptees, raison=""):
     (Path(atelier) / LISIBLE).write_text("\n".join(fm + [""] + corps), encoding="utf-8")
 
 
+def dans_un_depot(chemin):
+    """Vrai si le chemin, ou un dossier qui le contient, est un dépôt git ou un vault (§6)."""
+    r = reel(chemin)
+    return any((d / ".git").exists() or (d / ".obsidian").is_dir() for d in [r, *r.parents])
+
+
 def pas_apres_construction(atelier):
     """Le rangement précède la construction (D3) : une fois le second cerveau construit
     (`construit_le`, posé par l'installation), plus rien ne se propose ni ne s'applique,
@@ -476,7 +482,7 @@ def proposer(atelier, demande_ref=""):
             absentes.append(nom_r)
             continue
         # Un dossier qui est un dépôt git ou un vault, ou qui s'y trouve, ne se touche pas (§6).
-        if any((d / ".git").exists() or (d / ".obsidian").is_dir() for d in [rr, *rr.parents]):
+        if dans_un_depot(rr):
             dans_depot.append(nom_r)
             continue
         # Une racine déclarée sous celle-ci se parcourt pour elle-même, une seule fois.
@@ -561,7 +567,10 @@ def proposer(atelier, demande_ref=""):
                                  "motif": "même nom, même taille"})
 
     vers_ref = [c for c in candidats if c["classe"] in ("entreprise", "a_demander")]
-    if ref is not None and (vers_ref or not ref_existe or not (ref_decl / "AGENTS.md").exists()):
+    if ref is not None and dans_un_depot(ref_decl):
+        signalements.append({"type": "racine_dans_un_depot", "chemins": [tilde(ref_decl)],
+                             "motif": "le dossier commun serait dans un dépôt git ou un vault : rien n'y est proposé"})
+    elif ref is not None and (vers_ref or not ref_existe or not (ref_decl / "AGENTS.md").exists()):
         if not ref_existe:
             candidats.append({"geste": "creer_dossier", "vers": ref_decl, "classe": "", "motif": "dossier commun de l'entreprise"})
         if vers_ref and not (ref_decl / "Procédures").is_dir():
@@ -865,6 +874,8 @@ def controler(o, racines, renforce, a_creer):
     for c in ([de] if de else []) + [vers]:
         if racines.de(c) is None:
             raise Garde(f"G4 : {o['id']} : {tilde(c)} est hors des dossiers déclarés.")
+        if dans_un_depot(c):
+            raise Garde(f"{o['id']} : {tilde(c)} est dans un dépôt git ou un vault ; rien n'y bouge.")
     if de is not None and racines.de(de) != racines.de(vers):
         raise Garde(f"G3 : {o['id']} relie deux dossiers déclarés différents.")
     if o["partage"] and not renforce:
@@ -957,11 +968,17 @@ def publier(atelier, source, nom, renforce):
                                       if re.fullmatch(r"p\d+", str(l.get("id", "")))], default=0))
     crees = [d for d in (base / "assistants", base / "assistants" / nom) if not d.exists()]
     ligne = {"id": ident, "geste": "publier", "de": tilde(source), "vers": tilde(vers), "renforce": True}
+    if dans_un_depot(vers):
+        raise Garde(f"{tilde(vers)} est dans un dépôt git ou un vault ; rien n'y est publié.")
+    try:
+        contenu = source.read_text(encoding="utf-8")   # lu avant tout geste : un échec ici ne laisse rien
+    except (OSError, ValueError) as e:
+        raise Usage(f"{tilde(source)} illisible ({e}) : rien n'a été publié.") from e
     try:
         for d in crees:
             os.mkdir(d)
         with open(vers, "x", encoding="utf-8") as f:
-            f.write(source.read_text(encoding="utf-8"))
+            f.write(contenu)
         cree, empreinte, _, avant = ecrire_index(agents, conf, {})
     except (Garde, OSError) as e:
         # Ce qui a été posé avant l'échec reste en place et se nomme : rien ne
@@ -1045,8 +1062,10 @@ def _defaire_index(index, cree, avant, journal, conf):
 
 
 def annuler(atelier, ids=None):
-    """Rejoue le journal à l'envers (T4). Ne retire que ce que Cortex a créé."""
+    """Rejoue le journal à l'envers (T4). Ne retire que ce que Cortex a créé. Avant la
+    construction seulement : après, défaire casserait les liens du second cerveau."""
     atelier = Path(atelier)
+    pas_apres_construction(atelier)
     journal = lire_journal(atelier)
     faits, ret = actifs(journal), retires(journal)
     fm = lire_fm(atelier)
@@ -1067,6 +1086,8 @@ def annuler(atelier, ids=None):
                 renommer_exclusif(vers, de)
             elif l["geste"] == "manuel":
                 note = "déplacé par vous : à remettre vous-même dans votre outil si vous le souhaitez"
+            elif l["geste"] == "referentiel":
+                _maj_config_referentiel(atelier, l.get("avant_chemin", ""), l.get("avant_etat") or "inconnu")
             elif l["geste"] == "creer_dossier":
                 vide, reste = _vide_ou_systeme(vers) if vers.is_dir() else (True, [])
                 if reste and not vide:
@@ -1133,11 +1154,12 @@ def note_autorisee(atelier, chemin):
     return tilde(os.path.expanduser(chemin)) not in c["en_attente"]
 
 
-def _maj_config_referentiel(atelier, chemin):
-    """referentiel.etat: existant et son chemin, dans config.yaml : le dossier commun existe."""
+def _maj_config_referentiel(atelier, chemin, etat="existant"):
+    """Le bloc `referentiel` de config.yaml : `existant` et son chemin quand le dossier commun
+    existe ; la valeur d'avant quand l'annulation l'a retiré."""
     cfg = Path(atelier) / "config.yaml"
     texte = cfg.read_text(encoding="utf-8")
-    bloc = f'referentiel:\n  etat: existant\n  chemin: "{chemin}"\n'
+    bloc = f'referentiel:\n  etat: {etat}\n  chemin: "{chemin}"\n'
     m = re.search(r"^referentiel:[^\n]*\n(?:[ \t]+[^\n]*\n?)*", texte, re.M)
     texte = (texte[:m.start()] + bloc + texte[m.end():]) if m else texte.rstrip("\n") + "\n" + bloc
     cfg.write_text(texte, encoding="utf-8")
@@ -1164,7 +1186,14 @@ def clore(atelier, statut):
     refs = {Path(os.path.expanduser(o["vers"])).parent for o in plan["operations"] if o["geste"] == "ecrire_index"}
     for ref in refs:
         if ref.is_dir() and any(_sous(reel(os.path.expanduser(l["vers"])), reel(ref)) for l in faits.values()):
+            avant = charger_conf(atelier).get("referentiel") or {}
+            avant = avant if isinstance(avant, dict) else {}
+            if avant.get("etat") == "existant" and avant.get("chemin") == tilde(ref):
+                continue
             _maj_config_referentiel(atelier, tilde(ref))
+            journaliser(atelier, {"id": "c001", "geste": "referentiel", "de": "", "vers": tilde(ref),
+                                  "resultat": "fait", "avant_etat": str(avant.get("etat") or "inconnu"),
+                                  "avant_chemin": str(avant.get("chemin") or "")})
     ecrire_lisible(atelier, plan, "applique", fm.get("acceptees") or [])
     return OK
 
@@ -1208,6 +1237,8 @@ def _autotest():
         poser(commun / "Divers" / "tarifs.md", "t\n", (2025, 6, 1, 9))
         poser(perso / "Divers" / "tarifs.md", "t\n", (2025, 6, 1, 9))
         os.symlink(ailleurs, perso / "lien")                  # G4 : un lien sous une racine qui sort
+        (perso / "outil" / ".git").mkdir(parents=True)        # un dépôt git dans un dossier de travail
+        poser(perso / "outil" / "Untitled.md", "x", (2026, 1, 1))
         (perso / ".git-like").mkdir()
         (atelier / "config.yaml").write_text(
             f'organisation:\n  nom: "Ateliers Exemple"\n  code: exemple\ncollecte:\n'
@@ -1265,6 +1296,7 @@ def _autotest():
         ici("--classer", f"{relance}=entreprise")
         r3 = garde(["--appliquer", "--ids", relance, "--renforce"])
         assert "G3" in r3.stderr and "G8" not in r3.stderr, "la réponse lève G8"
+        assert "espaces différents" in r3.stderr, "G3 : une ligne manuel ne s'exécute jamais"
         # Dossier d'arrivée absent sans la ligne qui le crée.
         assert "n'existe pas" in garde(["--appliquer", "--ids", fact, "--renforce"]).stderr
         # G1 : destination existante ; témoin : le même geste passe une fois la place libre.
@@ -1296,6 +1328,14 @@ def _autotest():
         r3 = garde(["--appliquer", "--ids", "r901", "--renforce"])
         assert "G3" in r3.stderr and "différents" in r3.stderr, r3.stderr
         plan["operations"].remove(travers)
+        # Un geste dans un dépôt git, glissé dans la liste à la main : la garde du script le refuse.
+        st_o = (perso / "outil" / "Untitled.md").stat()
+        glisse = dict(intrus, id="r903", de=str(perso / "outil" / "Untitled.md"), vers=str(perso / "outil" / "Outil.md"),
+                      taille=st_o.st_size, mtime=st_o.st_mtime, partage=False)
+        plan["operations"].append(glisse)
+        ecrire_plan(atelier, plan)
+        assert "dépôt git" in garde(["--appliquer", "--ids", "r903"]).stderr
+        plan["operations"].remove(glisse)
         ecrire_plan(atelier, plan)
         # I-R3 : appliquer sans lire un octet ; la source est rendue illisible.
         if hasattr(os, "geteuid") and os.geteuid() != 0:
@@ -1338,6 +1378,7 @@ def _autotest():
         assert "aucun dossier commun" in garde(["--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce"]).stderr
         assert ici("--clore", "applique").returncode == 0
         assert charger_conf(atelier)["referentiel"]["etat"] == "existant"
+        assert ici("--clore", "applique").returncode == 0, "clore deux fois ne réécrit pas l'avant"
         assert "G2" in garde(["--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux"]).stderr
         index_avant = (ref / "AGENTS.md").read_text(encoding="utf-8")
         assert ici("--publier", str(spec / "SKILL.md"), "--nom", "lecteur-de-baux", "--renforce").returncode == 0
@@ -1370,6 +1411,8 @@ def _autotest():
         if hasattr(os, "geteuid"):
             (perso / "Clients" / "Nouveau document (3).md").chmod(0o644)
         assert arbre(racines) == avant, "I-R2 : appliquer puis annuler doit rendre l'arbre d'avant"
+        assert charger_conf(atelier)["referentiel"] == {"etat": "aucun", "chemin": ""}, \
+            "défaire rend aussi la config d'avant : aucun sommaire fantôme"
         # A5 : une ligne acceptée jamais faite se retire par --annuler --ids.
         ici("--proposer")
         nouveau = {Path(o.get("de") or o["vers"]).name: o["id"] for o in lire_plan(atelier)["operations"]}
@@ -1399,6 +1442,7 @@ def _autotest():
         (atelier / LISIBLE).write_text(md, encoding="utf-8")
         assert "construit" in garde(["--proposer"]).stderr
         assert "construit" in garde(["--appliquer", "--ids", "r001"]).stderr
+        assert "construit" in garde(["--annuler"]).stderr
     os.environ.pop("CORTEX_RECETTE_EN_LIGNE", None)
     _SIMULES = None
     # M2 : une racine à soi déclarée sous une racine partagée reste partagée (contrat §3).
@@ -1417,6 +1461,11 @@ def _autotest():
         (depot / ".git").mkdir()
         p = proposer(at)
         assert not p["operations"] and any(x["type"] == "racine_dans_un_depot" for x in p["signalements"]), p
+        # Partagée, elle ne reçoit pas non plus de dossier commun ni de sommaire.
+        (at / "config.yaml").write_text(f'collecte:\n  racines: ["{depot}"]\n  partagees: ["{depot}"]\n',
+                                        encoding="utf-8")
+        p = proposer(at)
+        assert not p["operations"] and not (depot / "Référentiel").exists(), p["operations"]
         # M3 : un sommaire marqué, complété à la main, revient mot pour mot à l'annulation.
         ag = t / "AGENTS.md"
         ag.write_text(f"# Dossier commun\n\n{MARQUEUR} 2020-01-01 -->\n\nNote ajoutée à la main.\n", encoding="utf-8")
