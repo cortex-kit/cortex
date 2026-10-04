@@ -9,6 +9,7 @@ Branche `lane/rangement`, worktree `~/Dev/cortex--rangement`, base `cf5912a` (2.
 | Avant la lane (`ce062ca`) | 154 passés, 0 en échec | 0 |
 | Après la lane (`2efc3e4`) | 192 passés, 0 en échec | 0 |
 | Après la reprise 1 (`d6c7b2f`) | 197 passés, 0 en échec | 0 |
+| Après la reprise 2 (`b898688`) | 199 passés, 0 en échec | 0 |
 
 Le critère C11 (42 contrôles après la reprise 1) couvre le rangement ; C1, C2 et C10 passent de neuf à dix étapes.
 
@@ -158,3 +159,35 @@ Après l'audit à froid (`audit.md`, `a10faaa`) et les amendements A6 et A7. Rec
 - `copie_structurant.py` : `texte_de` agrège binaire absent, délai dépassé et échec de conversion, et jette `stderr`.
 - `scaffold.py` : une couleur de domaine invalide est grisée sans avertissement.
 - `federe.py` : un `index.json` mal formé lève un `KeyError` brut.
+
+## Reprise 2
+
+Après le second audit (`audit-2.md`, `e7d098c`) et l'amendement A8. Recette à 199 contrôles, sortie 0 (C11 : 44). Pour chaque cas ajouté, la garde ou le chemin qu'il vise a été neutralisé dans le code : l'auto-test ou la recette rougit (N1, N2, N3, N4, N5 ×2, N6, N10, N12 : rouges).
+
+| Finding | Correction | Commit |
+|---|---|---|
+| N1, échec du rafraîchissement sorti en code 3 | Les deux appels (après un lot, à la clôture) passent par `rafraichir_ou_dire` : un échec se journalise sous un id `i…` en `echec` et sort 1, avec « … sont faits ; seul le sommaire du dossier commun n'a pas suivi ». Le code 3 garde le sens « rien n'a bougé ». Auto-test : marque retirée entre deux lots, code 1, geste fait, ligne d'échec au journal | `b8969cd` |
+| N2, rafraîchissement de la clôture non éprouvé | Recette : la procédure déplacée à la main vers le dossier commun, constatée, est absente du sommaire avant la clôture et présente après | `b8969cd` |
+| N3, empreinte avant retrait d'un assistant | Auto-test : assistant publié puis retouché, `--annuler --ids p…` rend 1, fichier intact | `b8969cd` |
+| N4, priorité de la troncature | Auto-test au plafond 3 : la création du dossier commun et le sommaire restent, un renommage part | `b898688` |
+| N5, branches non éprouvées | `etat.py` : liste proposée, rien de fait, suite faite : arbitré « passée sans rangement » ; témoin sans la suite. `scaffold.py` : `marquer_construction` n'écrit pas `passee` après un geste fait ; témoin sans geste | `b8969cd` |
+| N6, annulation partielle | `--annuler --ids` qui touche le dossier commun rafraîchit le sommaire, journalisé `i…` ; auto-test | `b8969cd` |
+| N7, absent et changé agrégés | `ecart_identite` : « a disparu » ou « a changé (taille ou date) » à G5, à `--verifier` et à l'annulation d'un déplacement | `b8969cd` |
+| N8, contrôle manuel ancien | rejoué, voir ci-dessous | `b898688` (fixture actuelle) |
+| N10, sommaire montré et écrit différents | `--montrer-index --ids <lot> [--proprietaire …]` imprime le texte exact que le lot écrira, sans rien écrire (projection des déplacements du lot). Le SKILL l'affiche en entier avant l'accord. Auto-test : texte montré égal au fichier écrit, arbre inchangé par la commande | `b8969cd` |
+| N11, `AGENTS.md` dans le guide d'usage | « le sommaire pour les IA de ce dossier (ou, sans sommaire, le dossier lui-même) » | `b8969cd` |
+| N12, sommaire refusé, procédures rangées | Le dossier commun reste inscrit. `CLAUDE.md` du vault et la note `Référentiel commun` ne renvoient à `AGENTS.md` que s'il existe ; sinon au dossier lui-même (`index: ""`). `parle` suit la même règle. Recette sur les deux faces | `b8969cd` |
+| N13, dossier partagé ajouté sans validation | le SKILL exige `cortex_config.py <config>` avant tout geste, puis une nouvelle proposition | `b8969cd` |
+| N9 | en suivi, ci-dessous | — |
+
+### Contrôle manuel rejoué (N8)
+
+`claude -p --plugin-dir <dépôt>` sur un atelier de recette tiré de la fixture actuelle (dirigeant et son dossier partagé, maillons 0 à 3 valides), 2026-10-04.
+
+- Tour 1, « rangeons mes dossiers » : « 15 changements possibles : 6 noms illisibles à renommer, 6 procédures à regrouper dans un dossier commun, 3 lignes pour créer ce dossier commun et son sommaire pour les IA », doublon `tarifs.xlsx` signalé et laissé, puis le premier lot de quatre lignes en entier (avant, après, raison). Aucune permission refusée.
+- Tour 2, « je refuse tout » : message de clôture du refus mot pour mot ; `03-rangement.md` en `statut: refuse`, `raison: "refusé"` ; `etat.py` : étape 3b arbitrée « refusé », phrase suivante « construis mon second cerveau » ; aucun fichier n'a bougé, aucun dossier commun créé.
+- Limite du mode `-p` : les questions à cocher ne s'y affichent pas, la skill l'a dit et demandé les numéros en texte.
+
+### Suivi
+
+- **N9** : l'assertion « aucune note par procédure d'entreprise » porte sur le vault du maillon 4. Le maillon 5, seul à pouvoir en écrire, est conduit par la prose et n'a pas de code à exercer ; son contrôle viendra avec un outillage du remplissage (et avec la garde de lint prévue en 2.3.x).
