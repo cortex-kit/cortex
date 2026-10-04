@@ -1618,15 +1618,15 @@ def _autotest():
         assert ici("--clore", "refuse").returncode == 0 and lire_fm(atelier)["statut"] == "refuse"
         # G9 : au-delà du plafond, la liste s'arrête et le déclare.
         cfg = (atelier / "config.yaml").read_text(encoding="utf-8").replace("max_gestes_rangement: 120",
-                                                                              "max_gestes_rangement: 2")
+                                                                              "max_gestes_rangement: 3")
         (atelier / "config.yaml").write_text(cfg, encoding="utf-8")
         ici("--proposer")
         b = lire_plan(atelier)["bornes"]
-        assert b["gestes"] == 2 and b["depassement"] and b["ecartes"] > 0, b
+        assert b["gestes"] == 3 and b["depassement"] and b["ecartes"] > 0, b
         # N4 : la troncature garde d'abord la création du dossier commun et le sommaire.
-        assert {o["geste"] for o in lire_plan(atelier)["operations"]} <= {"creer_dossier", "ecrire_index"}, \
+        assert sorted(o["geste"] for o in lire_plan(atelier)["operations"]) == ["creer_dossier", "creer_dossier", "ecrire_index"], \
             [o["geste"] for o in lire_plan(atelier)["operations"]]
-        (atelier / "config.yaml").write_text(cfg.replace("max_gestes_rangement: 2", "max_gestes_rangement: 120"),
+        (atelier / "config.yaml").write_text(cfg.replace("max_gestes_rangement: 3", "max_gestes_rangement: 120"),
                                              encoding="utf-8")
         ici("--proposer")
         b = lire_plan(atelier)["bornes"]
