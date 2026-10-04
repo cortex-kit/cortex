@@ -193,3 +193,12 @@ Le maillon 4 refuse de construire tant que 3b vaut `en_cours`, et le dit dans le
 - I-R4. Aucune écriture dans une base en ligne.
 - I-R5. Aucune procédure dans `50 - Ressources/Structurants/`.
 - I-R6. Zéro chemin absolu, zéro marque, dans tout ce qui est livré (contrôles existants de la recette).
+
+## Amendements du chef d'orchestre (2026-10-04, questions de la lane)
+
+- A1. Après un rangement appliqué, la skill 3b rejoue `scan.py` sur le même `01-inventaire.json`, sans modifier `scan.py` ; le rejeu garde `mail`, `bases`, `resume` et `preuve_de` par `source_id`. Le maillon 5 lit le journal pour traduire tout chemin ancien cité par `02-ontologie.md` ou `00-cadrage.md`.
+- A2. Étape 3b absente alors qu'un artefact aval existe (`04-ingest.md` et suivants) : `arbitre`, raison « passée sans rangement ».
+- A3. L'accord sur une ligne s'inscrit dans le frontmatter de `03-rangement.md` (`acceptees: [...]`) au moment de `--appliquer` ; c'est ce qui rend visible « acceptée non faite ».
+- A4. Une ligne `manuel` n'entre jamais dans `acceptees`. Un geste manuel en attente ne bloque pas le maillon 4 ; le maillon 5 ne crée aucune note-pointeur pour une source qui en porte un, il l'inscrit dans `04-ingest.md` comme « en attente de déplacement ». Une fois le geste constaté par `--verifier`, la source reçoit sa note (contrôle de recette, cas positif et négatif).
+- A5. `--annuler --ids` sur une ligne acceptée jamais faite la retire, par une ligne `annule` au journal.
+- Suivi hors périmètre : le rejeu de `scan.py` relance l'extraction des candidats structurants, y compris sur un fichier en ligne seulement. Défaut préexistant de `scan.py`, noté au rapport, non corrigé.
