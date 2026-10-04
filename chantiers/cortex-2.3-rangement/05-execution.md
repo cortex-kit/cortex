@@ -23,7 +23,7 @@ Cocher chaque ligne avec le hash du commit qui la porte. Un commit par bloc coh�
 13. [x] `README.md` et notice si leur source cite les phrases. (fd1beec)
 
 ## Clôture de la lane
-- [x] Passer `06-verification.md` par un sous-agent à contexte frais ; corriger ; repasser. (787587b, 76ce831)
+- [x] Passer `06-verification.md` par un sous-agent à contexte frais ; corriger ; repasser. (787587b, 76ce831, 2efc3e4)
 - [x] Écrire `chantiers/cortex-2.3-rangement/rapport.md` : fait (avec hashes), écarts au contrat et leur motif, valeurs attendues dans des fichiers hors possession (dont la version 2.3.0 de `plugin.json`), suivis notés et non traités, compte de contrôles avant et après. (rapport.md)
 - [x] Mettre à jour la ligne **Statut** de `README.md` de ce pack. (README.md)
 

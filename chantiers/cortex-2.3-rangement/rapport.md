@@ -7,9 +7,9 @@ Branche `lane/rangement`, worktree `~/Dev/cortex--rangement`, base `cf5912a` (2.
 | | Contrôles | Sortie |
 |---|---|---|
 | Avant la lane (`ce062ca`) | 154 passés, 0 en échec | 0 |
-| Après la lane (`76ce831`) | 191 passés, 0 en échec | 0 |
+| Après la lane (`2efc3e4`) | 192 passés, 0 en échec | 0 |
 
-Le critère C11 (36 contrôles) couvre le rangement ; C1, C2 et C10 passent de neuf à dix étapes.
+Le critère C11 (37 contrôles) couvre le rangement ; C1, C2 et C10 passent de neuf à dix étapes.
 
 ## Fait
 
@@ -29,6 +29,7 @@ Le critère C11 (36 contrôles) couvre le rangement ; C1, C2 et C10 passent de n
 | 12. Fixtures et `parcours_blanc.py` | `29c30f3` |
 | 13. Notice vierge régénérée (README inchangé : sa source ne cite pas les phrases d'étape) | `fd1beec` |
 | Reprise après vérification | `787587b`, `76ce831` |
+| Arbitrage du chef d'orchestre (T5 amendé, A4 en étape, doctrine §4) | `2efc3e4` |
 
 Amendements du chef d'orchestre appliqués : A1 à A5 de `04-contrat.md` (fin du fichier), sans les recopier ici.
 
@@ -42,19 +43,20 @@ Amendements du chef d'orchestre appliqués : A1 à A5 de `04-contrat.md` (fin du
 - **Ce que le script ne propose pas** : renommer un dossier, sortir des fichiers d'un dossier « Divers » vers un domaine. Ces gestes demandent un jugement que la proposition déterministe ne porte pas ; la nomenclature le dit. Les procédures, elles, se rangent.
 - **Comparaison d'arbre (I-R2)** : chemins, tailles et dates des fichiers, liste des dossiers. La date d'un dossier bouge à chaque renommage dans le dossier ; elle n'est pas comparée.
 - **État `propose` sans ligne en suspens** : `a_faire` (ou `arbitre` « passée sans rangement » si un artefact aval existe, A2). Le tableau du contrat §8 ne nomme que les quatre cas ; celui-ci ne bloque pas le maillon 4.
-- **Mise à jour d'un vault déjà livré** : `cortex_config.valider_installable` refuse désormais `process` dans `donnees.structurants` (T5). Le lint d'un vault installé avant 2.3.0 lit cette fonction ; après un `--outillage-seul`, son `config.yaml` (qui porte `process`) passe en `contrat_config_invalide`. Voir les suivis.
+- **T5 amendé par le chef d'orchestre (2026-10-04)** : `process` dans `donnees.structurants` n'est plus refusé par `cortex_config.py`. Une config antérieure à 2.3.0 qui le porte reste installable et verte au lint ; `avertissements()` dit « type retiré en 2.3.0, ignoré » (imprimé par `scaffold.py` et par `cortex_config.py <config>`), `structurants_effectifs()` l'exclut. Le refus vit là où la copie se fait : `copie_structurant.py --type process`. Le cadrage et `config.example.yaml` ne l'écrivent plus. La recette porte les deux faces (config 2.2 installée et lint à 0 avec l'avertissement ; copie d'une procédure refusée).
 
 - **L'installation écrit dans l'atelier** (décision de lane, à valider par le chef d'orchestre) : après une construction réussie, `scaffold.py` inscrit `construit_le` dans `_cortex/03-rangement.md`, et `statut: passee` (arbitré « passée sans rangement ») si le rangement n'a pas été conclu ; il ne le fait que dans un atelier (présence de `02-ontologie.md`). Motif : sans trace de la construction, `etat.py` proposait « rangeons mes dossiers » juste après le maillon 4 et `range.py` aurait renommé des fichiers que le vault venait de pointer (D3). `range.py` refuse ensuite `--proposer`, `--appliquer`, `--classer`, `--nommer`, `--clore` et `--annuler` (code 3 ; 02-backlog : « défaire, à tout moment avant la construction ») ; `--publier` (maillon 6), `--verifier` et `--chemins` restent ouverts. Le trou en 03 de la doctrine §4 reste vrai pour l'étape 4 elle-même.
 - **Config du dossier commun journalisée** : `--clore applique` inscrit `referentiel.etat: existant` par une ligne de journal `c001` (`geste: referentiel`, avec la valeur d'avant) ; l'annulation la rend. Sans cela, un rangement défait laissait au vault un sommaire fantôme.
 - **Statut et signalements ajoutés** : `statut: passee` dans `03-rangement.md` ; signalements `dossier_commun_a_choisir` (plusieurs dossiers partagés), `racine_dans_un_depot`, `titre_illisible`, `index_etranger`, `racine_absente`.
 - **Codes de sortie** : une commande mal formée rend 2 ; un journal ou un inventaire illisible rend 1 (erreur), jamais 2. `scaffold.py` refuse aussi de construire quand l'étape 3b est illisible.
-- **A4 vit dans la prose du maillon 5** : le remplissage écrit ses notes par conduite, sans code d'écriture où loger la garde. Le code fournit la décision (`range.py --chemins`, fonction `note_autorisee`), la recette la prouve dans les deux sens ; l'appel reste une consigne du SKILL.md du maillon 5.
+- **A4, accepté pour la 2.3.0** : le remplissage écrit ses notes par conduite. L'appel est une étape numérotée du SKILL.md du maillon 5, avant chaque note-pointeur : `range.py --atelier <_cortex> --autorise "<chemin>"` (0 et le chemin rangé, ou 3 « en attente de déplacement »). La recette et l'auto-test prouvent la décision dans les deux sens.
 
 ## Valeurs attendues dans des fichiers hors possession
 
 - `.claude-plugin/plugin.json` : `"version": "2.3.0"` (actuellement `2.2.1`).
 - `.claude-plugin/marketplace.json`, description : « … inventaire, ontologie, rangement, installation, peuplement, agents, passation, fédération. »
 - `chantiers/cortex-v2/04-contrat.md` §5 et §11 : « neuf étapes » devient « dix étapes, dont l'étape facultative 3b » (le contrat 2.3 §8 l'étend sans le réécrire ; à porter si le chef d'orchestre veut un seul texte de référence).
+- Ces trois valeurs sont portées par le chef d'orchestre à la fusion.
 - `notice/LISEZ-MOI.html` affiche « paquet 2.0.0 », comme avant la lane : la version affichée suit le geste de fabrication du chef d'orchestre.
 
 ## Vérification
@@ -119,6 +121,6 @@ Le renommage refuse lui-même la destination occupée : deux barrières au lieu 
 ## Suivis notés, non traités
 
 - **Rejeu du scan après rangement** (A1) : `scan.py` relance l'extraction des candidats structurants, y compris sur un fichier présent seulement en ligne, qu'il téléchargerait. Défaut préexistant de `scan.py`, hors possession.
-- **Vaults livrés avant 2.3.0** : leur `config.yaml` porte `process` dans `structurants`. À la mise à jour de l'outillage, retirer `process` de leur config (ou faire tolérer la clé par le lint jusqu'à une migration). Décision du chef d'orchestre.
+- **Garde de lint sur A4** : une note-pointeur écrite vers une source qui attend un déplacement manuel n'est vue par aucun contrôle du vault. Prévue en 2.3.x, dans `lint_sante.py`, hors de cette lane.
 - **Renommage exclusif hors macOS et Linux** : sous Windows, `os.rename` refuse déjà une destination existante ; sur une autre plateforme POSIX sans `renamex_np` ni `renameat2`, la garde rejouée juste avant le geste reste la seule barrière (fenêtre de deux appels système).
 - **Rangement après la remise** : hors périmètre (01-cadrage). Défaire après la construction casserait les liens du vault ; la skill le dit avant d'agir.
