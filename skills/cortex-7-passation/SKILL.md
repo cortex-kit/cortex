@@ -35,6 +35,8 @@ C'est le seul geste qui compte, et c'est celui sur lequel tout repose. Un vault 
 
 **« Qu'est-ce que je ne dois jamais faire ? »** — Recopier un document dans le vault. Y écrire un secret. Y créer une fiche pour une personne physique. Écrire à plusieurs dans le même vault. Et, pour l'assistant, une phrase écrite telle quelle : « ne jamais se déplacer dans un dossier de travail avec `cd`, le harnais y laisse une trace ; nommer le dossier en entier ».
 
+**Le dossier commun, s'il y a lieu.** Lire `referentiel.etat` dans `config.yaml`. `existant` : le guide nomme le dossier commun par son chemin (`referentiel.chemin`, forme `~`) et dit la règle en une phrase : pour une procédure, la charte, une signature, un modèle ou un assistant de l'entreprise, l'assistant lit d'abord le sommaire `AGENTS.md` de ce dossier, puis le document ; rien de tout cela ne se recopie dans le vault, et une version nouvelle remplace l'ancienne au même endroit. `a_creer` ou `inconnu` : le guide le dit comme un point à régler avec qui de droit dans l'entreprise, sans chemin. `aucun` : le guide n'en parle pas.
+
 **Sous Windows natif, une limite de plus, écrite dans le guide.** `os: windows` dans `_cortex/poste.json` : le guide le dit en clair. Sous Windows sans WSL2, les commandes que lance l'assistant ne sont pas confinées au vault ; seules les règles de lecture et d'édition protègent les dossiers de travail. Pour un poste qui porte des données sensibles, recommander Claude Code dans WSL2 (le sous-système Linux de Windows), où le confinement s'applique. L'installation n'en est pas bloquée.
 
 ## 2. La fiche de reprise à froid
