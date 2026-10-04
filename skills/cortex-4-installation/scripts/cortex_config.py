@@ -317,7 +317,8 @@ def valider_installable(conf):
         domaines = []
     # Les trois blocs sont relus ici, une fois : un `substrats` mal formé se
     # signale même quand le régime ne le fait pas lire.
-    plafond = mapping("collecte").get("plafond_domaines", 6)
+    collecte = mapping("collecte")
+    plafond = collecte.get("plafond_domaines", 6)
     donnees, substrats = mapping("donnees"), mapping("substrats")
 
     if not domaines:
@@ -387,6 +388,73 @@ def valider_installable(conf):
         erreurs.append(
             "donnees.regime: 'copie' alors que substrats.base_projets est renseigné. "
             "Une base déportée impose le régime pointeur.")
+    if "process" in (donnees.get("structurants") or []):
+        erreurs.append(
+            "donnees.structurants: 'process' refusé. Une procédure ne se copie jamais, "
+            "régime copie compris : la sienne se pointe depuis le vault, celle de "
+            "l'entreprise vit dans le dossier commun (contrat 2.3.0 §1).")
+    erreurs.extend(erreurs_rangement(collecte, mapping("referentiel"), mapping("sante")))
+    return erreurs
+
+
+REFERENTIEL_ETATS = ("existant", "a_creer", "aucun", "inconnu")
+
+
+def _tilde(chemin):
+    """Forme `~` d'un chemin du dossier personnel, sans barre finale. Même règle
+    que `forme_tilde` de scaffold.py, qu'on n'importe pas : le lint tourne chez le
+    client, où scaffold.py n'est pas livré."""
+    s = str(chemin or "").strip().replace("\\", "/").rstrip("/")
+    home = str(Path.home()).replace("\\", "/")
+    if s == home or s.startswith(home + "/"):
+        return "~" + s[len(home):]
+    return s
+
+
+def erreurs_rangement(collecte, referentiel, sante):
+    """Clés 2.3.0 (contrat cortex-2.3 §1) : absentes, tolérées ; présentes, fermées."""
+    erreurs = []
+    racines = collecte.get("racines") or []
+    racines = [_tilde(r) for r in ([racines] if isinstance(racines, str) else racines)]
+    partagees = collecte.get("partagees")
+    if partagees is not None and partagees != "":
+        if not isinstance(partagees, list):
+            erreurs.append(f"collecte.partagees: attendu une liste inline [\"~/…\"], lu {partagees!r}.")
+            partagees = []
+        hors = [p for p in partagees if _tilde(p) not in racines]
+        if hors:
+            erreurs.append(
+                f"collecte.partagees: {hors} ne figure pas dans collecte.racines. Un dossier "
+                "partagé est d'abord un dossier de travail déclaré.")
+    partagees = [_tilde(p) for p in (partagees if isinstance(partagees, list) else [])]
+
+    if referentiel:
+        etat = referentiel.get("etat", "inconnu")
+        chemin = _tilde(referentiel.get("chemin", ""))
+        if etat not in REFERENTIEL_ETATS:
+            erreurs.append(f"referentiel.etat: {etat!r} n'est pas dans {list(REFERENTIEL_ETATS)}.")
+        elif etat != "existant" and chemin:
+            erreurs.append(
+                f"referentiel.chemin: {chemin!r} renseigné alors que referentiel.etat vaut "
+                f"{etat!r}. Le chemin reste \"\" tant que le dossier commun n'existe pas.")
+        elif etat == "existant":
+            sous = [r for r in racines if chemin == r or chemin.startswith(r + "/")]
+            if not chemin:
+                erreurs.append("referentiel.chemin: vide alors que referentiel.etat vaut "
+                               "'existant'. Le chemin se demande, il ne se devine pas.")
+            elif not sous:
+                erreurs.append(
+                    f"referentiel.chemin: {chemin!r} n'est sous aucune racine de "
+                    "collecte.racines. La chaîne ne lit que les dossiers déclarés (doctrine §9).")
+            elif not any(r in partagees for r in sous):
+                erreurs.append(
+                    f"referentiel.chemin: {chemin!r} est sous {sous[0]!r}, absente de "
+                    "collecte.partagees. Le dossier commun vit dans un dossier partagé.")
+
+    plafond = sante.get("max_gestes_rangement")
+    if plafond is not None and (not isinstance(plafond, int) or isinstance(plafond, bool)
+                                or plafond < 1):
+        erreurs.append(f"sante.max_gestes_rangement: attendu un entier positif, lu {plafond!r}.")
     return erreurs
 
 
@@ -479,7 +547,7 @@ CLES_SCAFFOLD = (
     "{{ORGANISATION}}", "{{CODE}}", "{{REDACTEUR}}", "{{COURRIEL}}",
     "{{PRODUIT}}", "{{DOSSIERS_PROJETS}}", "{{MODE}}", "{{DATE}}",
     "{{DOMAINES_LISTE}}", "{{DOMAINES_TAGS}}", "{{CYCLES_TABLE}}",
-    "{{SEUIL_JOURNAL}}",
+    "{{SEUIL_JOURNAL}}", "{{REFERENTIEL}}",
 )
 
 
@@ -581,6 +649,41 @@ def _autotest():
         e = valider_installable(dict(conf, alias=mauvais))
         assert any(x.startswith("alias") for x in e), (mauvais, e)
         assert appliquer_alias(fm, dict(conf, alias=mauvais)) == fm, mauvais
+
+    # Clés 2.3.0 (rangement) : chaque refus avec son cas qui passe.
+    assert conf["referentiel"]["etat"] in REFERENTIEL_ETATS and conf["collecte"]["partagees"] == []
+    assert conf["sante"]["max_gestes_rangement"] == 120
+    assert "process" not in conf["donnees"]["structurants"]
+
+    def refus(c, cle):
+        return any(x.startswith(cle + ":") for x in valider_installable(c))
+    proc = dict(conf, donnees=dict(conf["donnees"], structurants=["contrat", "process"]))
+    assert refus(proc, "donnees.structurants") and any(
+        "ne se copie jamais" in x for x in valider_installable(proc))
+    assert not refus(dict(conf, donnees=dict(conf["donnees"], structurants=["contrat"])),
+                     "donnees.structurants")
+    commun = "~/Library/CloudStorage/OneDrive-Exemple/Commun"
+    col = dict(conf["collecte"], racines=["~/Documents/Travail", commun], partagees=[commun])
+    ok = dict(conf, collecte=col, referentiel={"etat": "existant", "chemin": commun + "/Référentiel"})
+    assert not valider_installable(ok), valider_installable(ok)
+    assert not valider_installable(dict(ok, referentiel={"etat": "existant", "chemin": commun}))
+    home = str(Path.home())
+    absolu = dict(ok, collecte=dict(col, partagees=[home + commun[1:]]))
+    assert not refus(absolu, "collecte.partagees"), "une forme absolue sous le home vaut sa forme ~"
+    assert refus(dict(ok, collecte=dict(col, partagees=["~/Autre"])), "collecte.partagees")
+    assert refus(dict(ok, collecte=dict(col, partagees="~/Autre")), "collecte.partagees")
+    assert refus(dict(ok, referentiel={"etat": "existant", "chemin": "~/Ailleurs/Commun"}),
+                 "referentiel.chemin")
+    assert refus(dict(ok, referentiel={"etat": "existant", "chemin": "~/Documents/Travail/R"}),
+                 "referentiel.chemin"), "racine non partagée"
+    assert refus(dict(ok, referentiel={"etat": "existant", "chemin": ""}), "referentiel.chemin")
+    assert refus(dict(ok, referentiel={"etat": "a_creer", "chemin": commun}), "referentiel.chemin")
+    assert not valider_installable(dict(ok, referentiel={"etat": "a_creer", "chemin": ""}))
+    assert refus(dict(ok, referentiel={"etat": "peut-etre", "chemin": ""}), "referentiel.etat")
+    assert not valider_installable({k: v for k, v in ok.items() if k != "referentiel"})
+    for mauvais in (0, -3, "beaucoup", True):
+        assert refus(dict(conf, sante=dict(conf["sante"], max_gestes_rangement=mauvais)),
+                     "sante.max_gestes_rangement"), mauvais
 
     # Le refus explicite du mapping à 2 niveaux fait partie du contrat.
     try:

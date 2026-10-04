@@ -58,9 +58,24 @@ chemins:
 #            contrôle structurant_perime compare le hash à la source.
 # structurants : les types de documents éligibles à la copie, dans les mots du
 #            maillon 5. Jamais un corps de mail hors `fil_structurant`.
+#            `process` n'y figure jamais (refusé) : une procédure ne se copie pas,
+#            elle se pointe, ou vit dans le dossier commun (bloc `referentiel`).
 donnees:
   regime: pointeur
-  structurants: [organigramme, process, fiche_de_poste, contrat, projet, acteur, tenants_aboutissants, fil_structurant]
+  structurants: [organigramme, fiche_de_poste, contrat, projet, acteur, tenants_aboutissants, fil_structurant]
+
+# ── POSÉ AU MAILLON 1 — le dossier commun de l'entreprise ──────────────────
+# Charte graphique, signatures, procédures, modèles, assistants établis pour
+# toute l'entreprise : un seul exemplaire, lu par chaque vault via le sommaire
+# AGENTS.md écrit à sa racine (étape 3 bis, sur accord renforcé).
+# etat : existant | a_creer | aucun | inconnu. L'étape 3 bis le fait passer de
+#        aucun ou inconnu à a_creer, puis existant, sur accord.
+# chemin : "" tant que etat ne vaut pas existant. Sinon une racine de
+#        collecte.racines ou un dossier sous elle, et cette racine figure dans
+#        collecte.partagees. Forme ~. En groupe : décision de groupe.
+referentiel:
+  etat: inconnu
+  chemin: ""
 
 # ── OBLIGATOIRE — dé-personnalisation ──────────────────────────────────────
 # `mentions_interdites` est la liste que le grep de recette fait échouer, et le
@@ -140,6 +155,7 @@ sante:
   max_notes_parle: 12              # notes chargées par `parle` avant de déléguer à chercheur-vault
   max_structurants: 40             # plafond de documents copiés en régime copie (lots de 4)
   jours_sans_cloture_alerte: 7     # au-delà, le hook SessionStart rappelle la clôture
+  max_gestes_rangement: 120        # au-delà, la liste de l'étape 3 bis s'arrête et déclare le reste écarté
 
 # ── OBLIGATOIRE — la couche agent livrée ───────────────────────────────────
 # `metier` est rempli au maillon 6 depuis _cortex/05-agents-metier.md. Chaque
@@ -189,6 +205,10 @@ collecte:
   # racines : les dossiers que le maillon 2 parcourt, forme ~ obligatoire.
   # Pas de commentaire en fin de ligne sur une liste inline : le parseur la lirait comme une chaîne.
   racines: ["~/Documents/Clients"]
+  # partagees : sous-ensemble de racines, les dossiers où d'autres personnes
+  # travaillent aussi (question du maillon 1). Y renommer ou déplacer demande un
+  # accord renforcé : leurs liens et raccourcis casseront.
+  partagees: []
   profondeur_arbre: 3
   max_dossiers: 200
   mail_mois: 12

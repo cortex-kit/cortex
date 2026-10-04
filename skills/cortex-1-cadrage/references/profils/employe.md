@@ -18,6 +18,7 @@ Ce qui le distingue des deux autres profils : la frontière du périmètre passe
 | Projets subis | « Quels dossiers vous tombent dessus sans que vous les ayez choisis ? Une charge héritée, un remplacement, une réunion qu'on vous a confiée. » | projets déclarés avec `subi: true`, souvent absents du disque |
 | Outils | « Où suivez-vous l'état de vos dossiers : un tableau, un outil en ligne, votre boîte mail, votre tête ? » | `substrats.base_projets`, et donc le régime de donnée |
 | Rituels | « Quelles réunions reviennent chaque semaine ou chaque mois ? » | agenda déclaré, base de l'écart `reunion_recurrente_sans_projet` |
+| Dossier commun | « Votre entreprise a-t-elle un dossier commun où l'on range la charte graphique, les signatures de mail, les procédures ? » | bloc `referentiel` : `existant` et son chemin, `aucun`, ou `inconnu` si la personne ne sait pas. Un employé le connaît souvent sans y écrire |
 
 La question sur les projets subis est celle qui rapporte le plus. Un employé déclare spontanément ce qu'il a choisi et oublie ce qu'on lui a confié, alors que c'est souvent là que vit la moitié de son temps.
 
@@ -31,6 +32,8 @@ La question sur les projets subis est celle qui rapporte le plus. Un employé d�
 ## Les racines à demander
 
 À demander, jamais à proposer depuis un parcours du disque (`../doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? ». Chaque réponse s'ouvre une fois pour vérifier qu'elle répond, puis s'écrit en forme `~`. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine.
+
+Pour chaque dossier nommé : « d'autres personnes travaillent-elles dans ce dossier ? ». Un oui l'inscrit dans `collecte.partagees` ; le rangement facultatif y demandera une confirmation à part, parce que les liens des collègues casseront.
 
 - Le dossier de travail de la personne, là où elle range ce qu'elle produit pour son poste.
 - Le dossier synchronisé de l'employeur s'il existe : selon `_cortex/poste.json`, demander s'il vit dans un Drive (`gmail`) ou dans un OneDrive ou SharePoint (`m365`). Le fournisseur oriente la question, il ne donne pas de chemin.
@@ -92,9 +95,13 @@ collecte:
   max_dossiers: 200
   mail_mois: 12
   mail_optin: false
+  partagees: []
   plafond_projets: 30
   plafond_acteurs: 40
   plafond_domaines: 5
+referentiel:
+  etat: inconnu
+  chemin: ""
 ```
 
 Ce bloc ne porte ni `domaines` ni `cycles` : ils se décident au maillon 3, sur preuve tirée de l'inventaire. `config.yaml` sort du maillon 1 avec `domaines: []` et `cycles: []`, et `valider_installable` signale alors leur absence, ce qui est attendu (`04-contrat.md` §2).

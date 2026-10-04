@@ -6,17 +6,18 @@ Ce profil n'est pas un quatrième parcours. Chaque rédacteur suit la chaîne se
 
 ## Ce que le cadrage décide en plus
 
-Trois choses, avant toute question individuelle, avec la personne qui porte la démarche pour le groupe.
+Quatre choses, avant toute question individuelle, avec la personne qui porte la démarche pour le groupe.
 
 1. **La liste des rédacteurs.** Nom, poste, et pour chacun le profil de questions qu'il suivra. Trois à huit personnes est l'ordre de grandeur raisonnable ; au-delà, commencer par un noyau.
 2. **L'emplacement du commun.** Un dossier hors de tout vault individuel, forme `~`, par exemple `~/Cortex/commun`. Il sera régénéré à chaque fédération et ne se modifie jamais à la main.
 3. **Le défaut de visibilité.** Ce qu'une note devient quand son auteur n'a rien précisé : `prive` (rien ne sort sans geste explicite) ou `commun` (tout sort sauf mention contraire). Le défaut recommandé est `prive` : une note qui fuit coûte plus qu'une note qui manque.
+4. **Le dossier commun de l'entreprise**, où vivent la charte, les signatures, les procédures et les assistants établis pour tous. Existant, il se demande et s'ouvre une fois ; absent, le rangement proposera de le créer. Chaque vault y pointe, aucun ne le recopie.
 
-Ces trois réponses s'écrivent dans chaque `config.yaml` individuel (`mode`, `commun.racine`, `commun.visibilite_defaut`). La liste des rédacteurs va aussi dans `federation.yaml`, qui vit dans le commun : chaque cadrage y inscrit son rédacteur par `federe.py --inscrire`, avec les autres noms du groupe comme attendus (`cortex-1-cadrage` §5). Pour les rédacteurs suivants, ces décisions se reprennent du premier cadrage et s'annoncent ; elles ne se reposent pas.
+Ces quatre réponses s'écrivent dans chaque `config.yaml` individuel (`mode`, `commun.racine`, `commun.visibilite_defaut`, bloc `referentiel`). La liste des rédacteurs va aussi dans `federation.yaml`, qui vit dans le commun : chaque cadrage y inscrit son rédacteur par `federe.py --inscrire`, avec les autres noms du groupe comme attendus (`cortex-1-cadrage` §5). Pour les rédacteurs suivants, ces décisions se reprennent du premier cadrage et s'annoncent ; elles ne se reposent pas.
 
 ## Les questions, en langage ordinaire
 
-Les mêmes que pour chaque rédacteur selon son poste, plus deux questions de groupe. Par lots de quatre, options fermées plus « autre ».
+Les mêmes que pour chaque rédacteur selon son poste, plus les questions de groupe (visibilité, dossier commun). Par lots de quatre, options fermées plus « autre ».
 
 | Sujet | Question telle qu'elle se pose | Ce que la réponse alimente |
 |---|---|---|
@@ -28,6 +29,7 @@ Les mêmes que pour chaque rédacteur selon son poste, plus deux questions de gr
 | Outils | « Avez-vous un outil commun où vit l'état des dossiers ? » | `substrats.base_projets`, régime de donnée, identique pour tous si l'outil est commun |
 | Rituels | « Quelles réunions réunissent plusieurs d'entre vous ? » | agenda commun |
 | Visibilité | « Par défaut, ce que chacun note reste-t-il chez lui, ou passe-t-il aux autres ? » | `commun.visibilite_defaut` |
+| Dossier commun | « Votre entreprise a-t-elle un dossier commun où l'on range la charte graphique, les signatures de mail, les procédures ? » | bloc `referentiel`, décision de groupe : fixée au premier cadrage, reprise par les suivants, comme la visibilité |
 
 ## Les substrats attendus
 
@@ -41,6 +43,8 @@ Les mêmes que pour chaque rédacteur selon son poste, plus deux questions de gr
 Par rédacteur, celles de son profil, plus le dossier partagé. Deux rédacteurs peuvent déclarer la même racine : chacun la parcourt pour lui, et le commun fusionne ce qui se recoupe.
 
 À demander, jamais à proposer depuis un parcours du disque (`../doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? ». Chaque réponse s'ouvre une fois pour vérifier qu'elle répond, puis s'écrit en forme `~`. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine.
+
+Pour chaque dossier nommé : « d'autres personnes travaillent-elles dans ce dossier ? ». Un oui l'inscrit dans `collecte.partagees` ; le rangement facultatif y demandera une confirmation à part, parce que les liens des collègues casseront.
 
 - Le dossier partagé de l'organisation, demandé comme pour les autres profils : le fournisseur de messagerie oriente la question, il ne donne pas de chemin.
 
@@ -90,9 +94,13 @@ collecte:
   max_dossiers: 200
   mail_mois: 12
   mail_optin: false
+  partagees: []
   plafond_projets: 60
   plafond_acteurs: 80
   plafond_domaines: 6
+referentiel:
+  etat: inconnu
+  chemin: ""
 ```
 
 Ce bloc ne porte ni `domaines` ni `cycles` : ils se décident au maillon 3, sur preuve tirée de l'inventaire. `config.yaml` sort du maillon 1 avec `domaines: []` et `cycles: []`, et `valider_installable` signale alors leur absence, ce qui est attendu (`04-contrat.md` §2).

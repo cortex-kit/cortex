@@ -18,6 +18,7 @@ Par lots de quatre, options fermées plus « autre ». Un dirigeant décroche à
 | Projets subis | « Qu'est-ce qui vous occupe sans être une affaire : une mise en conformité, un recrutement, un litige, un déménagement ? » | projets transverses, ceux qu'on oublie de nommer parce qu'ils ne facturent pas |
 | Outils | « Où vit l'état de vos affaires : un logiciel de gestion, un tableur, un outil en ligne, un cahier ? » | `substrats.base_projets`, régime de donnée |
 | Rituels | « Quelles réunions reviennent : point hebdo, revue de chantier, comité, conseil ? » | agenda déclaré, base de l'écart `reunion_recurrente_sans_projet` |
+| Dossier commun | « Votre entreprise a-t-elle un dossier commun où l'on range la charte graphique, les signatures de mail, les procédures ? » | bloc `referentiel` : `existant` et son chemin, `aucun`, ou `inconnu`. Sans dossier commun, le rangement proposera de le créer |
 
 La question sur les outils décide du régime. Un dirigeant qui suit ses affaires dans un logiciel de gestion a une base déportée, même s'il ne l'appelle pas ainsi : régime `pointeur`. Celui qui les suit dans un tableur sur son disque n'en a pas : régime `copie`, et le tableur devient un structurant candidat.
 
@@ -32,6 +33,8 @@ La question sur les outils décide du régime. Un dirigeant qui suit ses affaire
 ## Les racines à demander
 
 À demander, jamais à proposer depuis un parcours du disque (`../doctrine.md` §9). La question : « où sont vos dossiers de travail sur cet ordinateur ? ». Chaque réponse s'ouvre une fois pour vérifier qu'elle répond, puis s'écrit en forme `~`. `~/Documents` et `~/Desktop` ne se proposent jamais par défaut ; la personne qui les nomme elle-même les déclare comme une autre racine.
+
+Pour chaque dossier nommé : « d'autres personnes travaillent-elles dans ce dossier ? ». Un oui l'inscrit dans `collecte.partagees` ; le rangement facultatif y demandera une confirmation à part, parce que les liens des collègues casseront.
 
 - Le dossier partagé de l'entreprise : selon `_cortex/poste.json`, demander s'il vit dans un Drive (`gmail`) ou dans un SharePoint ou OneDrive (`m365`). Le fournisseur oriente la question, il ne donne pas de chemin.
 - Le dossier des affaires, s'il vit ailleurs que le dossier partagé.
@@ -94,9 +97,13 @@ collecte:
   max_dossiers: 200
   mail_mois: 12
   mail_optin: false
+  partagees: []
   plafond_projets: 60
   plafond_acteurs: 80
   plafond_domaines: 6
+referentiel:
+  etat: inconnu
+  chemin: ""
 ```
 
 Ce bloc ne porte ni `domaines` ni `cycles` : ils se décident au maillon 3, sur preuve tirée de l'inventaire. `config.yaml` sort du maillon 1 avec `domaines: []` et `cycles: []`, et `valider_installable` signale alors leur absence, ce qui est attendu (`04-contrat.md` §2).
