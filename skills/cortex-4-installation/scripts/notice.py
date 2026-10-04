@@ -57,7 +57,7 @@ def _autotest():
     with tempfile.TemporaryDirectory() as tmp:
         html, pivot = regenerer(tmp)
         assert html.is_file() and (Path(tmp) / "etat.json").is_file()
-        assert len(pivot["etapes"]) == 9
+        assert len(pivot["etapes"]) == 10
         assert pivot["phrase_suivante"] in html.read_text(encoding="utf-8")
         # Défaut 7 : un poste.json sans notice_ouverte_le est marqué ici, une seule fois.
         poste = Path(tmp) / "poste.json"

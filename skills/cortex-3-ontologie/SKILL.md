@@ -162,7 +162,9 @@ Domaines arrêtés pour <organisation>.
 
 Pour toi :
 1. Fais signer 02-ontologie.md. Ne saute pas cette étape.
-2. Puis dis « construis mon second cerveau ».
+2. Puis dis « rangeons mes dossiers » : des noms parlants et un dossier
+   commun pour les procédures, sur accord, avant la construction.
+3. Ou passe directement : dis « construis mon second cerveau ».
 
 L'installation refuse de démarrer tant que la carte n'est pas signée.
 Installer sur une carte non arbitrée produit un vault qu'il faudra
@@ -182,11 +184,14 @@ La carte de votre outil est arrêtée.
 
 Vous venez de la confirmer, c'est tracé.
 
-La suite installe l'outil lui-même : une seconde, entièrement
-automatique, rien à décider. Sa condition d'entrée : cette carte
-confirmée — c'est fait.
+Avant de construire, vous pouvez ranger vos dossiers : des noms
+qu'une IA comprend, les procédures de l'entreprise au même endroit.
+Rien ne se fait sans votre accord, tout peut être défait. Dites
+« rangeons mes dossiers ».
 
-Quand vous voulez continuer, dites « construis mon second cerveau ».
+Vous pouvez aussi passer directement à la construction : une
+seconde, entièrement automatique. Sa condition d'entrée : cette
+carte confirmée, c'est fait. Dites « construis mon second cerveau ».
 ```
 
 Si la carte n'est pas confirmée : s'arrêter et dire ce qui reste en suspens. Rien ne s'installe avant la confirmation.

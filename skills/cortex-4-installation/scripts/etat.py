@@ -43,15 +43,17 @@ def _scripts_cortex4():
 sys.path.insert(0, str(_scripts_cortex4()))
 import cortex_config  # noqa: E402
 
-# Les neuf étapes de la chaîne et l'artefact que chacune écrit dans _cortex/
-# (04-contrat.md §5). `poste.json` est un JSON, les autres des markdown à
-# frontmatter. `None` en 4 : la sortie du maillon 4 est le vault lui-même, pas
-# un fichier d'atelier — voir RAISON_TROU_03, portée en clair dans le pivot.
+# Les dix étapes de la chaîne et l'artefact que chacune écrit dans _cortex/
+# (04-contrat.md §5, et §8 du contrat 2.3 pour « 3b »). `poste.json` est un JSON,
+# les autres des markdown à frontmatter. `None` en 4 : la sortie du maillon 4 est
+# le vault lui-même, pas un fichier d'atelier — voir RAISON_TROU_03, portée en
+# clair dans le pivot. « 3b », le rangement, est facultatif : il ne renumérote rien.
 ETAPES = [
     (0, "cortex-0-poste", "Poste", "poste.json"),
     (1, "cortex-1-cadrage", "Cadrage", "00-cadrage.md"),
     (2, "cortex-2-inventaire", "Inventaire", "01-inventaire.md"),
     (3, "cortex-3-ontologie", "Ontologie", "02-ontologie.md"),
+    ("3b", "cortex-3b-rangement", "Rangement", "03-rangement.md"),
     (4, "cortex-4-installation", "Installation", None),
     (5, "cortex-5-ingest", "Remplissage", "04-ingest.md"),
     (6, "cortex-6-agents-metier", "Agents métier", "05-agents-metier.md"),
@@ -66,6 +68,7 @@ PHRASES = {
     1: "faisons le cadrage",
     2: "lance l'inventaire",
     3: "décidons mes domaines",
+    "3b": "rangeons mes dossiers",
     4: "construis mon second cerveau",
     5: "remplis mon second cerveau",
     6: "voyons mes assistants métier",
@@ -80,6 +83,8 @@ RAISON_TROU_03 = (
     "contrôle de santé qui sort sans une seule erreur.")
 
 RAISON_SOLO = "vault solo"
+RAISON_PASSEE = "passée sans rangement"
+RANGEMENT_ARBITRE = {"refuse": "refusé", "rien_a_ranger": "rien à ranger"}
 RAISON_NON_INSCRIT = "groupe non inscrit"
 RAISON_SEUL = "en attente d'un second rédacteur"
 
@@ -166,6 +171,56 @@ def _groupe(e, conf):
     return e
 
 
+def _aval(atelier, numero):
+    """Un artefact d'une étape postérieure (hors 8) est-il présent ? Par rang dans
+    ETAPES, pas par numéro : « 3b » n'est pas un nombre."""
+    rang = [n for n, _, _, _ in ETAPES].index(numero)
+    return any((atelier / a).is_file() for n, _, _, a in ETAPES[rang + 1:] if a and n != 8)
+
+
+def _journal_rangement(atelier):
+    """(faits, retirés) du journal de l'étape 3b : les id dont la dernière ligne
+    décisive est `fait`, et ceux dont elle est `annule`. ValueError si illisible."""
+    p = atelier / "03-rangement-journal.jsonl"
+    faits, retires = set(), set()
+    if p.is_file():
+        for l in p.read_text(encoding="utf-8").splitlines():
+            if not l.strip():
+                continue
+            ligne = json.loads(l)
+            if ligne.get("resultat") == "fait":
+                faits.add(ligne["id"]); retires.discard(ligne["id"])
+            elif ligne.get("resultat") == "annule":
+                retires.add(ligne["id"]); faits.discard(ligne["id"])
+    return faits, retires
+
+
+def _rangement(e, atelier, fm):
+    """Étape 3b (contrat 2.3 §8, A2, A3). Facultative : refusée ou sans objet, elle est
+    arbitrée ; appliquée en partie, elle est `en_cours` et le maillon 4 refuse."""
+    statut = e["statut"]
+    if statut in RANGEMENT_ARBITRE:
+        e["etat"] = "arbitre"
+        e["raison"] = str(fm.get("raison") or RANGEMENT_ARBITRE[statut])
+        return e
+    try:
+        faits, retires = _journal_rangement(atelier)
+    except (ValueError, KeyError) as err:
+        e["etat"], e["raison"] = "illisible", f"journal du rangement illisible : {err}"
+        return e
+    acceptees = [str(i) for i in (fm.get("acceptees") or [])]
+    reste = [i for i in acceptees if i not in faits and i not in retires]
+    if faits and reste:
+        e["etat"], e["raison"] = "en_cours", "appliqué en partie : " + ", ".join(reste)
+    elif statut == "applique":
+        e["etat"] = "faite"
+    elif _aval(atelier, e["numero"]):
+        e["etat"], e["raison"] = "arbitre", RAISON_PASSEE
+    else:
+        e["etat"] = "a_faire"
+    return e
+
+
 def _etape(numero, maillon, nom, artefact, atelier, conf):
     e = {"numero": numero, "maillon": maillon, "nom": nom, "artefact": artefact,
          "present": False, "statut": "", "etat": "a_faire", "controles": [],
@@ -174,10 +229,12 @@ def _etape(numero, maillon, nom, artefact, atelier, conf):
         # Le trou en 03 : projeté quand même, jamais deviné. La chaîne est
         # strictement ordonnée (l'étape 0 du maillon 5 exige le vault), donc
         # un artefact aval présent prouve que l'installation a eu lieu.
-        aval = any((atelier / a).is_file()
-                   for n, _, _, a in ETAPES[numero + 1:] if a and n != 8)
-        e["etat"] = "faite_deduite" if aval else "a_faire"
+        e["etat"] = "faite_deduite" if _aval(atelier, numero) else "a_faire"
         e["raison"] = RAISON_TROU_03
+        return e
+    if numero == "3b" and not (atelier / artefact).is_file():
+        if _aval(atelier, numero):
+            e["etat"], e["raison"] = "arbitre", RAISON_PASSEE
         return e
     chemin = atelier / artefact
     if numero == 0:
@@ -206,6 +263,8 @@ def _etape(numero, maillon, nom, artefact, atelier, conf):
     e["statut"] = str(fm.get("statut", ""))
     e["controles"] = [{"nom": k, "verdict": str(v)}
                       for k, v in (fm.get("controles") or {}).items()]
+    if numero == "3b":
+        return _rangement(e, atelier, fm)
     # `en_cours` se lit comme `brouillon` (H2 §3) : le maillon 8 l'écrit ainsi.
     e["etat"] = {"brouillon": "en_cours", "en_cours": "en_cours", "valide": "faite",
                  "arbitre": "arbitre"}.get(e["statut"], "illisible")
@@ -284,10 +343,13 @@ def compte(pivot):
 
 
 def _autotest():
+    def par(p, n):
+        return next(e for e in p["etapes"] if e["numero"] == n)
+
     with tempfile.TemporaryDirectory() as tmp:
         atelier = Path(tmp)
         p = generer(atelier)
-        assert len(p["etapes"]) == 9 and faites(p) == 0
+        assert len(p["etapes"]) == 10 and faites(p) == 0
         assert p["etape_suivante"] == 0 and p["phrase_suivante"] == PHRASES[0]
         (atelier / "poste.json").write_text('{"notice_ouverte_le": ""}', encoding="utf-8")
         assert generer(atelier)["etapes"][0]["etat"] == "en_cours"
@@ -298,16 +360,18 @@ def _autotest():
         assert p["etape_suivante"] == 1 and p["phrase_suivante"] == PHRASES[1]
         # Défaut 6 : sans profil, l'étape 8 reste « À faire », elle ne s'arbitre pas.
         (atelier / "config.yaml").write_text("conduite: solo\nmode: solo\n", encoding="utf-8")
-        assert generer(atelier)["etapes"][8]["etat"] == "a_faire"
+        assert par(generer(atelier), 8)["etat"] == "a_faire"
         (atelier / "config.yaml").write_text(
             "conduite: solo\nprofil: employe\nmode: solo\ndonnees:\n  regime: copie\n",
             encoding="utf-8")
         p = generer(atelier)
         assert p["profil"] == "employe" and p["regime"] == "copie"
-        assert p["etapes"][8]["etat"] == "arbitre" and p["etapes"][8]["raison"] == RAISON_SOLO
-        assert p["etapes"][4]["etat"] == "a_faire"
+        assert par(p, 8)["etat"] == "arbitre" and par(p, 8)["raison"] == RAISON_SOLO
+        assert par(p, 4)["etat"] == "a_faire"
         (atelier / "04-ingest.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
-        assert generer(atelier)["etapes"][4]["etat"] == "faite_deduite"
+        assert par(generer(atelier), 4)["etat"] == "faite_deduite"
+        # A2 : le rangement facultatif, passé sans être fait, ne reste pas « à faire » à vie.
+        assert par(generer(atelier), "3b")["etat"] == "arbitre" and par(generer(atelier), "3b")["raison"] == RAISON_PASSEE
         for a in ("00-cadrage", "01-inventaire", "02-ontologie",
                   "05-agents-metier", "06-passation"):
             (atelier / f"{a}.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
@@ -327,7 +391,7 @@ def _autotest():
 
         def huit():
             p = generer(atelier)
-            return p["etapes"][8]["etat"], p["etapes"][8].get("raison", ""), p["phrase_suivante"]
+            return par(p, 8)["etat"], par(p, 8).get("raison", ""), p["phrase_suivante"]
         assert huit() == ("arbitre", RAISON_NON_INSCRIT, PHRASES["fin"]), huit()
         commun.mkdir(parents=True)
         fy = commun / "federation.yaml"
@@ -345,12 +409,12 @@ def _autotest():
         fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + membre("karim", False)
                       + "attendus: []\n", encoding="utf-8")
         assert huit() == ("arbitre", "en attente de karim", PHRASES["fin"]), huit()
-        assert compte(generer(atelier)) == "8 faite(s) et 1 arbitrée(s) sur 9"
+        assert compte(generer(atelier)) == "8 faite(s) et 2 arbitrée(s) sur 10", compte(generer(atelier))
         membre("karim", True)
         assert huit() == ("a_faire", "", PHRASES[8]), huit()
         (atelier / "07-federation.md").write_text("---\nstatut: en_cours\n---\n", encoding="utf-8")
         assert huit() == ("en_cours", "", PHRASES[8]), huit()
-        assert LIBELLES[generer(atelier)["etapes"][8]["etat"]] == "En cours"
+        assert LIBELLES[par(generer(atelier), 8)["etat"]] == "En cours"
         (atelier / "07-federation.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
         assert huit() == ("faite", "", PHRASES["fin"]) and faites(generer(atelier)) == 9, huit()
         fy.write_text("version: 1\nmembres:\n" + membre("helene", True) + "attendus: []\n", encoding="utf-8")
@@ -370,6 +434,30 @@ def _autotest():
                 assert huit()[0] == "illisible" and "Permission" in huit()[1], huit()
             finally:
                 fy.chmod(0o644)
+
+    # Contrat 2.3 §8 : les quatre lignes du tableau de l'étape 3b, puis A2 et A3.
+    with tempfile.TemporaryDirectory() as tmp:
+        atelier = Path(tmp)
+        for a in ("00-cadrage", "01-inventaire", "02-ontologie"):
+            (atelier / f"{a}.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
+        (atelier / "poste.json").write_text('{"notice_ouverte_le": "x"}', encoding="utf-8")
+
+        def trois_b(fm, journal=""):
+            (atelier / "03-rangement.md").write_text(f"---\n{fm}\n---\n", encoding="utf-8")
+            (atelier / "03-rangement-journal.jsonl").write_text(journal, encoding="utf-8")
+            p = generer(atelier)
+            return par(p, "3b")["etat"], par(p, "3b").get("raison", ""), p["phrase_suivante"]
+        p = generer(atelier)
+        assert par(p, "3b")["etat"] == "a_faire" and p["phrase_suivante"] == PHRASES["3b"], "03-rangement.md absent"
+        assert trois_b("statut: refuse\nacceptees: []") == ("arbitre", "refusé", PHRASES[4])
+        assert trois_b("statut: rien_a_ranger\nacceptees: []") == ("arbitre", "rien à ranger", PHRASES[4])
+        fait = '{"id": "r001", "resultat": "fait"}\n'
+        etat3, raison, phrase = trois_b("statut: propose\nacceptees: [r001, r002]", fait)
+        assert etat3 == "en_cours" and "r002" in raison and phrase == PHRASES["3b"], (etat3, raison, phrase)
+        assert trois_b("statut: propose\nacceptees: [r001, r002]",
+                       fait + '{"id": "r002", "resultat": "annule"}\n')[0] == "a_faire", "A5 : une ligne retirée"
+        assert trois_b("statut: applique\nacceptees: [r001]", fait) == ("faite", "", PHRASES[4])
+        assert trois_b("statut: propose\nacceptees: [r001]", "pas du json\n")[0] == "illisible"
     print("etat.py : auto-test OK")
     return 0
 

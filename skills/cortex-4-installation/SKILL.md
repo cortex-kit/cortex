@@ -38,7 +38,8 @@ Ce qui relève d'un autre maillon : le choix des domaines (`cortex-3`), la colle
    python3 scripts/cortex_config.py <chemin config.yaml>
    ```
 2. Le fichier `_cortex/02-ontologie.md` porte `statut: valide` — les domaines ont été arbitrés et signés.
-3. Lire la clé `conduite` de la config : absente ⇒ `consultant`, comportement actuel à l'identique. Elle ne change rien au geste : ce maillon est déterministe et se moque de qui l'a lancé. Elle choisit seulement le message de clôture. Cas particulier : si aucun atelier n'existe, pas de `config.yaml` du tout, ce n'est pas un maillon 4 qui échoue, c'est une installation qui commence. Le dire, et donner la phrase qui commence le parcours : « installe mon second cerveau ».
+3. Le rangement des dossiers n'est pas appliqué à moitié. L'étape est facultative : `_cortex/03-rangement.md` absent, refusé ou sans objet ne bloque rien. Mais si des changements acceptés restent à faire, les liens du second cerveau naîtraient sur des chemins qui vont bouger : `scaffold.py` refuse alors de lui-même (code 2). Le dire dans les mots de la personne : « Le rangement de vos dossiers est appliqué en partie : terminez-le ou défaites-le avant de construire », et donner la phrase « rangeons mes dossiers ».
+4. Lire la clé `conduite` de la config : absente ⇒ `consultant`, comportement actuel à l'identique. Elle ne change rien au geste : ce maillon est déterministe et se moque de qui l'a lancé. Elle choisit seulement le message de clôture. Cas particulier : si aucun atelier n'existe, pas de `config.yaml` du tout, ce n'est pas un maillon 4 qui échoue, c'est une installation qui commence. Le dire, et donner la phrase qui commence le parcours : « installe mon second cerveau ».
 
 **Si un contrôle échoue, s'arrêter. Pas de repli.** Installer sur une ontologie non validée produit un vault qu'il faudra refaire, et refaire un vault déjà rempli coûte cent fois l'installation.
 
