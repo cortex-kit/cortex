@@ -1,6 +1,6 @@
 # Doctrine Cortex — pour qui exécute la chaîne
 
-Ce fichier est destiné au **consultant**, pas au client. Il porte ce qui vaut dans les neuf maillons et qui n'a donc sa place dans aucun : le vocabulaire, les invariants, et la raison de chaque garde-fou.
+Ce fichier est destiné au **consultant**, pas au client. Il porte ce qui vaut dans les neuf maillons, et dans l'étape facultative 3 bis, et qui n'a donc sa place dans aucun : le vocabulaire, les invariants, et la raison de chaque garde-fou.
 
 Il ne redit pas la doctrine du vault livré. Celle-ci vit dans le gabarit — `cortex-4-installation/template/vault/90 - Meta/` : `Conventions.md` pour le contrat de données, `Architecture Mémoire.md` pour les quatre couches, `Architecture - Vue d'ensemble.md` pour l'entrée. La règle vaut pour ce fichier comme pour le reste : **pointeur jamais copie**.
 
@@ -27,6 +27,7 @@ Ces mots ont un sens précis dans la chaîne. Les employer autrement devant un c
 | **white-label** | l'absence, dans le livrable, de ta marque et de tes outils internes. Les autres clients en restent dehors par la lecture bornée (§9), jamais par une liste qui les nommerait (§11) |
 | **kit générique** | les 8 skills et 2 sous-agents livrés par le maillon 4, identiques chez tous |
 | **agent métier** | un sous-agent sur mesure, conçu au maillon 6 sur un vault déjà peuplé, avec une date de péremption |
+| **référentiel** | le dossier commun de l'entreprise : procédures, charte, signatures, modèles, assistants établis pour tous, indexés par un `AGENTS.md` à sa racine. Déclaré au maillon 1 (`referentiel`), sous une racine partagée. Devant la personne : « le dossier commun » |
 
 ## 3. La chaîne, et pourquoi elle est coupée là
 
@@ -36,6 +37,7 @@ Ces mots ont un sens précis dans la chaîne. Les employer autrement devant un c
 | 1 cadrage | collecte | le temps du client — le plus cher de la chaîne |
 | 2 inventaire | mesure | un accès et de la patience |
 | 3 ontologie | **jugement** | un arbitrage à re-litiger |
+| 3 bis rangement (facultatif) | application sur accord | défaire par le journal, ligne à ligne |
 | 4 installation | matérialisation | une seconde |
 | 5 ingest | application | des jetons, incrémental grâce au registre |
 | 6 agents métier | conception | une spec à revalider |
@@ -63,6 +65,7 @@ Chaque maillon écrit un fichier d'atelier dont le frontmatter porte `statut` et
 | `00-cadrage.md` (+ `config.yaml`, `README.md`) | 1 cadrage |
 | `01-inventaire.json` + `01-inventaire.md` | 2 inventaire |
 | `02-ontologie.md` | 3 ontologie |
+| `03-rangement.md` (+ `03-rangement.json`, `03-rangement-journal.jsonl`) | 3 bis rangement, facultatif |
 | — | 4 installation |
 | `04-ingest.md` | 5 ingest |
 | `05-agents-metier.md` | 6 agents métier |
@@ -74,9 +77,11 @@ C'est la seule garde formelle de la chaîne, et elle vaut mieux qu'une consigne 
 
 ## 5. Les cinq invariants
 
-Ils valent dans les neuf maillons. Chacun a coûté quelque chose à quelqu'un.
+Ils valent dans les neuf maillons et dans l'étape 3 bis. Chacun a coûté quelque chose à quelqu'un.
 
 **Pointeur jamais copie.** Une copie diverge de sa source, et le jour où elles se contredisent, personne ne sait laquelle croit. La parade n'est pas une règle en prose : le schéma d'inventaire n'a pas de champ `contenu`, et le plafond de résumé est un contrôle dur. S'il n'y a pas d'endroit où mettre la copie, la copie ne se fait pas.
+
+*Amendement 2026-10-04 : une procédure ne se copie jamais, régime copie compris.* Dans une société à trois rédacteurs, une procédure recopiée dans chaque vault existe en quatre versions qui divergent, et aucune IA ne sait laquelle fait foi. `process` sort donc des types copiables, et `cortex_config.py` le refuse dans `donnees.structurants`. Une procédure personnelle, la façon de faire de la personne, reçoit une note-pointeur dans son vault. Une procédure établie pour toute l'entreprise vit dans le dossier commun (le référentiel), en un seul exemplaire ; chaque vault pointe vers ce dossier et son sommaire, aucun n'en garde de note par document. Un assistant métier établi pour toute l'entreprise suit la même règle. En cas de doute sur le classement, une question à la personne.
 
 **Un vault, un rédacteur nommé.** Pas une équipe, pas une fonction. Git sur du markdown à plusieurs produit des conflits sur `## Journal` à chaque clôture concurrente, à résoudre par des gens qui ne sont pas développeurs. Plusieurs personnes ⇒ plusieurs vaults, et l'agrégation plus tard.
 
@@ -128,7 +133,7 @@ La règle couvre tout ce que la personne voit : le texte des messages, les quest
 
 ## 9. Ce que la chaîne lit
 
-Cinq endroits, pas un de plus : l'atelier `_cortex/` du rédacteur en cours, son vault, les racines déclarées au cadrage, les fichiers du plugin sous `${CLAUDE_SKILL_DIR}`, et le dossier du commun au maillon 8. Le second rédacteur d'un groupe lit en plus `00-cadrage.md` et `config.yaml` dans l'atelier du premier, pour reprendre les décisions de groupe ; rien d'autre de ses notes ni de son vault. En groupe, le cadrage lit `federation.yaml` dans le commun pour savoir qui est déjà membre : c'est la seule lecture du commun hors du maillon 8. Le maillon 8 lit la date de remise dans `_cortex/06-passation.md` de chaque membre, rien d'autre de leurs ateliers. Pour savoir si un atelier existe déjà, le maillon 0 teste le seul nom court que la personne a donné (`~/Cortex/<slug>/` existe ou non) ; il ne liste jamais `~/Cortex/`.
+Cinq endroits, pas un de plus : l'atelier `_cortex/` du rédacteur en cours, son vault, les racines déclarées au cadrage (le dossier commun de l'entreprise compris : il est une racine déclarée ou se trouve sous l'une d'elles, jamais une exception à cette liste), les fichiers du plugin sous `${CLAUDE_SKILL_DIR}`, et le dossier du commun au maillon 8. Le second rédacteur d'un groupe lit en plus `00-cadrage.md` et `config.yaml` dans l'atelier du premier, pour reprendre les décisions de groupe ; rien d'autre de ses notes ni de son vault. En groupe, le cadrage lit `federation.yaml` dans le commun pour savoir qui est déjà membre : c'est la seule lecture du commun hors du maillon 8. Le maillon 8 lit la date de remise dans `_cortex/06-passation.md` de chaque membre, rien d'autre de leurs ateliers. Pour savoir si un atelier existe déjà, le maillon 0 teste le seul nom court que la personne a donné (`~/Cortex/<slug>/` existe ou non) ; il ne liste jamais `~/Cortex/`.
 
 Le reste du poste ne se lit jamais : `~/Documents`, `~/Desktop`, `~/OneDrive*`, `~/Library`, les dépôts de code, les dossiers de travail du consultant, la mémoire de Claude (`~/.claude/projects/*/memory`), l'historique des sessions, le dépôt source du plugin hors de `${CLAUDE_SKILL_DIR}`. On n'y cherche ni nom, ni marque, ni indice pour deviner une réponse. Ce que la personne n'a pas dit se demande.
 
@@ -151,3 +156,17 @@ La personne ne voit que les messages. Un contenu préparé dans le raisonnement 
 **Marque.** La liste des noms à ne jamais faire apparaître dans un vault livré ne contient que les marques du consultant : son nom, sa société, ses outils internes. Il la saisit lui-même. Aucun nom d'un autre client ne s'y propose et aucun ne se cherche sur le poste : proposer ce nom dans l'atelier d'un client, c'est déjà l'y écrire. Le vault reste propre des autres clients par la lecture bornée du §9, pas par une liste qui les transporterait d'atelier en atelier. En groupe, la liste est une décision de groupe : fixée au cadrage du premier rédacteur, reprise telle quelle chez les suivants et annoncée dans leur récapitulatif, jamais redemandée.
 
 **Atelier existant.** Au maillon 0, la première question demande toujours le nom court. `~/Cortex/` ne se liste pas et aucun atelier ne se propose en option : sur le poste d'un consultant, ce sont ses autres clients. Seul l'atelier dont la personne donne le nom se reconnaît ; il n'est jamais présumé le sien, et son contenu ne se lit pas pour le décrire.
+
+## 12. Ce que la chaîne écrit hors du vault
+
+Jusqu'à l'étape 3 bis, la chaîne n'écrivait que dans l'atelier, le vault et le commun. Le rangement écrit dans les dossiers de travail de la personne, synchronisés compris. Un seul code le fait : `range.py`, de la skill `cortex-3b-rangement`. Le maillon 6 l'appelle pour publier un assistant d'entreprise ; aucun autre script n'écrit hors du vault et de l'atelier.
+
+Ce qu'il fait, et rien d'autre : renommer un fichier ou un dossier, le déplacer à l'intérieur d'une même racine, créer un dossier, écrire le sommaire `AGENTS.md` du dossier commun, publier un assistant d'entreprise dans `<dossier commun>/assistants/<nom>/`.
+
+Ce qu'il ne fait jamais : supprimer, écraser une destination existante, dupliquer un fichier même un instant, convertir une procédure en markdown à côté de l'original, déplacer entre deux espaces différents (deux racines déclarées distinctes : le système ferait une copie puis une suppression ; ce geste s'écrit `manuel`, la personne le fait dans l'interface de son outil, `range.py` le constate après coup), ouvrir un fichier présent seulement en ligne, écrire dans une base en ligne. Une base reçoit une proposition écrite dans `03-rangement.md`, que la personne applique elle-même.
+
+Chaque geste passe par un accord ligne par ligne, lots de quatre lignes affichées en entier (§10). Un geste qui touche un dossier partagé demande un accord renforcé : une confirmation à part, qui dit que les liens et raccourcis des collègues casseront et liste les gestes concernés. Le script porte les gardes ; la skill porte la conduite. Une garde ne vit jamais seulement dans la prose.
+
+Chaque geste tenté s'écrit au journal `03-rangement-journal.jsonl`, ajouté et jamais réécrit. « annule le rangement » le rejoue à l'envers et ne retire que ce que la chaîne a créé : un dossier resté vide, un sommaire inchangé depuis son écriture. Un fichier déplacé se vérifie par sa taille et sa date, jamais en le lisant.
+
+La raison tient en une phrase : écrire chez la personne est le seul geste de la chaîne qu'elle n'a pas les moyens de vérifier seule, il faut donc qu'il soit petit, visible avant, tracé pendant et défaisable après.
