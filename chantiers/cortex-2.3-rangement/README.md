@@ -1,6 +1,6 @@
 # Cortex 2.3.0 : rangement de l'existant et référentiel commun
 
-**Statut** : livrée, à auditer après la reprise 2 (code au commit `b898688`, recette 199 contrôles à 0 ; rapport dans `rapport.md`). Écrit le 2026-10-04 ; lane `lane/rangement` dans `~/Dev/cortex--rangement`
+**Statut** : livrée et fusionnée sur `main` en 2.3.0 le 2026-10-04 (code au commit `b898688`, recette 199 contrôles à 0). Deux audits à froid (`audit.md`, `audit-2.md`), deux reprises ; reprise 2 contrôlée par le chef d'orchestre (recette, six auto-tests, perturbations N1, N2, N3 rouges). Suivis ouverts dans `rapport.md`.
 **Objectif en une phrase** : avant de construire le vault, Cortex propose de ranger les dossiers de travail de la personne (noms parlants, arborescence, index lisible par toute IA) et l'applique sur son accord, de façon réversible ; les procédures et assistants établis pour toute l'entreprise vivent dans un dossier partagé de référence vers lequel chaque vault pointe ; aucune procédure n'est jamais copiée.
 **Modèle exécutant (07)** : Opus 5.5
 **Modèle auditeur (08)** : Opus 5.5
