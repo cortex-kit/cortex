@@ -58,7 +58,9 @@ def lire_jeton(fichier):
 
 
 def notion(jeton):
-    """Lecteur de page Notion : rend {propriété: valeur} pour les listes fermées."""
+    """Lecteur de page Notion : rend {propriété: valeur} pour les listes fermées,
+    et {propriété: None} pour les autres, pour qu'un mauvais type de colonne ne
+    passe pas pour un nom mal écrit."""
     def lire(page_id):
         req = urllib.request.Request(f"https://api.notion.com/v1/pages/{page_id}", headers={
             "Authorization": f"Bearer {jeton}", "Notion-Version": VERSION_NOTION})
@@ -70,6 +72,8 @@ def notion(jeton):
                 v = p.get(p["type"])
                 # Une liste fermée vide reste présente : « vide » n'est pas « absente ».
                 out[nom] = v.get("name", "") if isinstance(v, dict) else ""
+            else:
+                out[nom] = None
         return out
     return lire
 
@@ -133,7 +137,7 @@ def recaler(vault, conf, lire):
     statuts = {str(x.get("source")): str(x.get("vault")) for x in conf.get("miroir_statuts") or []}
     progressions = {(c.get("cycle"), c.get("phase")): c.get("progression") for c in conf.get("cycles") or []}
     changements, constats = [], []
-    sans_pointeur, lues, proprietes = 0, 0, set()
+    sans_pointeur, lues, proprietes, fermees = 0, 0, set(), set()
     for md in sorted((vault / "20 - Projets").glob("*.md")):
         texte = md.read_text(encoding="utf-8")
         fm = frontmatter(texte)
@@ -159,10 +163,11 @@ def recaler(vault, conf, lire):
             continue
         lues += 1
         proprietes |= set(source)
+        fermees |= {k for k, v in source.items() if v is not None}
         cycle = champ(fm, nom("cycle"))
         phase, progression, statut = nom("phase"), nom("progression"), nom("statut")
         if m.get("phase"):
-            v = source.get(m["phase"], "")
+            v = source.get(m["phase"]) or ""
             if v and v != champ(fm, phase):
                 if v in cortex_config.phases_autorisees(conf, cycle):
                     changements.append((md, phase, champ(fm, phase), v))
@@ -172,7 +177,7 @@ def recaler(vault, conf, lire):
                 else:
                     constats.append(f"{md.stem} : phase « {v} » hors du cycle {cycle or 'aucun'}, non recopiée")
         if m.get("statut"):
-            v = source.get(m["statut"], "")
+            v = source.get(m["statut"]) or ""
             if v and v not in statuts:
                 constats.append(f"{md.stem} : statut « {v} » sans correspondance dans miroir_statuts")
             elif v and statuts[v] != champ(fm, statut):
@@ -184,7 +189,10 @@ def recaler(vault, conf, lire):
         prop = m.get(cle)
         if prop and lues and prop not in proprietes:
             constats.append(f"miroir.{cle} = « {prop} » : aucune des {lues} page(s) lue(s) ne porte cette "
-                            "propriété en liste fermée. Nom mal écrit dans config.yaml ?")
+                            "propriété. Nom mal écrit dans config.yaml ?")
+        elif prop and lues and prop not in fermees:
+            constats.append(f"miroir.{cle} = « {prop} » : la propriété existe mais n'est pas une liste "
+                            "fermée (sélection ou statut) ; rien ne peut en descendre.")
     return changements, constats
 
 
@@ -300,6 +308,10 @@ def _autotest():
         _, co = recaler(v, dict(conf, miroir=dict(conf["miroir"], statut="Statu")), lire)
         assert any("miroir.statut" in c and "Statu" in c for c in co), co
         assert not any(c.startswith("miroir.") for c in recaler(v, conf, lire)[1])
+        base["a" * 32]["Montant"] = None          # colonne d'un autre type
+        _, co = recaler(v, dict(conf, miroir=dict(conf["miroir"], statut="Montant")), lire)
+        assert any("miroir.statut" in c and "pas une liste fermée" in c for c in co), co
+        del base["a" * 32]["Montant"]
         # Pointeur illisible ou absent : compté, pas sauté.
         (v / "20 - Projets" / "Zeta.md").write_text(
             '---\ntype: projet\nurl_canonique: "https://base.exemple.test/fiche-sans-id"\n---\n', encoding="utf-8")
