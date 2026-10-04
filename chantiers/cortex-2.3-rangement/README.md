@@ -5,7 +5,7 @@
 **Modèle exécutant (07)** : Opus 5.5
 **Modèle auditeur (08)** : Opus 5.5
 **Effort recommandé** : exécution `high` (une étape neuve, un script qui écrit hors du vault, six maillons retouchés, la recette), audit `high`
-**Base** : `main` à `b8df8bb` (2.2.0, recette 153 contrôles à 0)
+**Base** : `main` à `cf5912a` (2.2.1, recette 154 contrôles à 0) ; le pack lui-même est le commit `2c1f289`
 
 ## Ordre de lecture
 1. `01-cadrage.md` : pourquoi, inclus, non-objectifs, décisions actées
@@ -27,5 +27,5 @@ Contrat de référence toujours en vigueur : `chantiers/cortex-v2/04-contrat.md`
 - La recette étendue, verte.
 
 ## Contexte de suite
-Avant : 2.2.0 sait adopter un vault existant (convergence, phase 1, audit en attente). Le 2026-10-04, le commanditaire a confronté son schéma en six étapes à la chaîne : le régime de donnée 2.2.0 est maintenu (pointeur si une base existe, copie des documents de fond sinon), Cortex ne crée aucune base, mais il range l'existant et sépare le personnel du commun.
-Après : fusion sur `main` par le chef d'orchestre, une fois l'audit de la convergence phase 1 rendu et sa reprise éventuelle fusionnée ; montée de `plugin.json` en 2.3.0 et tag par le chef d'orchestre. Hors périmètre ici : rangement proposé après la remise, création de bases.
+Avant : 2.2.0 sait adopter un vault existant ; la convergence phase 1 a été auditée et reprise en 2.2.1, acceptée le 2026-10-04. Le 2026-10-04, le commanditaire a confronté son schéma en six étapes à la chaîne : le régime de donnée 2.2.0 est maintenu (pointeur si une base existe, copie des documents de fond sinon), Cortex ne crée aucune base, mais il range l'existant et sépare le personnel du commun.
+Après : fusion sur `main` par le chef d'orchestre une fois l'audit à froid de cette lane accepté (la condition D10 sur la convergence est remplie depuis la 2.2.1) ; montée de `plugin.json` en 2.3.0 et tag par le chef d'orchestre. Hors périmètre ici : rangement proposé après la remise, création de bases.

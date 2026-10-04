@@ -3,7 +3,7 @@ Tu audites, à froid, la lane « rangement » de Cortex 2.3.0. Tu n'as pas exéc
 1. Lis `README.md`, puis `01-cadrage.md` à `06-verification.md` du dossier `chantiers/cortex-2.3-rangement/`, puis `rapport.md`.
 2. Examine ce qui a été réellement produit, en lançant toi-même :
    - `git -C ~/Dev/cortex--rangement status` : rien d'inattendu en attente.
-   - `git -C ~/Dev/cortex--rangement log --oneline b8df8bb..HEAD` et `git diff --stat b8df8bb..HEAD` : le changement correspond au périmètre de `01-cadrage.md`, rien hors de `03-backlog-technique.md`, rien dans la liste « Ne pas toucher ».
+   - `git -C ~/Dev/cortex--rangement log --oneline 2c1f289..HEAD` et `git diff --stat 2c1f289..HEAD` : le changement correspond au périmètre de `01-cadrage.md`, rien hors de `03-backlog-technique.md`, rien dans la liste « Ne pas toucher ».
    - Chaque commande de `06-verification.md`, ré-exécutée par toi ; ne lis pas une sortie citée par le rapport.
    - L'agent `silent-failure-hunter` (Agent tool, subagent_type « silent-failure-hunter ») sur `range.py`, `etat.py`, `cortex_config.py`, `scaffold.py`, `federe.py`, `copie_structurant.py` ; confronte ses findings à l'item « Contrôles silent-failure ».
 3. Reprends `06-verification.md` item par item et statue PASS ou FAIL sur chacun, avec la preuve : sortie de commande, extrait de diff, comportement observé.

@@ -3,7 +3,7 @@
 Cocher chaque ligne avec le hash du commit qui la porte. Un commit par bloc cohérent, sur `lane/rangement`, identité git du dépôt inchangée.
 
 ## Préalable
-- [ ] Vérifier le worktree : `git -C ~/Dev/cortex--rangement status` propre, branche `lane/rangement`, base `b8df8bb`.
+- [ ] Vérifier le worktree : `git -C ~/Dev/cortex--rangement status` propre, branche `lane/rangement`, base `2c1f289` (2.2.1 plus le pack).
 - [ ] Lire `skills/cortex-1-cadrage/references/doctrine.md` §5, §8 à §11, puis `chantiers/cortex-v2/04-contrat.md` §1, §2, §5, §6, §9, §10 et ses amendements.
 - [ ] Lancer la recette avant tout changement et noter le compte de contrôles et le code de sortie dans `rapport.md`.
 
