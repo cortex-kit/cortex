@@ -35,6 +35,12 @@ Toute session tombe dans l'une de ces quatre. Détail dans [[Architecture Mémoi
 
 **Cloture** — vérifier la cohérence entre substrats, rapporter les trous, puis marquer **seulement** ce qui manque et a été validé. Si tout est déjà marqué : rapport de conformité, aucune écriture.
 
+## Le dossier commun
+
+Les documents établis pour toute l'organisation vivent à un seul endroit, hors de ce vault, et chaque assistant les lit là.
+
+{{REFERENTIEL}}
+
 ## Écritures permises
 
 - Le vault : pointeurs, décisions, macro-actions, trous qualifiés, fiches projet.

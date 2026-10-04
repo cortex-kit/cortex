@@ -209,10 +209,34 @@ def substitutions(conf):
         "{{DOMAINES_TAGS}}": tags,
         "{{CYCLES_TABLE}}": table_cycles,
         "{{SEUIL_JOURNAL}}": str((conf.get("sante") or {}).get("max_lignes_entree_journal", 10)),
+        "{{REFERENTIEL}}": regle_referentiel(conf),
     }
     ecart = set(table) ^ set(cortex_config.CLES_SCAFFOLD)
     assert not ecart, f"table de substitution desynchronisee de CLES_SCAFFOLD : {ecart}"
     return table
+
+
+def regle_referentiel(conf):
+    """La règle du dossier commun pour le CLAUDE.md du vault (contrat 2.3 §7).
+
+    Le chemin n'y entre que si le dossier existe : un `a_creer` ou un `inconnu`
+    nommerait un dossier que l'assistant chercherait sans le trouver."""
+    ref = conf.get("referentiel") or {}
+    chemin = forme_tilde(ref.get("chemin", "")) if isinstance(ref, dict) else ""
+    if not chemin or ref.get("etat") != "existant":
+        return "Aucun dossier commun déclaré."
+    return ("Pour une procédure, la charte graphique, une signature, un modèle ou un assistant "
+            "établi pour toute l'organisation, lire d'abord le sommaire `AGENTS.md` du dossier "
+            f"commun `{chemin}`, puis le document lui-même. Ne jamais en recopier un dans ce vault.")
+
+
+def rangement_inacheve(dossier_atelier):
+    """Vrai quand l'étape 3b du rangement vaut `en_cours` dans l'atelier : des
+    changements acceptés sont faits, d'autres non (contrat 2.3 §8). Construire
+    là-dessus ferait naître des liens sur des chemins appelés à changer."""
+    import etat
+    pivot = etat.generer(dossier_atelier)
+    return any(e.get("numero") == "3b" and e.get("etat") == "en_cours" for e in pivot["etapes"])
 
 
 def substituer(texte, table):
@@ -497,6 +521,13 @@ def main():
     if a.outillage_seul:
         return outillage_seul(dest, conf, table_vide=substitutions(conf))
 
+    # Garde du maillon 4, en code et pas seulement dans la prose du SKILL.md.
+    # L'atelier est le dossier de la config (`_cortex/config.yaml`).
+    if rangement_inacheve(chemin_config.parent):
+        print("[X] Le rangement de vos dossiers est appliqué en partie : terminez-le ou "
+              "défaites-le avant de construire. Dites « rangeons mes dossiers ».", file=sys.stderr)
+        return 2
+
     if dest.exists():
         if not a.force:
             print(f"[X] {dest} existe deja. --force pour ecraser.", file=sys.stderr)
@@ -700,7 +731,41 @@ def _autotest():
             assert not (out / ".claude" / "hooks" / "__pycache__").exists(), "le .pyc a voyage"
         finally:
             shutil.rmtree(intrus.parent)
-    print("OK scaffold.py : forme ~, settings.json, hooks, skills parle, bilan et ingest, .pyc ignore, depot prive propose")
+    # {{REFERENTIEL}} : la règle porte le chemin en forme ~ quand le dossier
+    # commun existe, la phrase d'absence sinon ; aucune moustache ne survit.
+    with tempfile.TemporaryDirectory() as tmp:
+        base = exemple.read_text(encoding="utf-8")
+        for nom, bloc, attendu in (
+                ("avec", 'referentiel:\n  etat: existant\n  chemin: "~/Documents/Clients/Référentiel"\n',
+                 "`~/Documents/Clients/Référentiel`"),
+                ("sans", "", "Aucun dossier commun déclaré.")):
+            atelier = Path(tmp) / nom / "_cortex"
+            atelier.mkdir(parents=True)
+            cfg = atelier / "config.yaml"
+            texte = re.sub(r"(?m)^referentiel:\n(  .*\n)*", "", base) + "\n" + bloc
+            if bloc:  # le dossier commun vit sous une racine que d'autres partagent (contrat 2.3 §1)
+                texte = texte.replace("partagees: []", 'partagees: ["~/Documents/Clients"]')
+            cfg.write_text(texte, encoding="utf-8")
+            out = Path(tmp) / nom / "vault"
+            r = subprocess.run([sys.executable, __file__, "--config", str(cfg), "--out", str(out)],
+                               capture_output=True, text=True)
+            assert r.returncode == 0, (nom, r.stderr[-400:])
+            claude = (out / "CLAUDE.md").read_text(encoding="utf-8")
+            assert attendu in claude, (nom, claude[-600:])
+            restes = [f for f in out.rglob("*.md") if "Templates" not in f.parts
+                      and re.search(r"\{\{[A-Z_]+\}\}", f.read_text(encoding="utf-8"))]
+            assert not restes, (nom, restes[:3])
+        # La garde du maillon 4 : un 3b `en_cours` refuse, en code 2, sans rien écrire.
+        import etat
+        avant = etat.generer
+        etat.generer = lambda _a: {"etapes": [{"numero": "3b", "etat": "en_cours"}]}
+        try:
+            assert rangement_inacheve(Path(tmp))
+        finally:
+            etat.generer = avant
+        assert not rangement_inacheve(Path(tmp) / "avec" / "_cortex")
+
+    print("OK scaffold.py : {{REFERENTIEL}} avec et sans dossier commun, garde du rangement, forme ~, settings.json, hooks, skills parle, bilan et ingest, .pyc ignore, depot prive propose")
     return 0
 
 

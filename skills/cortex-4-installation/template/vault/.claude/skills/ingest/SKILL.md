@@ -59,17 +59,26 @@ Une source ingérée qui ne change rien nulle part est une source qui ne mérita
 
 Une ligne dans le `## Historique` du `_README` du dossier : `- AAAA-MM-JJ - [[Titre]] - impact en une ligne`.
 
+## Les procédures : pointées, jamais copiées
+
+Une procédure décrit une façon de faire. Avant d'écrire quoi que ce soit, se demander à qui elle appartient, et le demander à la personne en cas de doute : « Cette procédure vaut-elle pour toute l'entreprise, ou c'est votre façon de faire à vous ? »
+
+- **Personnelle** : une note-pointeur `50 - Ressources/Procédures/<Objet>.md`, frontmatter `type: ressource`, `ressource: procedure`, `source_path` en forme `~`, `domaine` ; un résumé de dix lignes au plus et un lien vers son domaine. Le document reste à son adresse.
+- **Établie pour toute l'entreprise** : aucune note par document. Elle vit dans le dossier commun, que la note `50 - Ressources/Référentiel commun.md` désigne avec son sommaire `AGENTS.md`. Si elle traîne ailleurs, le dire à la personne ; la ranger se fait en disant « rangeons mes dossiers », pas ici.
+
+Aucun régime ne recopie une procédure dans le vault : deux exemplaires divergent, et aucun assistant ne sait plus lequel fait foi.
+
 ## Régime copie : les structurants
 
 Deux régimes de donnée cohabitent, fixés au cadrage dans `config.yaml`, clé `donnees.regime`.
 
 En régime `pointeur`, tout ce qui précède s'applique et rien d'autre : la source reste à son adresse, le vault la désigne.
 
-En régime `copie`, un second geste existe pour une famille restreinte de documents, les structurants : organigramme, process, fiche de poste, contrat, projet, acteur, tenants et aboutissants, fil de messagerie structurant. Ceux-là sont recopiés dans `50 - Ressources/Structurants/<type>/`, parce qu'ils fondent la compréhension et qu'un lien mort vers un fichier déplacé vaut zéro. La liste exacte vit dans `donnees.structurants`, le plafond dans `sante.max_structurants`.
+En régime `copie`, un second geste existe pour une famille restreinte de documents, les structurants : organigramme, fiche de poste, contrat, projet, acteur, tenants et aboutissants, fil de messagerie structurant. Une procédure n'en fait jamais partie (section précédente). Ceux-là sont recopiés dans `50 - Ressources/Structurants/<type>/`, parce qu'ils fondent la compréhension et qu'un lien mort vers un fichier déplacé vaut zéro. La liste exacte vit dans `donnees.structurants`, le plafond dans `sante.max_structurants`.
 
 Le geste, depuis la racine du vault :
 
-    python3 .claude/skills/ingest/copie_structurant.py --vault . --source <fichier> --type process --domaine "Ops"
+    python3 .claude/skills/ingest/copie_structurant.py --vault . --source <fichier> --type contrat --domaine "Ops"
 
 La copie porte `type: structurant`, `structurant`, `domaine`, `source_path` en forme `~`, `hash` (sha256 de la source) et `copie_le`. Le script rejoué ne duplique pas : même hash, il ne touche rien ; hash différent, il rafraîchit ; note écrite à la main, il refuse et le dit.
 
