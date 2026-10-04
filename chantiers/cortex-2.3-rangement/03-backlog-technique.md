@@ -28,6 +28,7 @@ Tout se fait dans le worktree `~/Dev/cortex--rangement`, branche `lane/rangement
 | `skills/cortex-4-installation/template/vault/CLAUDE.md` | Règle : pour une procédure, la charte, une signature, un modèle ou un assistant d'entreprise, lire d'abord l'`AGENTS.md` du dossier commun. |
 | `skills/cortex-4-installation/template/vault/.claude/skills/parle/SKILL.md` | Même règle à la lecture. |
 | `skills/cortex-4-installation/template/vault/.claude/skills/ingest/SKILL.md` | Procédure personnelle : note-pointeur ; procédure d'entreprise : jamais de note par document. |
+| `skills/cortex-4-installation/template/vault/.claude/skills/lint/SKILL.md` | Une phrase : `process` toléré avec avertissement (A6). Ajout du 2026-10-04, après l'audit. |
 | `skills/cortex-5-ingest/SKILL.md` | §2 bis : la procédure sort des types copiables ; note `Référentiel commun` ; notes-pointeurs des procédures personnelles. |
 | `skills/cortex-5-ingest/scripts/copie_structurant.py` | Refus du type `process`, message qui nomme la règle. |
 | `skills/cortex-6-agents-metier/SKILL.md` | Question « pour vous seul ou pour toute l'entreprise ? » ; publication d'un assistant d'entreprise par `range.py --publier`. |

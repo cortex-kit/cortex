@@ -53,7 +53,7 @@ Du chef d'orchestre (techniques, même valeur) :
 - T2. Un geste dont l'origine et la destination relèvent de deux racines déclarées différentes est `manuel`, jamais exécuté par le script.
 - T3. Le contrôle d'identité d'un fichier déplacé se fait par taille et date de modification, jamais par lecture du contenu.
 - T4. L'annulation rejoue le journal à l'envers et ne retire que ce que Cortex a créé : un dossier resté vide, un `AGENTS.md` inchangé depuis son écriture.
-- T5. `process` sort de `donnees.structurants` ; `copie_structurant.py` refuse le type `process`.
+- T5. `process` sort de `donnees.structurants` ; `copie_structurant.py` refuse le type `process`. Amendé par A6 : une config existante qui le porte reste valide, avec un avertissement.
 
 ## Risques et hypothèses
 

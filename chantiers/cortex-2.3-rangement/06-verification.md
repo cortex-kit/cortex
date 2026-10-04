@@ -17,7 +17,7 @@ grep -nE "os\.(remove|unlink|replace|chdir)|shutil\.(rmtree|copy|move)" skills/c
 ```
 
 Config, état, maillons
-- [ ] `cortex_config.py` refuse `process` dans `donnees.structurants`, un `referentiel.chemin` hors racine, une `partagees` qui n'est pas sous-ensemble de `racines` ; il accepte `config.example.yaml`.
+- [ ] `cortex_config.py` accepte `process` dans `donnees.structurants` avec l'avertissement « type 'process' retiré en 2.3.0, ignoré » et l'exclut de la liste effective (A6) ; une config 2.2 qui le porte passe le lint à 0. Il refuse un `referentiel.chemin` hors racine, une `partagees` qui n'est pas sous-ensemble de `racines` ; il accepte `config.example.yaml`.
 - [ ] `copie_structurant.py --type process` sort en erreur avec un message qui nomme la règle ; `--type contrat` sur la même source réussit.
 - [ ] `etat.py --autotest` rend `0` et couvre les quatre lignes du tableau du contrat §8 ; `etat.json` d'un atelier de recette compte dix étapes.
 - [ ] Le maillon 4 refuse quand 3b vaut `en_cours` : contrôle de recette sur un atelier dont le journal porte une ligne `fait` et une ligne acceptée non faite.

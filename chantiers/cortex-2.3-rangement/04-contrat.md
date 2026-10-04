@@ -21,7 +21,7 @@ sante:
 - `collecte.partagees` : sous-ensemble de `collecte.racines`, forme `~`. Absente = `[]`. Posée au maillon 1 par la question « d'autres personnes travaillent-elles dans ce dossier ? ».
 - `referentiel.etat` : `existant` | `a_creer` | `aucun` | `inconnu`. Posé au maillon 1 ; l'étape 3b le fait passer de `aucun` ou `inconnu` à `a_creer` puis `existant` sur accord.
 - `referentiel.chemin` : `""` tant que `etat` ne vaut pas `existant`. Sinon il est égal à une racine déclarée ou situé sous l'une d'elles, et cette racine figure dans `partagees`. `cortex_config.py` refuse tout autre cas.
-- `process` dans `donnees.structurants` : refusé par `cortex_config.py` avec un message qui nomme la règle (une procédure ne se copie jamais).
+- `process` dans `donnees.structurants` : toléré avec un avertissement et exclu de la liste effective (A6). Le refus vit dans `copie_structurant.py`.
 - `sante.max_gestes_rangement` : entier, 120 par défaut.
 
 Une racine ajoutée à l'étape 3b (l'espace partagé où créer le dossier commun) suit la règle du cadrage : elle se demande, s'ouvre une fois, s'écrit en forme `~`, jamais devinée.
@@ -202,3 +202,5 @@ Le maillon 4 refuse de construire tant que 3b vaut `en_cours`, et le dit dans le
 - A4. Une ligne `manuel` n'entre jamais dans `acceptees`. Un geste manuel en attente ne bloque pas le maillon 4 ; le maillon 5 ne crée aucune note-pointeur pour une source qui en porte un, il l'inscrit dans `04-ingest.md` comme « en attente de déplacement ». Une fois le geste constaté par `--verifier`, la source reçoit sa note (contrôle de recette, cas positif et négatif).
 - A5. `--annuler --ids` sur une ligne acceptée jamais faite la retire, par une ligne `annule` au journal.
 - Suivi hors périmètre : le rejeu de `scan.py` relance l'extraction des candidats structurants, y compris sur un fichier en ligne seulement. Défaut préexistant de `scan.py`, noté au rapport, non corrigé.
+- A6. Arbitrage après la livraison : `process` dans `donnees.structurants` d'une config existante n'est plus une erreur. `cortex_config.py` l'accepte avec l'avertissement « type 'process' retiré en 2.3.0, ignoré » et l'exclut de la liste effective ; le cadrage et `config.example.yaml` ne l'écrivent plus ; `copie_structurant.py --type process` refuse. Motif : les vaults livrés avant 2.3.0 portent `process` et tomberaient au lint.
+- A7. Après l'audit : `--verifier` constate un geste manuel quand `vers` existe, que `de` a disparu et que la taille est celle de la proposition ; la date de modification n'est pas comparée, un déplacement par l'interface d'un outil peut la changer.
