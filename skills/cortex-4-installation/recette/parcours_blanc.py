@@ -1522,14 +1522,18 @@ def c11_rangement(tmp, configs):
             rg.returncode == 3 and arbre_fichiers(perso, commun) == avant, rg.stderr[:200])
     n_avant = len(avant[0])
     # B1 : lot par lot, comme la skill les présente ; chaque lot s'applique seul.
+    # Une procédure décochée au premier passage et acceptée après le sommaire : il doit la reprendre.
+    tardive = next(o for o in plan["operations"] if o["geste"] == "deplacer" and o["classe"] == "entreprise")
     codes = []
     for lot in sorted({o["lot"] for o in plan["operations"]}):
         ids_lot = [o for o in plan["operations"] if o["lot"] == lot and o["geste"] != "manuel"
-                   and o["classe"] != "a_demander"]
+                   and o["classe"] != "a_demander" and o is not tardive]
         if ids_lot:
             r = ranger("--appliquer", "--ids", ",".join(o["id"] for o in ids_lot),
                        *(["--renforce"] if any(o["partage"] for o in ids_lot) else []))
             codes.append((lot, r.returncode, r.stderr[:150]))
+    r = ranger("--appliquer", "--ids", tardive["id"], "--renforce")
+    codes.append(("tardive", r.returncode, r.stderr[:150]))
     apres = arbre_fichiers(perso, commun)
     verifie("B1 : chaque lot s'applique seul, dans l'ordre de la liste (la création précède ce qui en dépend)",
             codes and all(c == 0 for _, c, _ in codes), str(codes))
@@ -1537,7 +1541,7 @@ def c11_rangement(tmp, configs):
         if (commun / "Référentiel" / "AGENTS.md").is_file() else ""
     objets = ["Facturation d'une affaire", "Relance d'un client", "Commande à un fournisseur",
               "Réception d'un chantier", "Archivage d'une affaire"]
-    verifie("B1 : après le passage lot par lot, le sommaire liste les cinq procédures d'entreprise",
+    verifie("B1 : après le passage lot par lot et une procédure acceptée après le sommaire, il liste les cinq",
             len(attendu["entreprise"]) >= 5 and all(o in sommaire for o in objets),
             str([o for o in objets if o not in sommaire]))
     verifie("I-R1 : autant de fichiers après l'application, plus le seul sommaire du dossier commun",
