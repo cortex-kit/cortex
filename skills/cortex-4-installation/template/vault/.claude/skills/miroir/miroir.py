@@ -161,6 +161,10 @@ def recaler(vault, conf, lire):
     """Rend (changements, constats). Un changement : (fiche, champ, avant, après)."""
     m = conf.get("miroir") or {}
     statuts = {str(x.get("source")): str(x.get("vault")) for x in conf.get("miroir_statuts") or []}
+    # Garde aussi ici : un appelant qui saute main() ne doit ni planter sans nom,
+    # ni traduire une phase vide de la base par une ligne `source: ""`.
+    if erreurs_phases(conf):
+        raise ValueError("\n".join(erreurs_phases(conf)))
     traduction = {str(x["source"]): str(x["vault"]) for x in conf.get("miroir_phases") or []}
     progressions = {(c.get("cycle"), c.get("phase")): c.get("progression") for c in conf.get("cycles") or []}
     changements, constats = [], []
@@ -372,6 +376,13 @@ def _autotest():
                      [{"source": "", "vault": "Phase D"}],
                      table + [{"source": "Phase D - Restitution", "vault": "Phase C"}]):
             assert erreurs_phases(dict(conf, miroir_phases=faux)), faux
+        # Appel direct de recaler() : la table fautive est refusée, nommée.
+        for faux in ([{"source": "", "vault": "Phase A"}], [{"source": "Phase D - Restitution"}], "Phase D"):
+            try:
+                recaler(v, dict(conf, miroir_phases=faux), lire)
+                raise AssertionError(f"recaler a accepté {faux!r}")
+            except ValueError as e:
+                assert "miroir_phases" in str(e), e
         # Causes distinctes : le code HTTP est lu, la coupure réseau n'est pas un refus.
         err = urllib.error.HTTPError
         assert cause(err("u", 403, "x", {}, None)).startswith("droits refusés, HTTP 403")
