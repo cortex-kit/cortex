@@ -865,6 +865,9 @@ def c3_inventaire(tmp, configs):
     if not SCAN.is_file():
         verifie("scan.py présent", False, "attendu au merge de la lane D")
         return
+    r = lancer(SCAN, "--autotest")
+    verifie("scan.py --autotest sort en 0 (dont : un fichier présent seulement en ligne n'est ni ouvert ni compté)",
+            r.returncode == 0 and "en ligne seulement jamais ouvert" in r.stdout, (r.stderr or r.stdout)[-300:])
     racines = {"employe": FIXTURES / "employe", "dirigeant": FIXTURES / "dirigeant",
                "societe": FIXTURES / "societe" / "camille"}
     for profil, (cfg, regime) in configs.items():
@@ -1581,8 +1584,26 @@ def c11_rangement(tmp, configs):
     manuel = next(o for o in json.loads((atelier / "03-rangement.json").read_text(encoding="utf-8"))["operations"]
                   if o["id"] == par["dirigeant/PROCESS-affaire.md"]["id"])
     dest = Path(os.path.expanduser(manuel["vers"]))
+    # Le contrôle de santé relit l'attente sans la skill de rangement : même liste, et une note qui la cite se voit.
+    import lint_sante as m_lint
+    vault_a4 = base / "vault-a4"
+    vault_a4.mkdir()
+    (vault_a4 / "Note.md").write_text(f"---\ntype: ressource\n---\n# Note\n\nSource : {tilde(proc)}\n", encoding="utf-8")
+
+    def lint_a4():
+        r = lint(vault_a4, "--config", str(atelier / "config.yaml"), "--atelier", str(atelier), "--json")
+        return json.loads(r.stdout)["source_en_attente_pointee"] if r.stdout.startswith("{") else [r.stderr[:200]]
+    attente = m_lint.sources_en_attente(atelier)
+    meme = attente == json.loads(ranger("--chemins").stdout)["en_attente"]
+    vue = lint_a4()
     os.rename(proc, dest)                         # la personne, dans son outil de partage
     rv = ranger("--verifier")
+    apres = m_lint.sources_en_attente(atelier)
+    verifie("A4 : le contrôle de santé lit la même attente que le rangement ; une note qui cite la source en attente "
+            "est un contrôle dur, plus rien une fois le geste constaté",
+            meme and tilde(proc) in attente and [x.get("file") for x in vue if isinstance(x, dict)] == ["Note.md"]
+            and apres == json.loads(ranger("--chemins").stdout)["en_attente"] and tilde(proc) not in apres
+            and lint_a4() == [] and "source_en_attente_pointee" in m_lint.DURS, f"{attente} {vue} {apres}")
     trad = json.loads(ranger("--chemins").stdout)["traductions"]
     verifie("A4 : un geste manuel en attente prive la source de note ; constaté par --verifier, elle la reçoit "
             "sur le nouveau chemin",

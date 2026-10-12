@@ -144,8 +144,10 @@ La table signée au maillon 3 (matrice d'ownership de `_cortex/02-ontologie.md` 
 ## 5. Vérifier
 
 ```bash
-python3 <vault>/.claude/skills/lint/lint_sante.py --vault <vault>
+python3 <vault>/.claude/skills/lint/lint_sante.py --vault <vault> --atelier <chemin de _cortex/>
 ```
+
+Avec `--atelier`, le contrôle lit aussi le rangement : une note qui cite une source « en attente de déplacement » le fait sortir en 1. Retirer la note, la source reste inscrite dans `04-ingest.md`. Si la commande refuse `--atelier` (vault construit avant la 2.4.1), la relancer sans.
 
 **Doit sortir en 0.** Un vault peuplé qui ne passe pas le lint ne doit pas être remis : les écarts se corrigent ici, pendant qu'ils sont peu nombreux et récents.
 

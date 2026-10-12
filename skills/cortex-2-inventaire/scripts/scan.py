@@ -107,6 +107,17 @@ def date(ts):
     return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
 
 
+def en_ligne_seulement(chemin):
+    """Vrai si le fichier n'est présent qu'en ligne : le lire le téléchargerait.
+
+    Mêmes attributs que `range.py` (G6) : SF_DATALESS sous macOS, RECALL_ON_DATA_ACCESS
+    ou OFFLINE sous Windows. Seuls les attributs se lisent. Un `stat` refusé lève :
+    il ne devient pas « local »."""
+    st = os.stat(chemin, follow_symlinks=False)
+    return bool(getattr(st, "st_flags", 0) & 0x40000000
+                or getattr(st, "st_file_attributes", 0) & (0x400000 | 0x1000))
+
+
 def refuser_contenu(obj, chemin="$"):
     """Le schéma interdit `contenu` : on refuse d'écrire plutôt que de faire confiance."""
     if isinstance(obj, dict):
@@ -129,13 +140,19 @@ class Extracteur:
         self.octets = 0
         self.fichiers = 0
         self.echecs = 0
+        self.en_ligne = 0
 
     def texte(self, chemin):
+        """Le texte lu, `""` si rien ne se lit, `None` pour un fichier présent seulement
+        en ligne : celui-là n'est jamais ouvert et ne compte pas au plafond des lectures."""
         reste = OCTETS_TOTAL - self.octets
         if reste <= 0:
             return ""
         borne = min(OCTETS_PAR_FICHIER, reste)
         try:
+            if en_ligne_seulement(chemin):
+                self.en_ligne += 1
+                return None
             if chemin.suffix.lower() in EXT_TEXTE:
                 brut = chemin.read_bytes()[:borne]
             elif self.uvx and chemin.suffix.lower() in EXT_CONVERTIR:
@@ -177,6 +194,8 @@ def dernier_commit(dossier):
     git = shutil.which("git")
     if not git:
         return ""
+    # ponytail: un dépôt dont les objets ne sont présents qu'en ligne serait téléchargé par
+    # `git log` ; aucun attribut d'un seul fichier ne le dit. Garde à poser si un parcours réel le rencontre.
     try:
         r = subprocess.run([git, "-C", str(dossier), "log", "-1", "--format=%cs"],
                            capture_output=True, text=True, timeout=10)
@@ -188,11 +207,11 @@ def dernier_commit(dossier):
 def readme_20_lignes(dossier):
     for nom in ("README.md", "readme.md", "README", "README.txt"):
         f = dossier / nom
-        if f.is_file():
-            try:
+        try:
+            if f.is_file() and not en_ligne_seulement(f):
                 return "\n".join(f.read_text(encoding="utf-8", errors="replace").splitlines()[:20])
-            except OSError:
-                return ""
+        except OSError:
+            return ""
     return ""
 
 
@@ -290,8 +309,10 @@ def scanner(racines, profondeur_arbre, max_dossiers, types_structurants, extract
                 if type_:
                     cand.append(e.name)
                     if extractions < max_extractions and not hors_budget():
-                        extractions += 1
-                        sig.update(mots(extracteur.texte(Path(e.path))))
+                        texte = extracteur.texte(Path(e.path))
+                        if texte is not None:
+                            extractions += 1
+                            sig.update(mots(texte))
                     else:
                         bornes["depassement"] = True
             sig.update(mots(dossier.name, sigles=True))
@@ -395,7 +416,8 @@ def inventaire(conf, racines, extracteur):
         "format": "cortex/inventaire", "version": 2, "genere_le": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
         "profil": conf.get("profil", ""), "regime": donnees.get("regime", ""),
         "racines": [tilde(Path(r).expanduser()) for r in racines],
-        "bornes": bornes, "extraction": {"outil": "markitdown" if extracteur.uvx else "", "echecs": extracteur.echecs},
+        "bornes": bornes, "extraction": {"outil": "markitdown" if extracteur.uvx else "", "echecs": extracteur.echecs,
+                                         "en_ligne": extracteur.en_ligne},
         "disque": disque, "bases": [], "depots": depots,
         "mail": {"voie": (poste.get("mail_voie") or "aucune") if collecte.get("mail_optin") else "aucune",
                  "periode_mois": int(collecte.get("mail_mois", 12)), "en_tetes_lus": 0, "plafond": PLAFOND_MAIL,
@@ -564,6 +586,31 @@ def _autotest():
         assert [x["source_id"] for x in rejoue["ecarts_candidats"]
                 if x["type"] == "dossier_sans_domaine"] == ["partage-divers-notes"], rejoue["ecarts_candidats"]
 
+        # Un candidat présent seulement en ligne n'est ni ouvert ni compté au plafond des lectures ;
+        # le README d'un dépôt dans le même état non plus. Témoin : le fichier local, lui, est lu.
+        nuage = Path(tmp) / "Nuage"
+        (nuage / ".git").mkdir(parents=True)
+        (nuage / "CONTRAT-distant.md").write_text("Clause de penalite.\n")
+        (nuage / "CONTRAT-local.md").write_text("Clause de confidentialite.\n")
+        (nuage / "README.md").write_text("# Depot\n")
+        assert en_ligne_seulement(nuage / "CONTRAT-local.md") is False
+        conf_n = dict(conf, collecte={"max_extractions": 1})
+        temoin = inventaire(conf_n, [str(nuage)], Extracteur(actif=False))
+        assert "penalite" in temoin["disque"][0]["signal_ontologique"]["mots"], "témoin : sans la garde, le fichier est lu"
+        assert temoin["depots"][0]["readme_20_lignes"] == "# Depot" and temoin["extraction"]["en_ligne"] == 0, temoin
+        vrai = globals()["en_ligne_seulement"]
+        # par nom sans la casse : sur un disque insensible à la casse, `readme.md` est le même fichier
+        globals()["en_ligne_seulement"] = lambda p: Path(p).name.lower() in ("contrat-distant.md", "readme.md")
+        try:
+            inv_n = inventaire(conf_n, [str(nuage)], Extracteur(actif=False))
+        finally:
+            globals()["en_ligne_seulement"] = vrai
+        mots_n = inv_n["disque"][0]["signal_ontologique"]
+        assert "penalite" not in mots_n["mots"] and "confidentialite" in mots_n["mots"], mots_n
+        assert mots_n["structurant_candidat"] == ["CONTRAT-distant.md", "CONTRAT-local.md"], mots_n
+        assert inv_n["extraction"]["en_ligne"] == 1 and inv_n["bornes"]["extractions"] == 1, inv_n["extraction"]
+        assert inv_n["depots"][0]["readme_20_lignes"] == "", inv_n["depots"]
+
         try:
             ecrire({"disque": [{"contenu": "x"}]}, sortie)
             raise AssertionError("un champ contenu aurait dû être refusé")
@@ -571,7 +618,7 @@ def _autotest():
             pass
     print("OK scan.py : bornes en entiers, `depassement` booléen, base déportée, dépôt, "
           "profondeur, rejeu non destructif, `source_id` unique entre racines, refus de `contenu`, "
-          "dossier de médias seuls")
+          "dossier de médias seuls, fichier en ligne seulement jamais ouvert")
     return 0
 
 
@@ -602,6 +649,7 @@ def main():
         b = inv["bornes"]
         print(f"{tilde(a.out)} : {b['dossiers_vus']} dossiers, {b['fichiers_vus']} fichiers, "
               f"{len(inv['depots'])} dépôt(s), {b['extractions']} extraction(s), "
+              f"{inv['extraction']['en_ligne']} en ligne seulement, "
               f"{len(inv['ecarts_candidats'])} écart(s), dépassement={str(b['depassement']).lower()}")
     else:
         refuser_contenu(inv)

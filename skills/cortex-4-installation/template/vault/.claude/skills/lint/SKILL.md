@@ -36,6 +36,7 @@ Deux registres, et ne jamais les confondre dans un compte rendu.
 | `commun_edite_main` | en mode fédéré, note du vault commun sans la marque « généré », ou commun qui ne correspond plus à son empreinte `.cortex-genere` : une note éditée à la main, ou un commun périmé à régénérer depuis l'atelier |
 | `progression_absente` | projet actif sans progression |
 | `visibilite_hors_enum` | `visibilite` autre que `prive` ou `commun` : l'export ne saurait pas quoi en faire |
+| `source_en_attente_pointee` | note qui cite un fichier en attente de déplacement à la main : son chemin va changer et le lien casserait. Lu dans l'atelier, `_cortex/` du vault ou `--atelier <chemin>` |
 
 **`[i]`, la dette.** À surveiller, sans bloquer : journal long, `dernier_journal` périmé, agent métier à revoir, note sans frontmatter, structurant périmé, clôture ancienne.
 

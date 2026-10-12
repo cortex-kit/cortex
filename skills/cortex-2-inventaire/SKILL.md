@@ -55,7 +55,9 @@ python3 "${CLAUDE_SKILL_DIR}/scripts/scan.py" --config ~/Cortex/<slug>/_cortex/c
 
 Sans `uvx`, le scan tourne quand même : `extraction.outil` vaut `""`, les mots viennent des seuls noms. Le dire dans le rapport, ne pas installer.
 
-Lire ensuite la ligne imprimée : dossiers, fichiers, dépôts, extractions, écarts, dépassement. Un `depassement=true` se traite au §Les bornes avant d'aller plus loin.
+Un fichier présent seulement en ligne n'est jamais ouvert : le lire le téléchargerait. Son nom et ses dates se lisent, pas son texte, et le README d'un dépôt dans le même état reste vide. `extraction.en_ligne` compte ces fichiers, hors du plafond des lectures. Le dire dans le rapport dès que le compte dépasse zéro.
+
+Lire ensuite la ligne imprimée : dossiers, fichiers, dépôts, extractions, fichiers en ligne seulement, écarts, dépassement. Un `depassement=true` se traite au §Les bornes avant d'aller plus loin.
 
 ## Étape 2 : le bloc `mail`
 

@@ -122,8 +122,8 @@ Le renommage refuse lui-même la destination occupée : deux barrières au lieu 
 
 ## Suivis notés, non traités
 
-- **Rejeu du scan après rangement** (A1) : `scan.py` relance l'extraction des candidats structurants, y compris sur un fichier présent seulement en ligne, qu'il téléchargerait. Défaut préexistant de `scan.py`, hors possession.
-- **Garde de lint sur A4** : une note-pointeur écrite vers une source qui attend un déplacement manuel n'est vue par aucun contrôle du vault. Prévue en 2.3.x, dans `lint_sante.py`, hors de cette lane.
+- **Rejeu du scan après rangement** (A1) : `scan.py` relance l'extraction des candidats structurants, y compris sur un fichier présent seulement en ligne, qu'il téléchargerait. Défaut préexistant de `scan.py`, hors possession. **Traité en 2.4.1** : le scan n'ouvre plus un fichier présent seulement en ligne (contrat A9).
+- **Garde de lint sur A4** : une note-pointeur écrite vers une source qui attend un déplacement manuel n'est vue par aucun contrôle du vault. Prévue en 2.3.x, dans `lint_sante.py`, hors de cette lane. **Traité en 2.4.1** : contrôle dur `source_en_attente_pointee` (contrat A9).
 - **Renommage exclusif hors macOS et Linux** : sous Windows, `os.rename` refuse déjà une destination existante ; sur une autre plateforme POSIX sans `renamex_np` ni `renameat2`, la garde rejouée juste avant le geste reste la seule barrière (fenêtre de deux appels système).
 - **Rangement après la remise** : hors périmètre (01-cadrage). Défaire après la construction casserait les liens du vault ; la skill le dit avant d'agir.
 

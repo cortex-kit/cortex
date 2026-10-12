@@ -22,6 +22,7 @@ Porté depuis le linter du système d'origine. Deux différences de fond :
 Usage :
   python3 lint_sante.py --vault <chemin>
   python3 lint_sante.py --vault <chemin> --config <chemin>   # défaut : <vault>/config.yaml
+  python3 lint_sante.py --vault <chemin> --atelier <_cortex> # défaut : <vault>/_cortex s'il existe
   python3 lint_sante.py --vault <chemin> --json
   python3 lint_sante.py --vault <chemin> --bref              # une ligne, pour le hook
   python3 lint_sante.py --autotest
@@ -95,6 +96,7 @@ DURS = (
     "chemins_absolus",
     "commun_edite_main",
     "visibilite_hors_enum",
+    "source_en_attente_pointee",
 )
 
 
@@ -268,6 +270,32 @@ def peremption_structurant(fm):
     return None
 
 
+def sources_en_attente(atelier):
+    """Origines des déplacements à faire à la main que le rangement n'a pas encore
+    constatés : aucune note ne doit les citer, leur chemin va changer.
+
+    Même lecture que `range.py --chemins` (clé `en_attente`), refaite ici : le lint
+    embarqué dans le vault n'a pas la skill de rangement sous la main. La recette
+    compare les deux."""
+    atelier = Path(atelier)
+    plan, lisible = atelier / "03-rangement.json", atelier / "03-rangement.md"
+    journal = atelier / "03-rangement-journal.jsonl"
+    if not plan.is_file():
+        return []
+    if lisible.is_file() and parse_frontmatter(lisible.read_text(encoding="utf-8")).get("statut") == "refuse":
+        return []
+    # Une ligne `fait` constate le geste, une ligne `annule` le retire : dans les deux cas il n'attend plus.
+    decides = set()
+    if journal.is_file():
+        for ligne in journal.read_text(encoding="utf-8").splitlines():
+            if ligne.strip():
+                geste = json.loads(ligne)
+                if geste.get("resultat") in ("fait", "annule"):
+                    decides.add(geste["id"])
+    return sorted(o["de"] for o in json.loads(plan.read_text(encoding="utf-8"))["operations"]
+                  if o["geste"] == "manuel" and o["id"] not in decides)
+
+
 def derniere_cloture(vault):
     """Date du dernier commit du vault, ou None sans git."""
     try:
@@ -313,7 +341,7 @@ def empreinte_commun(racine):
     return h.hexdigest()
 
 
-def lint(vault, conf):
+def lint(vault, conf, atelier=None):
     sante = conf.get("sante", {})
     seuil_entree = sante.get("max_lignes_entree_journal", 10)
     seuil_total = sante.get("max_lignes_journal", 60)
@@ -331,7 +359,7 @@ def lint(vault, conf):
         "commun_edite_main", "visibilite_hors_enum", "journal_total_long",
         "dernier_journal_perime", "structurant_perime", "cloture_ancienne",
         "agents_perimes", "notes_sans_frontmatter", "contrat_config_invalide",
-        "liens_casses",
+        "liens_casses", "source_en_attente_pointee",
     )}
     f["stats"] = {"total_md": 0, "audites": 0, "ignores": 0,
                   "regime": (conf.get("donnees") or {}).get("regime", "pointeur")}
@@ -348,6 +376,15 @@ def lint(vault, conf):
     # sans domaine declare n'a rien qui puisse etre sain.
     f["contrat_config_invalide"] = cortex_config.valider_installable(conf)
     cles_vues = set()     # clés lues dans les fiches auditées, pour juger les alias
+
+    # Un rangement illisible ne rend pas le contrôle muet : il se dit, et il bloque.
+    en_attente = []
+    if atelier:
+        try:
+            en_attente = [unicodedata.normalize("NFC", s) for s in sources_en_attente(atelier)]
+        except (OSError, ValueError, KeyError, TypeError) as err:
+            f["source_en_attente_pointee"].append({
+                "file": str(atelier), "raison": f"rangement illisible, contrôle impossible : {err!r}"})
 
     for md in sorted(vault.rglob("*.md")):
         rel = md.relative_to(vault)
@@ -389,6 +426,14 @@ def lint(vault, conf):
             f["stats"]["ignores"] += 1
             continue
         f["stats"]["audites"] += 1
+
+        if en_attente:
+            # Même forme des deux côtés : accents composés, barres obliques.
+            cite = unicodedata.normalize("NFC", text).replace("\\", "/")
+            for src in en_attente:
+                if src in cite:
+                    f["source_en_attente_pointee"].append({
+                        "file": str(rel), "raison": f"cite {src}, en attente de déplacement à la main"})
 
         fm = parse_frontmatter(text)
         if not fm:
@@ -534,6 +579,7 @@ LIBELLES = {
     "chemins_absolus": "fichier(s) avec un chemin absolu",
     "commun_edite_main": "constat(s) sur le vault commun (note editee a la main ou commun a regenerer)",
     "visibilite_hors_enum": "note(s) avec visibilite hors de prive | commun",
+    "source_en_attente_pointee": "note(s) qui citent un fichier en attente de deplacement",
     "journal_total_long": "fiche(s) au journal long",
     "dernier_journal_perime": "projet(s) actif(s) au dernier_journal perime",
     "structurant_perime": "structurant(s) dont la source a change depuis la copie",
@@ -603,6 +649,7 @@ def main():
     p = argparse.ArgumentParser(description="Audit sante d'un vault Cortex.")
     p.add_argument("--vault")
     p.add_argument("--config", default=None, help="defaut : <vault>/config.yaml")
+    p.add_argument("--atelier", default=None, help="dossier _cortex ; defaut : <vault>/_cortex s'il existe")
     p.add_argument("--json", action="store_true")
     p.add_argument("--bref", action="store_true", help="une ligne, pour le hook SessionStart")
     p.add_argument("--autotest", action="store_true")
@@ -622,7 +669,11 @@ def main():
         return 2
 
     conf = cortex_config.charger(cfg)
-    f = lint(vault, conf)
+    atelier = Path(a.atelier).expanduser() if a.atelier else vault / "_cortex"
+    if a.atelier and not atelier.is_dir():
+        print(f"[X] Atelier introuvable : {atelier}", file=sys.stderr)
+        return 2
+    f = lint(vault, conf, atelier if atelier.is_dir() else None)
 
     if a.json:
         print(json.dumps(f, indent=2, ensure_ascii=False))
@@ -716,6 +767,32 @@ def _autotest():
                 and c["extrait"] == "C:\\"], vus
         temoin.unlink()
 
+        # Rangement, A4 : une note qui cite l'origine d'un déplacement à faire à la main est un
+        # contrôle dur ; le geste constaté ou la liste refusée, plus rien. Témoin : sans atelier, rien.
+        at = Path(tmp) / "_cortex"
+        at.mkdir()
+        (at / "03-rangement.json").write_text(json.dumps({"operations": [
+            {"id": "r001", "geste": "manuel", "de": "~/Travail/Procédé.docx", "vers": "~/Commun/Procédé.docx"},
+            {"id": "r002", "geste": "renommer", "de": "~/Travail/a.docx", "vers": "~/Travail/b.docx"}]}),
+            encoding="utf-8")
+        cite = v / "10 - Domaines" / "Cite.md"
+        cite.write_text("---\ntype: domaine\ntags:\n  - d/ops\n---\n# Cite\n\n[[Ops]] "
+                        + unicodedata.normalize("NFD", "~/Travail/Procédé.docx") + " et ~/Travail/a.docx\n",
+                        encoding="utf-8")
+        assert sources_en_attente(at) == ["~/Travail/Procédé.docx"], sources_en_attente(at)
+        assert lint(v, conf)["source_en_attente_pointee"] == [], "témoin : sans atelier, le contrôle ne dit rien"
+        vus = lint(v, conf, at)["source_en_attente_pointee"]
+        assert [x["file"] for x in vus] == ["10 - Domaines/Cite.md"] and "source_en_attente_pointee" in DURS, vus
+        journal = at / "03-rangement-journal.jsonl"
+        journal.write_text(json.dumps({"id": "r001", "geste": "manuel", "resultat": "fait"}) + "\n", encoding="utf-8")
+        assert lint(v, conf, at)["source_en_attente_pointee"] == [], "le geste constaté lève le constat"
+        journal.write_text("{illisible\n", encoding="utf-8")
+        assert "illisible" in lint(v, conf, at)["source_en_attente_pointee"][0]["raison"], "un journal illisible se dit"
+        journal.unlink()
+        (at / "03-rangement.md").write_text("---\nstatut: refuse\n---\n", encoding="utf-8")
+        assert lint(v, conf, at)["source_en_attente_pointee"] == [], "une liste refusée n'attend rien"
+        cite.unlink()
+
         # H2 défaut 10 : une note du commun éditée en gardant son en-tête est vue par l'empreinte.
         commun = Path(tmp) / "commun"
         (commun / "20 - Projets").mkdir(parents=True)
@@ -772,7 +849,7 @@ def _autotest():
         vus = [x["vers"] for x in lint(v, conf)["liens_casses"]]
         assert vus == ["Absente"], vus
     print("OK lint_sante.py : vault adopté (alias lus, alias mal écrit signalé), structurant_perime, plafond suspendu, visibilite, cloture_ancienne, --bref, "
-          "lettre de lecteur, empreinte du commun")
+          "lettre de lecteur, empreinte du commun, source en attente de déplacement")
     return 0
 
 
