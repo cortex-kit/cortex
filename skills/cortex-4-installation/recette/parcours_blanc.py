@@ -1590,20 +1590,24 @@ def c11_rangement(tmp, configs):
     vault_a4.mkdir()
     (vault_a4 / "Note.md").write_text(f"---\ntype: ressource\n---\n# Note\n\nSource : {tilde(proc)}\n", encoding="utf-8")
 
-    def lint_a4():
-        r = lint(vault_a4, "--config", str(atelier / "config.yaml"), "--atelier", str(atelier), "--json")
+    def lint_a4(*ou):
+        r = lint(vault_a4, "--config", str(atelier / "config.yaml"), "--json", *ou)
         return json.loads(r.stdout)["source_en_attente_pointee"] if r.stdout.startswith("{") else [r.stderr[:200]]
     attente = m_lint.sources_en_attente(atelier)
     meme = attente == json.loads(ranger("--chemins").stdout)["en_attente"]
-    vue = lint_a4()
+    # Nommé ou trouvé à côté du vault, l'atelier donne le même constat ; introuvable, le contrôle refuse de tourner.
+    vue = lint_a4("--atelier", str(atelier))
+    trouve = lint_a4() == vue and lint(vault_a4, "--config", str(atelier / "config.yaml"),
+                                       "--atelier", str(base / "absent")).returncode == 2
     os.rename(proc, dest)                         # la personne, dans son outil de partage
     rv = ranger("--verifier")
     apres = m_lint.sources_en_attente(atelier)
     verifie("A4 : le contrôle de santé lit la même attente que le rangement ; une note qui cite la source en attente "
             "est un contrôle dur, plus rien une fois le geste constaté",
-            meme and tilde(proc) in attente and [x.get("file") for x in vue if isinstance(x, dict)] == ["Note.md"]
+            meme and trouve and tilde(proc) in attente
+            and [x.get("file") for x in vue if isinstance(x, dict)] == ["Note.md"]
             and apres == json.loads(ranger("--chemins").stdout)["en_attente"] and tilde(proc) not in apres
-            and lint_a4() == [] and "source_en_attente_pointee" in m_lint.DURS, f"{attente} {vue} {apres}")
+            and lint_a4() == [] and "source_en_attente_pointee" in m_lint.DURS, f"{attente} {vue} {apres} {trouve}")
     trad = json.loads(ranger("--chemins").stdout)["traductions"]
     verifie("A4 : un geste manuel en attente prive la source de note ; constaté par --verifier, elle la reçoit "
             "sur le nouveau chemin",

@@ -22,7 +22,7 @@ Porté depuis le linter du système d'origine. Deux différences de fond :
 Usage :
   python3 lint_sante.py --vault <chemin>
   python3 lint_sante.py --vault <chemin> --config <chemin>   # défaut : <vault>/config.yaml
-  python3 lint_sante.py --vault <chemin> --atelier <_cortex> # défaut : <vault>/_cortex s'il existe
+  python3 lint_sante.py --vault <chemin> --atelier <_cortex> # défaut : _cortex dans le vault, sinon à côté de lui
   python3 lint_sante.py --vault <chemin> --json
   python3 lint_sante.py --vault <chemin> --bref              # une ligne, pour le hook
   python3 lint_sante.py --autotest
@@ -282,8 +282,12 @@ def sources_en_attente(atelier):
     journal = atelier / "03-rangement-journal.jsonl"
     if not plan.is_file():
         return []
-    if lisible.is_file() and parse_frontmatter(lisible.read_text(encoding="utf-8")).get("statut") == "refuse":
-        return []
+    # Le statut se lit comme `range.py` le lit : une ligne `---` exacte ferme l'en-tête.
+    lignes = lisible.read_text(encoding="utf-8").splitlines() if lisible.is_file() else []
+    if lignes and lignes[0].strip() == "---":
+        fin = next((i for i, l in enumerate(lignes[1:], 1) if l.strip() == "---"), None)
+        if fin and cortex_config.charger_texte("\n".join(lignes[1:fin])).get("statut") == "refuse":
+            return []
     # Une ligne `fait` constate le geste, une ligne `annule` le retire : dans les deux cas il n'attend plus.
     decides = set()
     if journal.is_file():
@@ -293,7 +297,7 @@ def sources_en_attente(atelier):
                 if geste.get("resultat") in ("fait", "annule"):
                     decides.add(geste["id"])
     return sorted(o["de"] for o in json.loads(plan.read_text(encoding="utf-8"))["operations"]
-                  if o["geste"] == "manuel" and o["id"] not in decides)
+                  if o["geste"] == "manuel" and o["id"] not in decides and o["de"])
 
 
 def derniere_cloture(vault):
@@ -378,13 +382,16 @@ def lint(vault, conf, atelier=None):
     cles_vues = set()     # clés lues dans les fiches auditées, pour juger les alias
 
     # Un rangement illisible ne rend pas le contrôle muet : il se dit, et il bloque.
+    # Le chemin cité s'arrête là où il finit : `a.docx.bak` et `a.docx-v2` sont d'autres fichiers.
     en_attente = []
+    f["stats"]["rangement_lu"] = bool(atelier)
     if atelier:
         try:
-            en_attente = [unicodedata.normalize("NFC", s) for s in sources_en_attente(atelier)]
-        except (OSError, ValueError, KeyError, TypeError) as err:
+            en_attente = [(s, re.compile(re.escape(s) + r"(?![\w-]|\.\w)"))
+                          for s in (unicodedata.normalize("NFC", x) for x in sources_en_attente(atelier))]
+        except (OSError, ValueError, KeyError, TypeError, AttributeError) as err:
             f["source_en_attente_pointee"].append({
-                "file": str(atelier), "raison": f"rangement illisible, contrôle impossible : {err!r}"})
+                "file": Path(atelier).name, "raison": f"rangement illisible, contrôle impossible : {err!r}"})
 
     for md in sorted(vault.rglob("*.md")):
         rel = md.relative_to(vault)
@@ -430,8 +437,8 @@ def lint(vault, conf, atelier=None):
         if en_attente:
             # Même forme des deux côtés : accents composés, barres obliques.
             cite = unicodedata.normalize("NFC", text).replace("\\", "/")
-            for src in en_attente:
-                if src in cite:
+            for src, motif in en_attente:
+                if motif.search(cite):
                     f["source_en_attente_pointee"].append({
                         "file": str(rel), "raison": f"cite {src}, en attente de déplacement à la main"})
 
@@ -611,7 +618,7 @@ def rendre(f, conf):
     s = f["stats"]
     nom = (conf.get("organisation") or {}).get("nom", "?")
     print(f"\n== Lint {nom} == ({s['audites']}/{s['total_md']} notes auditees, "
-          f"{s['ignores']} ignorees)\n")
+          f"{s['ignores']} ignorees, {'rangement lu' if s.get('rangement_lu') else 'sans atelier'})\n")
     sain = True
     for cle, libelle in LIBELLES.items():
         items = f.get(cle) or []
@@ -669,11 +676,15 @@ def main():
         return 2
 
     conf = cortex_config.charger(cfg)
-    atelier = Path(a.atelier).expanduser() if a.atelier else vault / "_cortex"
-    if a.atelier and not atelier.is_dir():
-        print(f"[X] Atelier introuvable : {atelier}", file=sys.stderr)
-        return 2
-    f = lint(vault, conf, atelier if atelier.is_dir() else None)
+    if a.atelier:
+        atelier = Path(a.atelier).expanduser()
+        if not atelier.is_dir():
+            print(f"[X] Atelier introuvable : {atelier}", file=sys.stderr)
+            return 2
+    else:
+        # L'atelier vit dans le vault ou à côté de lui (`<slug>/_cortex` et `<slug>/vault`).
+        atelier = next((d for d in (vault / "_cortex", vault.parent / "_cortex") if d.is_dir()), None)
+    f = lint(vault, conf, atelier)
 
     if a.json:
         print(json.dumps(f, indent=2, ensure_ascii=False))
@@ -777,8 +788,12 @@ def _autotest():
             encoding="utf-8")
         cite = v / "10 - Domaines" / "Cite.md"
         cite.write_text("---\ntype: domaine\ntags:\n  - d/ops\n---\n# Cite\n\n[[Ops]] "
-                        + unicodedata.normalize("NFD", "~/Travail/Procédé.docx") + " et ~/Travail/a.docx\n",
+                        + unicodedata.normalize("NFD", "~/Travail/Procédé.docx") + ". Puis ~/Travail/a.docx\n",
                         encoding="utf-8")
+        voisin = v / "10 - Domaines" / "Voisin.md"       # un autre fichier, dont le nom commence pareil
+        voisin.write_text("---\ntype: domaine\ntags:\n  - d/ops\n---\n# Voisin\n\n[[Ops]] "
+                          "~/Travail/Procédé.docx.bak ~/Travail/Procédé.docx-v2 ~/Travail/Procédé.docxx\n",
+                          encoding="utf-8")
         assert sources_en_attente(at) == ["~/Travail/Procédé.docx"], sources_en_attente(at)
         assert lint(v, conf)["source_en_attente_pointee"] == [], "témoin : sans atelier, le contrôle ne dit rien"
         vus = lint(v, conf, at)["source_en_attente_pointee"]
@@ -786,12 +801,18 @@ def _autotest():
         journal = at / "03-rangement-journal.jsonl"
         journal.write_text(json.dumps({"id": "r001", "geste": "manuel", "resultat": "fait"}) + "\n", encoding="utf-8")
         assert lint(v, conf, at)["source_en_attente_pointee"] == [], "le geste constaté lève le constat"
-        journal.write_text("{illisible\n", encoding="utf-8")
-        assert "illisible" in lint(v, conf, at)["source_en_attente_pointee"][0]["raison"], "un journal illisible se dit"
+        for casse in ("{illisible\n", "[1]\n"):
+            journal.write_text(casse, encoding="utf-8")
+            vus = lint(v, conf, at)["source_en_attente_pointee"]
+            assert vus and "illisible" in vus[0]["raison"] and vus[0]["file"] == "_cortex", (casse, vus)
         journal.unlink()
         (at / "03-rangement.md").write_text("---\nstatut: refuse\n---\n", encoding="utf-8")
         assert lint(v, conf, at)["source_en_attente_pointee"] == [], "une liste refusée n'attend rien"
+        # L'en-tête se ferme sur une ligne `---` exacte, comme pour le rangement : `---x` ne le ferme pas.
+        (at / "03-rangement.md").write_text("---\nstatut: refuse\n---x\n", encoding="utf-8")
+        assert sources_en_attente(at) == ["~/Travail/Procédé.docx"], sources_en_attente(at)
         cite.unlink()
+        voisin.unlink()
 
         # H2 défaut 10 : une note du commun éditée en gardant son en-tête est vue par l'empreinte.
         commun = Path(tmp) / "commun"

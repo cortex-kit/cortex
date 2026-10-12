@@ -111,9 +111,10 @@ def en_ligne_seulement(chemin):
     """Vrai si le fichier n'est présent qu'en ligne : le lire le téléchargerait.
 
     Mêmes attributs que `range.py` (G6) : SF_DATALESS sous macOS, RECALL_ON_DATA_ACCESS
-    ou OFFLINE sous Windows. Seuls les attributs se lisent. Un `stat` refusé lève :
+    ou OFFLINE sous Windows. Seuls les attributs se lisent, ceux de la cible quand le
+    chemin est un lien : c'est elle qu'une lecture ouvrirait. Un `stat` refusé lève :
     il ne devient pas « local »."""
-    st = os.stat(chemin, follow_symlinks=False)
+    st = os.stat(chemin)
     return bool(getattr(st, "st_flags", 0) & 0x40000000
                 or getattr(st, "st_file_attributes", 0) & (0x400000 | 0x1000))
 
@@ -145,14 +146,14 @@ class Extracteur:
     def texte(self, chemin):
         """Le texte lu, `""` si rien ne se lit, `None` pour un fichier présent seulement
         en ligne : celui-là n'est jamais ouvert et ne compte pas au plafond des lectures."""
-        reste = OCTETS_TOTAL - self.octets
-        if reste <= 0:
-            return ""
-        borne = min(OCTETS_PAR_FICHIER, reste)
         try:
-            if en_ligne_seulement(chemin):
+            if en_ligne_seulement(chemin):      # avant le budget d'octets : compté même une fois le budget épuisé
                 self.en_ligne += 1
                 return None
+            reste = OCTETS_TOTAL - self.octets
+            if reste <= 0:
+                return ""
+            borne = min(OCTETS_PAR_FICHIER, reste)
             if chemin.suffix.lower() in EXT_TEXTE:
                 brut = chemin.read_bytes()[:borne]
             elif self.uvx and chemin.suffix.lower() in EXT_CONVERTIR:
@@ -211,7 +212,7 @@ def readme_20_lignes(dossier):
             if f.is_file() and not en_ligne_seulement(f):
                 return "\n".join(f.read_text(encoding="utf-8", errors="replace").splitlines()[:20])
         except OSError:
-            return ""
+            continue
     return ""
 
 
@@ -594,6 +595,16 @@ def _autotest():
         (nuage / "CONTRAT-local.md").write_text("Clause de confidentialite.\n")
         (nuage / "README.md").write_text("# Depot\n")
         assert en_ligne_seulement(nuage / "CONTRAT-local.md") is False
+        # Les attributs eux-mêmes, sur un `stat` simulé : un fichier dématérialisé ne se fabrique pas ici.
+        vrai_stat = os.stat
+        try:
+            for attributs, attendu in (({"st_flags": 0x40000000}, True), ({"st_file_attributes": 0x400000}, True),
+                                       ({"st_file_attributes": 0x1000}, True),
+                                       ({"st_flags": 0x20, "st_file_attributes": 0x20}, False)):
+                os.stat = lambda *a, **k: argparse.Namespace(**attributs)
+                assert en_ligne_seulement("x") is attendu, attributs
+        finally:
+            os.stat = vrai_stat
         conf_n = dict(conf, collecte={"max_extractions": 1})
         temoin = inventaire(conf_n, [str(nuage)], Extracteur(actif=False))
         assert "penalite" in temoin["disque"][0]["signal_ontologique"]["mots"], "témoin : sans la garde, le fichier est lu"
