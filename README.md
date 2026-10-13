@@ -1,6 +1,6 @@
 # Cortex
 
-Un second cerveau installé chez vous, en français, par une suite d'étapes guidées. Version 2.4.1.
+Un second cerveau installé chez vous, en français, par une suite d'étapes guidées. Version 2.4.2.
 
 ## Trois gestes
 

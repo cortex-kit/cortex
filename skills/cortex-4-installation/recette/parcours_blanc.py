@@ -1437,7 +1437,7 @@ def c11_rangement(tmp, configs):
         verifie("range.py présent", False, "attendu au merge de la lane rangement")
         return
     r = lancer(RANGE, "--autotest", timeout=180)
-    verifie("range.py --autotest sort en 0 (G1 à G9 dans les deux sens, I-R1 à I-R3)", r.returncode == 0,
+    verifie("range.py --autotest sort en 0 (G1 à G9 dans les deux sens, I-R1 à I-R3, A10 : relevé d'un poste réel)", r.returncode == 0,
             (r.stdout + r.stderr)[-400:])
 
     # Appels interdits : seules les exceptions d'annulation, chacune commentée ; témoin sur un fichier jetable.

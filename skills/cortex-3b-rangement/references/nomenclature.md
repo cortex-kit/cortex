@@ -21,7 +21,7 @@ Ne sont pas illisibles : un nom court mais clair (`Devis Malbrun`, `PV-reception
 
     <Objet en clair> - AAAA-MM-JJ.<ext>
 
-- **Objet** : le titre lu dans le document (première ligne d'un texte, premier paragraphe d'un `.docx`, objet d'un `.eml`) ; sinon le nom débarrassé de ses marques ; sinon le nom du dossier. Un document présent seulement en ligne ne s'ouvre jamais : son objet vient du dossier, et la ligne le signale pour que la personne confirme ou donne le nom (`--nommer`).
+- **Objet** : le nom débarrassé de ses marques s'il reste parlant, et le document ne s'ouvre pas ; sinon le titre lu dans le document (première ligne d'un texte, premier paragraphe d'un `.docx`, objet d'un `.eml`) ; sinon le nom du dossier. Une procédure prend d'abord son titre. Un document présent seulement en ligne ne s'ouvre jamais : quand son nom ne dit rien, son objet vient du dossier, et la ligne le signale pour que la personne confirme ou donne le nom (`--nommer`).
 - **Date** : celle de la version. Celle du nom d'origine s'il en porte une, sinon la date de modification du fichier.
 - **Extension** : jamais changée.
 - **Caractères refusés**, pour que le nom tienne aussi sous Windows : `/ \ : * ? " < > |`, une espace ou un point en fin de nom. 120 caractères au plus.
@@ -30,7 +30,7 @@ Ne sont pas illisibles : un nom court mais clair (`Devis Malbrun`, `PV-reception
 
 ## Une procédure
 
-Un fichier dont le nom dit `process`, `processus`, `procédure`, `mode opératoire` ou `protocole`. Son classement :
+Un document (texte, traitement de texte, PDF, tableur, présentation) dont le nom s'ouvre sur `process`, `processus`, `procédure`, `mode opératoire` ou `protocole`, après un numéro, une date ou un possessif : `Process relance`, `2026-06-10 Procédure achats`, `Mon process de devis`. Un nom qui en parle seulement (`Rédiger les procédures RH`) n'est pas une procédure, une image ou un export non plus (`cartographie process.png`). Un code placé devant le mot (`PROC-RH-001 Procédure achats`) n'est pas reconnu : la personne dépose elle-même le fichier dans le dossier commun, et le sommaire le reprend. Son classement :
 
 | Où elle est | Classe | Ce qui se propose |
 |---|---|---|
@@ -44,12 +44,17 @@ Une procédure d'entreprise qui doit changer d'espace (d'un dossier à soi vers 
 ## Ce qui ne se renomme ni ne se déplace jamais
 
 - un fichier ou un dossier caché (nom commençant par un point), un fichier système (`.DS_Store`, `Thumbs.db`, `desktop.ini`), un fichier de verrou bureautique (`~$…`) ;
+- un programme ou un fichier de configuration (`.py`, `.js`, `.sh`, `.json`, `.yaml`…), que d'autres fichiers appellent par son nom, et un dossier technique (`node_modules`, `__pycache__`, `venv`) ;
 - un dossier qui est un dépôt git, et tout ce qu'il contient ; un dossier de travail qui se trouve lui-même dans un dépôt git ou un vault n'est pas parcouru ;
 - un paquet d'application (`.app`, `.bundle`, `.photoslibrary`, `.pages`, `.numbers`, `.key`) ;
 - un vault Obsidian (dossier qui porte `.obsidian/`) ;
 - l'atelier `_cortex/` et le dossier du second cerveau ;
 - un lien symbolique, qui n'est pas suivi ;
 - les dossiers eux-mêmes : seuls les fichiers se renomment. Un dossier ne se crée que pour le dossier commun et ses procédures.
+
+## Les doublons
+
+Deux fichiers de même nom et de même taille, à deux endroits : la liste les signale, rien ne se propose, rien ne se supprime. À partir de trois fichiers jumeaux, deux dossiers se signalent une seule fois, avec leur nombre : le dossier de même nom posé à deux endroits, ou les deux dossiers d'une copie renommée.
 
 ## Le sommaire du dossier commun
 

@@ -172,12 +172,21 @@ _DEFAUTS = re.compile(
 _APPAREILS = re.compile(r"(scan|img|dsc[a-z]?|pxl|photo|image|vid|mvi)\s?\d+.*|capture d.ecran.*|screenshot.*")
 _COPIE_VERSION = [re.compile(p) for p in (r"\s*\(\d+\)$", r"^copie de\s+", r"^copy of\s+", r"\s+-\s+copie$",
                                           r"[\s-]+(final|def|definitif|definitive|v\d+)$")]
-_PROCEDURE = re.compile(r"(^|[\s_-])(process|processus|procedure|procedures|mode operatoire|protocole)($|[\s_-])")
+_PROCEDURE = re.compile(r"(process|processus|procedure|procedures|mode operatoire|protocole)($|[\s_-])")
+_AVANT_PROCEDURE = re.compile(r"[^a-z]+|(?:mon|ma|mes|notre|nos)\s")
 _DATE = re.compile(r"(20\d\d)[-_. ]?(0[1-9]|1[0-2])[-_. ]?(0[1-9]|[12]\d|3[01])")
 _DATE_FINALE = re.compile(r" - \d{4}-\d{2}-\d{2}$")
 _INTERDITS = re.compile(r'[/\\:*?"<>|]')
 SYSTEME = {".ds_store", "thumbs.db", "desktop.ini", "icon\r"}
 PAQUETS = (".app", ".bundle", ".photoslibrary", ".pages", ".numbers", ".key", ".framework", ".pkg")
+# Un programme est appelé par son nom : le renommer casse ce qui l'appelle. Les mêmes
+# dossiers techniques que l'inventaire (scan.py, DOSSIERS_IGNORES).
+PROGRAMMES = (".py", ".pyc", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".css", ".sh", ".ps1", ".bat", ".php", ".rb",
+              ".go", ".rs", ".java", ".c", ".h", ".cpp", ".sql", ".ipynb", ".json", ".yaml", ".yml", ".toml")
+TECHNIQUES = {"node_modules", "__pycache__", "venv"}
+# Une procédure est un document : une image, un export ou une donnée qui en porte le mot n'en est pas une.
+DOCUMENTS = (".docx", ".doc", ".odt", ".rtf", ".pdf", ".md", ".txt", ".pptx", ".ppt", ".odp", ".xlsx", ".xls", ".ods")
+JUMEAUX = 3   # à partir de trois fichiers jumeaux, deux dossiers se signalent une fois, pas fichier par fichier
 
 
 def _plat(s):
@@ -209,7 +218,15 @@ def illisible(stem):
 
 
 def est_procedure(stem):
-    return bool(_PROCEDURE.search(_plat(stem)))
+    """Le mot ouvre le nom, après un numéro, une date ou un possessif : « Process relance »,
+    « 2026-06-10 Procédure achats », « Mon process de devis ». Un nom qui en parle seulement
+    (« Rédiger les procédures RH », « cartographie process ») n'est pas une procédure."""
+    # ponytail: un code devant le mot (« PROC-RH-001 Procédure achats ») n'est pas reconnu ;
+    # élargir _AVANT_PROCEDURE si un poste réel en porte.
+    s = _plat(stem)
+    while (m := _AVANT_PROCEDURE.match(s)):
+        s = s[m.end():]
+    return bool(_PROCEDURE.match(s))
 
 
 def date_de(stem, mtime):
@@ -225,7 +242,8 @@ def date_de(stem, mtime):
 def nettoyer(objet):
     o = _INTERDITS.sub(" ", objet)
     o = re.sub(r"\s+", " ", o).strip(" .")
-    o = _DATE.sub("", o).strip(" -._")
+    o = re.sub(r"\s+", " ", _DATE.sub("", o))
+    o = re.sub(r"(?: -)+ - ", " - ", o).strip(" -._")
     return o[:1].upper() + o[1:] if o else o
 
 
@@ -257,7 +275,7 @@ def titre_local(chemin):
                     return ""
                 xml = z.read(info).decode("utf-8", "replace")
             for p in re.findall(r"<w:p[ >].*?</w:p>", xml, re.S):
-                t = "".join(re.findall(r"<w:t[^>]*>(.*?)</w:t>", p, re.S))
+                t = "".join(re.findall(r"<w:t(?:\s[^>]*)?>(.*?)</w:t>", p, re.S))
                 if t.strip():
                     return html.unescape(t).strip()
     except (OSError, KeyError, zipfile.BadZipFile, UnicodeError) as e:
@@ -414,21 +432,33 @@ def domaines_signes(atelier):
 # ── Proposer ────────────────────────────────────────────────────────────────
 
 def _ignorer_dossier(d, nom, exclus):
-    return (nom.startswith(".") or nom.lower().endswith(PAQUETS) or (d / nom / ".git").exists()
+    return (nom.startswith(".") or nom in TECHNIQUES or nom.lower().endswith(PAQUETS) or (d / nom / ".git").exists()
             or (d / nom / ".obsidian").is_dir() or any(_sous(reel(d / nom), x) for x in exclus))
 
 
 def parcourir(racine, exclus):
     """Les fichiers de la personne sous une racine, sans suivre de lien, sans entrer
-    dans un dossier caché, un dépôt git, un vault Obsidian, un paquet, l'atelier."""
+    dans un dossier caché ou technique, un dépôt git, un vault Obsidian, un paquet,
+    l'atelier ; un programme ne se propose ni ne se compare."""
     for dossier, sous, fichiers in os.walk(racine):
         d = Path(dossier)
         sous[:] = sorted(n for n in sous if not _ignorer_dossier(d, n, exclus))
         for n in sorted(fichiers):
             p = d / n
-            if n.startswith((".", "~$")) or n.lower() in SYSTEME or p.is_symlink():
+            if n.startswith((".", "~$")) or n.lower() in SYSTEME or n.lower().endswith(PROGRAMMES) or p.is_symlink():
                 continue
             yield p
+
+
+def _dossiers_jumeaux(a, b):
+    """Pour deux fichiers jumeaux, deux paires triées : les premiers dossiers qui diffèrent
+    en remontant, puis les dossiers de même nom les plus hauts sous eux.
+    `X/kit/lib/f` et `Y/kit/lib/f` : (X, Y) puis (X/kit, Y/kit). `P/A/f` et `P/B/f` : (P/A, P/B) deux fois."""
+    k = 1
+    while k < min(len(a.parts), len(b.parts)) - 1 and a.parts[-k - 1] == b.parts[-k - 1]:
+        k += 1
+    return (tuple(sorted((a.parents[k - 1], b.parents[k - 1]))),
+            tuple(sorted((a.parents[max(k - 2, 0)], b.parents[max(k - 2, 0)]))))
 
 
 def referentiel_cible(conf, racines, demande):
@@ -498,10 +528,12 @@ def proposer(atelier, demande_ref=""):
             stem, ext = p.stem, p.suffix
             ligne = en_ligne_seulement(p)
             bad, objet = illisible(stem)
-            proc = est_procedure(stem)
+            proc = ext.lower() in DOCUMENTS and est_procedure(stem)
             if not bad and not proc:
                 continue
-            titre = "" if ligne else titre_local(p)
+            # Un nom qui reste parlant sans sa marque se garde : le document ne s'ouvre pas pour lui.
+            sans_titre = bool(objet) and not proc
+            titre = "" if ligne or sans_titre else titre_local(p)
             if titre is None:
                 signalements.append({"type": "titre_illisible", "chemins": [tilde(p)],
                                      "motif": "document non lisible (droits ou fichier abîmé) ; nom déduit du dossier"})
@@ -509,7 +541,7 @@ def proposer(atelier, demande_ref=""):
             if titre and illisible(titre)[0]:
                 titre = ""
             dossier_nom = p.parent.name if p.parent != rr else Path(nom_r).name
-            if ligne:
+            if ligne and not sans_titre:
                 signalements.append({"type": "en_ligne_seulement", "chemins": [tilde(p)],
                                      "motif": "non ouvert ; nom déduit du dossier, à confirmer"})
             jour = date_de(stem, st.st_mtime)
@@ -544,10 +576,9 @@ def proposer(atelier, demande_ref=""):
                                             else "procédure : pour vous seul ou pour toute l'entreprise ?")
                                   + ("" if meme else " ; deux espaces différents : à déplacer dans l'interface de l'outil")})
                 continue
-            objet = titre or objet or dossier_nom
-            motif = ("nom illisible ; " + ("titre lu dans le document" if titre else
-                                          "nom gardé sans sa marque de copie" if objet and not titre and objet != dossier_nom
-                                          else "nom déduit du dossier"))
+            motif = "nom illisible ; " + ("nom gardé sans sa marque de copie" if objet else
+                                          "titre lu dans le document" if titre else "nom déduit du dossier")
+            objet = objet or titre or dossier_nom
             vers = p.parent / libre(p.parent, nom_parlant(objet, jour, ext))
             candidats.append({"geste": "renommer", "de": p, "vers": vers, "classe": "", "motif": motif, "st": st})
 
@@ -563,12 +594,25 @@ def proposer(atelier, demande_ref=""):
                              "motif": "dépôt git ou vault : rien n'y est proposé"})
     if absentes:
         signalements.append({"type": "racine_absente", "chemins": absentes, "motif": "dossier déclaré introuvable"})
+    jumeaux = {}
     for (nom, _), chemins in sorted(par_nom.items()):
         # « Deux endroits » (contrat 2.3) : au-delà, un même nom à la même taille dans
         # chaque dossier d'affaire est une convention de nommage, pas une copie oubliée.
         if len(chemins) == 2:
-            signalements.append({"type": "doublon_probable", "chemins": sorted(tilde(c) for c in chemins),
-                                 "motif": "même nom, même taille"})
+            dehors, dedans = _dossiers_jumeaux(*chemins)
+            jumeaux.setdefault(dehors, []).append((dedans, chemins))
+    for dehors, paires in sorted(jumeaux.items()):
+        if len(paires) < JUMEAUX:
+            for _, chemins in paires:
+                signalements.append({"type": "doublon_probable", "chemins": sorted(tilde(c) for c in chemins),
+                                     "motif": "même nom, même taille"})
+            continue
+        # Une arborescence copiée se dit une fois : le dossier de même nom s'il est seul (un
+        # kit posé à deux endroits), sinon les deux dossiers qui diffèrent (une copie renommée).
+        dedans = {d for d, _ in paires}
+        signalements.append({"type": "doublon_probable",
+                             "chemins": [tilde(d) for d in (dedans.pop() if len(dedans) == 1 else dehors)],
+                             "motif": f"deux dossiers, {len(paires)} fichiers de même nom et de même taille"})
 
     vers_ref = [c for c in candidats if c["classe"] in ("entreprise", "a_demander")]
     if ref is not None and dans_un_depot(ref_decl):
@@ -1718,6 +1762,50 @@ def _autotest():
         assert b_.read_text(encoding="utf-8") == "b" and a_.is_file()
         renommer_exclusif(a_, Path(t) / "c")
         assert (Path(t) / "c").is_file() and not a_.exists()
+    # A10, relevé sur un poste réel : nom gardé devant le titre, programmes et dossiers
+    # techniques hors liste, procédure = document dont le nom s'ouvre sur le mot, dossiers jumeaux.
+    with tempfile.TemporaryDirectory() as t:
+        t = Path(os.path.realpath(t))
+        r_, at = t / "Travail", t / "w" / "_cortex"
+        at.mkdir(parents=True)
+        for d, noms in (("", ("Contrat Durand (1).md", "Devis Martin (2).md", "outil_v1.py", "Process achats.md", "Process ventes.png",
+                              "Rédiger les procédures RH.md")),
+                        ("node_modules", ("Untitled.md",)),
+                        ("Kit", ("a.md", "b.md", "c.md")), ("Ailleurs/Kit", ("a.md", "b.md", "c.md")),
+                        ("Orig/s1", ("d.md",)), ("Orig/s2", ("e.md", "f.md")),
+                        ("Copie/s1", ("d.md",)), ("Copie/s2", ("e.md", "f.md")),
+                        ("G", ("seul.md",)), ("H", ("seul.md",))):
+            (r_ / d).mkdir(parents=True, exist_ok=True)
+            for n in noms:
+                (r_ / d / n).write_text("# Tout autre titre\n", encoding="utf-8")
+        (at / "config.yaml").write_text(f'collecte:\n  racines: ["{r_}"]\n', encoding="utf-8")
+        (at / "02-ontologie.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
+        _SIMULES = {str(reel(r_ / "Devis Martin (2).md"))}   # en ligne, mais son nom suffit : rien à signaler
+        p = proposer(at)
+        _SIMULES = None
+        par = {Path(o["de"]).name: o for o in p["operations"]}
+        assert set(par) == {"Contrat Durand (1).md", "Devis Martin (2).md"}, sorted(par)
+        assert Path(par["Contrat Durand (1).md"]["vers"]).name.startswith("Contrat Durand - ") \
+            and "sans sa marque" in par["Contrat Durand (1).md"]["motif"], par["Contrat Durand (1).md"]
+        assert not any(x["type"] == "en_ligne_seulement" for x in p["signalements"]), p["signalements"]
+        sig = {(tuple(Path(c).name for c in x["chemins"]), x["motif"]) for x in p["signalements"]}
+        assert (("Process achats.md",), "procédures sans dossier commun où les ranger : demander où le créer") in sig, sig
+        trois = "deux dossiers, 3 fichiers de même nom et de même taille"
+        assert {(("Kit", "Kit"), trois), (("Copie", "Orig"), trois), (("seul.md", "seul.md"), "même nom, même taille")} <= sig, sig
+        assert sum(x["type"] == "doublon_probable" for x in p["signalements"]) == 3, p["signalements"]
+        a_, b_ = r_ / "Kit" / "a.md", r_ / "Ailleurs" / "Kit" / "a.md"
+        assert _dossiers_jumeaux(a_, b_) == _dossiers_jumeaux(b_, a_), "l'ordre du parcours ne change pas la paire"
+        # .docx : un taquet de tabulation (<w:tabs>) devant le texte n'est pas le titre.
+        with zipfile.ZipFile(t / "t.docx", "w") as z:
+            z.writestr("word/document.xml", '<w:p><w:pPr><w:tabs><w:tab w:val="clear"/></w:tabs></w:pPr>'
+                       '<w:r><w:t xml:space="preserve">Vrai </w:t><w:t>titre</w:t></w:r></w:p>')
+        assert titre_local(t / "t.docx") == "Vrai titre", titre_local(t / "t.docx")
+    for n in ("Process relance", "PROCESS-affaire", "2026-06-10 Procédure achats", "1. Mode opératoire saisie",
+              "Mon process de devis", "20260610_Procedure_validation"):
+        assert est_procedure(n), n
+    for n in ("Rédiger les procédures RH", "cartographie process", "Les process à repenser", "Processeur", "Manuel"):
+        assert not est_procedure(n), n
+    assert nettoyer("laura - 2026-05-20 - Revue") == "Laura - Revue", nettoyer("laura - 2026-05-20 - Revue")
     # Nomenclature : chaque forme illisible du contrat §6, et ses témoins parlants.
     for n in ("Nouveau document (3)", "Sans titre", "Untitled", "Document1", "Classeur1", "Scan_0042", "IMG_1234",
               "DSC01234", "Budget (1)", "Copie de tarifs", "rapport final", "devis v2", "20240312", "v2"):
@@ -1728,7 +1816,7 @@ def _autotest():
     assert nom_parlant('a/b:c*d?"e<f>g|h', "2026-01-01", ".docx") == "A b c d e f g h - 2026-01-01.docx"
     assert len(nom_parlant("x" * 300, "2026-01-01", ".docx")) <= MAX_NOM
     assert date_de("CR 2025-11-04", 0) == "2025-11-04"
-    print("range.py : auto-test OK (G1 à G9 dans les deux sens, I-R1 à I-R3, déterminisme, A3 à A5)")
+    print("range.py : auto-test OK (G1 à G9 dans les deux sens, I-R1 à I-R3, déterminisme, A3 à A5, A10)")
     return OK
 
 

@@ -191,3 +191,20 @@ Après le second audit (`audit-2.md`, `e7d098c`) et l'amendement A8. Recette à 
 ### Suivi
 
 - **N9** : l'assertion « aucune note par procédure d'entreprise » porte sur le vault du maillon 4. Le maillon 5, seul à pouvoir en écrire, est conduit par la prose et n'a pas de code à exercer ; son contrôle viendra avec un outillage du remplissage (et avec la garde de lint prévue en 2.3.x).
+
+### Poste réel (2026-10-13)
+
+`--proposer` joué sur un poste de travail réel (macOS, un espace synchronisé et un dossier de code, 63 000 fichiers parcourus en 6 secondes), dans un atelier jetable. Rien n'a été appliqué. La fixture ne montrait aucun de ces six défauts, corrigés en 2.4.2 (amendement A10) :
+
+| Constat | Avant | Après |
+|---|---|---|
+| doublons signalés | 601 lignes, dont 431 pour une bibliothèque copiée à deux endroits | 28 lignes, dont 17 paires de dossiers |
+| procédures détectées | 627, une vingtaine de vraies ; le reste en parlait dans son nom | 113, dont 97 dans l'export brut d'une base en ligne |
+| titre lu dans un `.docx` | des balises de mise en page pour 3 fichiers sur 120 | le texte du premier paragraphe |
+| nom parlant portant une marque de copie | remplacé par le premier paragraphe du document (29 lignes sur 120) | gardé (59 lignes) ; le titre sert aux noms vides (6 lignes) |
+| programmes | proposés au renommage et comparés entre eux | écartés du parcours |
+| date au milieu d'un nom | deux tirets à la suite après son retrait | un seul |
+
+Le détecteur de fichier présent seulement en ligne, simulé jusqu'ici, répond vrai sur un fichier réellement dématérialisé de ce poste et le laisse en ligne.
+
+Reste à jouer sur un poste réel : appliquer un lot, vérifier, défaire. Limites connues : un code devant le mot (`PROC-RH-001 Procédure achats`) n'est pas reconnu comme procédure ; un premier paragraphe long donne un nom long, coupé à 120 caractères.
