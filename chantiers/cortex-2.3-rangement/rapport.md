@@ -207,4 +207,4 @@ Après le second audit (`audit-2.md`, `e7d098c`) et l'amendement A8. Recette à 
 
 Le détecteur de fichier présent seulement en ligne, simulé jusqu'ici, répond vrai sur un fichier réellement dématérialisé de ce poste et le laisse en ligne.
 
-Reste à jouer sur un poste réel : appliquer un lot, vérifier, défaire. Limites connues : un code devant le mot (`PROC-RH-001 Procédure achats`) n'est pas reconnu comme procédure ; un premier paragraphe long donne un nom long, coupé à 120 caractères.
+Reste à jouer sur un poste réel : appliquer un lot, vérifier, défaire. Limites connues : un autre mot devant le mot (`PROC-RH-001 Procédure achats`, `Nouvelle procédure achats`) n'est pas reconnu comme procédure ; un premier paragraphe long donne un nom long, coupé à 120 caractères.

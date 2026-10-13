@@ -185,7 +185,8 @@ PROGRAMMES = (".py", ".pyc", ".js", ".mjs", ".ts", ".tsx", ".jsx", ".css", ".sh"
               ".go", ".rs", ".java", ".c", ".h", ".cpp", ".sql", ".ipynb", ".json", ".yaml", ".yml", ".toml")
 TECHNIQUES = {"node_modules", "__pycache__", "venv"}
 # Une procédure est un document : une image, un export ou une donnée qui en porte le mot n'en est pas une.
-DOCUMENTS = (".docx", ".doc", ".odt", ".rtf", ".pdf", ".md", ".txt", ".pptx", ".ppt", ".odp", ".xlsx", ".xls", ".ods")
+DOCUMENTS = (".docx", ".docm", ".doc", ".odt", ".rtf", ".pages", ".pdf", ".md", ".markdown", ".txt",
+             ".pptx", ".ppt", ".odp", ".key", ".xlsx", ".xlsm", ".xls", ".ods", ".numbers", ".vsdx")
 JUMEAUX = 3   # à partir de trois fichiers jumeaux, deux dossiers se signalent une fois, pas fichier par fichier
 
 
@@ -275,7 +276,7 @@ def titre_local(chemin):
                     return ""
                 xml = z.read(info).decode("utf-8", "replace")
             for p in re.findall(r"<w:p[ >].*?</w:p>", xml, re.S):
-                t = "".join(re.findall(r"<w:t(?:\s[^>]*)?>(.*?)</w:t>", p, re.S))
+                t = "".join(re.findall(r"<w:t(?:\s[^>]*)?(?<!/)>(.*?)</w:t>", p, re.S))
                 if t.strip():
                     return html.unescape(t).strip()
     except (OSError, KeyError, zipfile.BadZipFile, UnicodeError) as e:
@@ -528,11 +529,13 @@ def proposer(atelier, demande_ref=""):
             stem, ext = p.stem, p.suffix
             ligne = en_ligne_seulement(p)
             bad, objet = illisible(stem)
-            proc = ext.lower() in DOCUMENTS and est_procedure(stem)
+            proc = ext.lower() in DOCUMENTS and est_procedure(objet or stem)   # « Copie de Procédure achats »
             if not bad and not proc:
                 continue
             # Un nom qui reste parlant sans sa marque se garde : le document ne s'ouvre pas pour lui.
-            sans_titre = bool(objet) and not proc
+            # Moins de trois lettres (« a (1) », « ?? (1) ») ne disent rien : le titre se lit.
+            parlant = sum(c.isalpha() for c in nettoyer(objet or "")) >= 3
+            sans_titre = parlant and not proc
             titre = "" if ligne or sans_titre else titre_local(p)
             if titre is None:
                 signalements.append({"type": "titre_illisible", "chemins": [tilde(p)],
@@ -576,9 +579,11 @@ def proposer(atelier, demande_ref=""):
                                             else "procédure : pour vous seul ou pour toute l'entreprise ?")
                                   + ("" if meme else " ; deux espaces différents : à déplacer dans l'interface de l'outil")})
                 continue
-            motif = "nom illisible ; " + ("nom gardé sans sa marque de copie" if objet else
-                                          "titre lu dans le document" if titre else "nom déduit du dossier")
-            objet = objet or titre or dossier_nom
+            # Hors procédure, le titre n'a été lu que si le nom ne suffisait pas (sans_titre).
+            reste = objet if nettoyer(objet or "") else ""
+            motif = "nom illisible ; " + ("titre lu dans le document" if titre else
+                                          "nom gardé sans sa marque de copie" if reste else "nom déduit du dossier")
+            objet = titre or reste or dossier_nom
             vers = p.parent / libre(p.parent, nom_parlant(objet, jour, ext))
             candidats.append({"geste": "renommer", "de": p, "vers": vers, "classe": "", "motif": motif, "st": st})
 
@@ -1766,11 +1771,13 @@ def _autotest():
     # techniques hors liste, procédure = document dont le nom s'ouvre sur le mot, dossiers jumeaux.
     with tempfile.TemporaryDirectory() as t:
         t = Path(os.path.realpath(t))
-        r_, at = t / "Travail", t / "w" / "_cortex"
+        r_, c_, at = t / "Travail", t / "Commun", t / "w" / "_cortex"
         at.mkdir(parents=True)
-        for d, noms in (("", ("Contrat Durand (1).md", "Devis Martin (2).md", "outil_v1.py", "Process achats.md", "Process ventes.png",
+        for d, noms in (("", ("Contrat Durand (1).md", "Devis Martin (2).md", "a (1).md", "outil_v1.py", "Process achats.md",
+                              "Procédure accueil.pdf", "Copie de Procédure paie.md", "Process ventes.png",
                               "Rédiger les procédures RH.md")),
-                        ("node_modules", ("Untitled.md",)),
+                        ("../Commun", ("Process achats (1).md", "Process ventes (2).md")),
+                        ("node_modules", ("Untitled.md",)), ("I", ("g.md", "h.md")), ("J", ("g.md", "h.md")),
                         ("Kit", ("a.md", "b.md", "c.md")), ("Ailleurs/Kit", ("a.md", "b.md", "c.md")),
                         ("Orig/s1", ("d.md",)), ("Orig/s2", ("e.md", "f.md")),
                         ("Copie/s1", ("d.md",)), ("Copie/s2", ("e.md", "f.md")),
@@ -1778,27 +1785,39 @@ def _autotest():
             (r_ / d).mkdir(parents=True, exist_ok=True)
             for n in noms:
                 (r_ / d / n).write_text("# Tout autre titre\n", encoding="utf-8")
-        (at / "config.yaml").write_text(f'collecte:\n  racines: ["{r_}"]\n', encoding="utf-8")
+        (c_ / "Process achats (1).md").write_text("# Achats de l'entreprise\n", encoding="utf-8")
+        (at / "config.yaml").write_text(f'collecte:\n  racines: ["{r_}", "{c_}"]\n  partagees: ["{c_}"]\n',
+                                        encoding="utf-8")
         (at / "02-ontologie.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
-        _SIMULES = {str(reel(r_ / "Devis Martin (2).md"))}   # en ligne, mais son nom suffit : rien à signaler
+        # En ligne tous les deux : le premier a un nom qui suffit, la procédure attend son titre.
+        _SIMULES = {str(reel(r_ / "Devis Martin (2).md")), str(reel(c_ / "Process ventes (2).md"))}
         p = proposer(at)
         _SIMULES = None
-        par = {Path(o["de"]).name: o for o in p["operations"]}
-        assert set(par) == {"Contrat Durand (1).md", "Devis Martin (2).md"}, sorted(par)
-        assert Path(par["Contrat Durand (1).md"]["vers"]).name.startswith("Contrat Durand - ") \
+        par = {Path(o.get("de") or o["vers"]).name: o for o in p["operations"]}
+        assert set(par) == {"Contrat Durand (1).md", "Devis Martin (2).md", "a (1).md", "Process achats.md",
+                            "Procédure accueil.pdf", "Copie de Procédure paie.md", "Process achats (1).md",
+                            "Process ventes (2).md", "Référentiel", "Procédures", "AGENTS.md"}, sorted(par)
+        vers = {k: Path(o["vers"]).name for k, o in par.items()}
+        assert vers["Contrat Durand (1).md"].startswith("Contrat Durand - ") \
             and "sans sa marque" in par["Contrat Durand (1).md"]["motif"], par["Contrat Durand (1).md"]
-        assert not any(x["type"] == "en_ligne_seulement" for x in p["signalements"]), p["signalements"]
+        assert vers["a (1).md"].startswith("Tout autre titre - ") and "titre lu" in par["a (1).md"]["motif"], par["a (1).md"]
+        assert vers["Process achats (1).md"].startswith("Achats de l'entreprise - "), "une procédure prend son titre d'abord"
+        assert vers["Process ventes (2).md"].startswith("Process ventes - "), vers
+        assert all(par[k]["classe"] == "a_demander" for k in ("Process achats.md", "Procédure accueil.pdf",
+                                                              "Copie de Procédure paie.md")), par
         sig = {(tuple(Path(c).name for c in x["chemins"]), x["motif"]) for x in p["signalements"]}
-        assert (("Process achats.md",), "procédures sans dossier commun où les ranger : demander où le créer") in sig, sig
-        trois = "deux dossiers, 3 fichiers de même nom et de même taille"
-        assert {(("Kit", "Kit"), trois), (("Copie", "Orig"), trois), (("seul.md", "seul.md"), "même nom, même taille")} <= sig, sig
-        assert sum(x["type"] == "doublon_probable" for x in p["signalements"]) == 3, p["signalements"]
+        assert [x["chemins"] for x in p["signalements"] if x["type"] == "en_ligne_seulement"] \
+            == [[tilde(c_ / "Process ventes (2).md")]], p["signalements"]
+        trois, un = "deux dossiers, 3 fichiers de même nom et de même taille", "même nom, même taille"
+        assert {(("Kit", "Kit"), trois), (("Copie", "Orig"), trois), (("seul.md", "seul.md"), un),
+                (("g.md", "g.md"), un), (("h.md", "h.md"), un)} <= sig, sig
+        assert sum(x["type"] == "doublon_probable" for x in p["signalements"]) == 5, p["signalements"]
         a_, b_ = r_ / "Kit" / "a.md", r_ / "Ailleurs" / "Kit" / "a.md"
         assert _dossiers_jumeaux(a_, b_) == _dossiers_jumeaux(b_, a_), "l'ordre du parcours ne change pas la paire"
         # .docx : un taquet de tabulation (<w:tabs>) devant le texte n'est pas le titre.
         with zipfile.ZipFile(t / "t.docx", "w") as z:
             z.writestr("word/document.xml", '<w:p><w:pPr><w:tabs><w:tab w:val="clear"/></w:tabs></w:pPr>'
-                       '<w:r><w:t xml:space="preserve">Vrai </w:t><w:t>titre</w:t></w:r></w:p>')
+                       '<w:r><w:t xml:space="preserve"/></w:r><w:r><w:t xml:space="preserve">Vrai </w:t><w:t>titre</w:t></w:r></w:p>')
         assert titre_local(t / "t.docx") == "Vrai titre", titre_local(t / "t.docx")
     for n in ("Process relance", "PROCESS-affaire", "2026-06-10 Procédure achats", "1. Mode opératoire saisie",
               "Mon process de devis", "20260610_Procedure_validation"):

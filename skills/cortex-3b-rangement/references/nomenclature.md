@@ -21,7 +21,7 @@ Ne sont pas illisibles : un nom court mais clair (`Devis Malbrun`, `PV-reception
 
     <Objet en clair> - AAAA-MM-JJ.<ext>
 
-- **Objet** : le nom débarrassé de ses marques s'il reste parlant, et le document ne s'ouvre pas ; sinon le titre lu dans le document (première ligne d'un texte, premier paragraphe d'un `.docx`, objet d'un `.eml`) ; sinon le nom du dossier. Une procédure prend d'abord son titre. Un document présent seulement en ligne ne s'ouvre jamais : quand son nom ne dit rien, son objet vient du dossier, et la ligne le signale pour que la personne confirme ou donne le nom (`--nommer`).
+- **Objet** : le nom débarrassé de ses marques s'il reste parlant (trois lettres au moins), et le document ne s'ouvre pas ; sinon le titre lu dans le document (première ligne d'un texte, premier paragraphe d'un `.docx`, objet d'un `.eml`) ; sinon le nom du dossier. Une procédure prend d'abord son titre. Un document présent seulement en ligne ne s'ouvre jamais : quand son nom ne dit rien, son objet vient du dossier, et la ligne le signale pour que la personne confirme ou donne le nom (`--nommer`).
 - **Date** : celle de la version. Celle du nom d'origine s'il en porte une, sinon la date de modification du fichier.
 - **Extension** : jamais changée.
 - **Caractères refusés**, pour que le nom tienne aussi sous Windows : `/ \ : * ? " < > |`, une espace ou un point en fin de nom. 120 caractères au plus.
@@ -30,7 +30,7 @@ Ne sont pas illisibles : un nom court mais clair (`Devis Malbrun`, `PV-reception
 
 ## Une procédure
 
-Un document (texte, traitement de texte, PDF, tableur, présentation) dont le nom s'ouvre sur `process`, `processus`, `procédure`, `mode opératoire` ou `protocole`, après un numéro, une date ou un possessif : `Process relance`, `2026-06-10 Procédure achats`, `Mon process de devis`. Un nom qui en parle seulement (`Rédiger les procédures RH`) n'est pas une procédure, une image ou un export non plus (`cartographie process.png`). Un code placé devant le mot (`PROC-RH-001 Procédure achats`) n'est pas reconnu : la personne dépose elle-même le fichier dans le dossier commun, et le sommaire le reprend. Son classement :
+Un document (texte, traitement de texte, PDF, tableur, présentation) dont le nom s'ouvre sur `process`, `processus`, `procédure`, `mode opératoire` ou `protocole`, après un numéro, une date, un possessif ou une marque de copie : `Process relance`, `2026-06-10 Procédure achats`, `Mon process de devis`, `Copie de Procédure achats`. Un nom qui en parle seulement (`Rédiger les procédures RH`) n'est pas une procédure, une image ou un export non plus (`cartographie process.png`). Un autre mot placé devant (`PROC-RH-001 Procédure achats`, `Nouvelle procédure achats`, `Fiche process`) n'est pas reconnu : la personne dépose elle-même le fichier dans le dossier commun, et le sommaire le reprend. Son classement :
 
 | Où elle est | Classe | Ce qui se propose |
 |---|---|---|
