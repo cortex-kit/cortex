@@ -103,8 +103,8 @@ L'application de bureau est en cours de vérification pour ce parcours.
 ## Ce que l'outil ne fait jamais
 
 - Il n'envoie rien hors de votre ordinateur. Seule exception, si vous êtes
-  plusieurs : ce que vous marquez « commun » rejoint le dossier partagé que
-  vous avez choisi au cadrage.
+  plusieurs : ce que vous choisissez de partager avec l'équipe rejoint le
+  dossier partagé désigné au cadrage.
 - Il n'installe rien sans votre accord explicite, outil par outil.
 - Il ne lit pas votre messagerie sans votre accord, tracé, et jamais le corps
   des messages.

@@ -51,6 +51,14 @@ import lint_sante  # noqa: E402
 DOSSIERS = ("10 - Domaines", "20 - Projets", "40 - Acteurs", "60 - Journal")
 
 
+def _dans(chemin, vault):
+    try:
+        Path(chemin).resolve().relative_to(Path(vault).resolve())
+        return True
+    except ValueError:
+        return False
+
+
 def exporter(vault, conf, aujourdhui=None):
     vault = Path(vault)
     if conf.get("mode") != "federe":
@@ -62,7 +70,9 @@ def exporter(vault, conf, aujourdhui=None):
     jour = (aujourdhui or date.today()).isoformat()
 
     shutil.rmtree(cible, ignore_errors=True)
-    cible.mkdir(parents=True)
+    # exist_ok : un fichier tenu par la synchronisation (OneDrive) survit au rmtree ;
+    # l'export se réécrit quand même, et federe.py signale ce qui sort de l'index.
+    cible.mkdir(parents=True, exist_ok=True)
     notes = []
     for dossier in DOSSIERS:
         for md in sorted((vault / dossier).rglob("*.md")):
@@ -90,7 +100,7 @@ def exporter(vault, conf, aujourdhui=None):
     # Hors du vault, la boîte du membre porte aussi sa preuve de remise : sans elle,
     # un autre poste verrait ce membre « en attente » à jamais.
     boite, remise = cible.parent.parent, vault / "_cortex" / "06-passation.md"
-    if boite.resolve() != vault.resolve() and remise.is_file():
+    if not _dans(cible, vault) and remise.is_file():
         (boite / "_cortex").mkdir(parents=True, exist_ok=True)
         shutil.copyfile(remise, boite / "_cortex" / "06-passation.md")
     return cible, notes
@@ -149,7 +159,8 @@ def _autotest():
         assert avant == apres
         assert exporter(v, {"mode": "solo"})[0] is None
         # Postes séparés : l'export et la preuve de remise vont dans la boîte du membre.
-        boite = Path(tmp) / "partage" / "Membres" / "camille"
+        partage_tmp = tempfile.TemporaryDirectory()   # hors du vault, comme le dossier partagé réel
+        boite = Path(partage_tmp.name) / "Membres" / "camille"
         conf["commun"]["export"] = str(boite / "_export")
         (v / "_cortex").mkdir()
         (v / "_cortex" / "06-passation.md").write_text("---\nremis_le: 2026-10-21\n---\n", encoding="utf-8")
@@ -157,6 +168,11 @@ def _autotest():
         assert cible3 == boite / "_export" / "camille" and (cible3 / "index.json").is_file(), cible3
         assert "remis_le: 2026-10-21" in (boite / "_cortex" / "06-passation.md").read_text(encoding="utf-8")
         assert not (v / str(boite)[1:]).exists()
+        # Un export relatif imbriqué reste dans le vault : pas de _cortex/ créé à côté.
+        conf["commun"]["export"] = "x/_export"
+        exporter(v, conf, date(2026, 9, 19))
+        assert not (v / "x" / "_cortex").exists()
+        partage_tmp.cleanup()
     print("OK export.py")
     return 0
 

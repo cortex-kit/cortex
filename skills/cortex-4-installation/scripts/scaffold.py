@@ -145,14 +145,22 @@ def settings_json(conf, plateforme=None):
         # Postes séparés : un export hors du vault s'écrit dans la boîte du membre,
         # sous le partage ; la clôture doit pouvoir y écrire (export et preuve de remise).
         export = str(bloc.get("export", "") or "").strip().replace("\\", "/")
+        code = str((conf.get("organisation") or {}).get("code", "") or "")
         boite = (forme_tilde(export.rstrip("/").rsplit("/", 1)[0])
                  if export.startswith("~") or export.startswith("/") or ":" in export[:3] else "")
+        # Seule la boîte du membre s'ouvre, jamais le parent d'un export quelconque.
+        if not (code and boite.endswith("/Membres/" + code)):
+            boite = ""
+        boites = [boite] if boite else []
+        reel = forme_tilde(os.path.realpath(os.path.expanduser(boite))) if boite else ""
+        if reel and reel != boite:
+            boites.append(reel)   # lien OneDrive sous macOS : la forme réelle aussi
         s["sandbox"] = {
             "enabled": True,
             "allowUnsandboxedCommands": False,
             "autoAllowBashIfSandboxed": False,
             "filesystem": {"denyWrite": formes,
-                           "allowWrite": [x for x in (forme_tilde(commun) if commun else "", boite) if x]},
+                           "allowWrite": ([forme_tilde(commun)] if commun else []) + boites},
             # Le miroir lit la base de projets : son domaine seul s'ajoute, et seulement s'il est configuré.
             "network": {"allowedDomains": ["github.com"] + (
                 ["api.notion.com"] if (conf.get("miroir") or {}).get("outil") == "notion" else [])},
@@ -770,9 +778,14 @@ def _autotest():
     assert settings_json(conf, "darwin")["sandbox"]["filesystem"]["allowWrite"] == []
     # Postes séparés : la boîte du membre sous le partage s'ajoute au commun.
     partage = "~/Library/CloudStorage/OneDrive-Exemple/Second cerveau"
-    sb = settings_json(dict(conf, mode="federe", commun={"racine": partage + "/Commun",
-                                                         "export": partage + "/Membres/ana/_export"}), "darwin")["sandbox"]
+    sb = settings_json(dict(conf, mode="federe", organisation={"code": "ana"},
+                            commun={"racine": partage + "/Commun",
+                                    "export": partage + "/Membres/ana/_export"}), "darwin")["sandbox"]
     assert sb["filesystem"]["allowWrite"] == [partage + "/Commun", partage + "/Membres/ana"], sb
+    # Un export absolu qui n'est pas une boîte de membre n'ouvre rien de plus.
+    sb = settings_json(dict(conf, mode="federe", organisation={"code": "ana"},
+                            commun={"racine": "~/Cortex/commun", "export": "~/Cortex/exports"}), "darwin")["sandbox"]
+    assert sb["filesystem"]["allowWrite"] == ["~/Cortex/commun"], sb
     assert settings_json(conf, "darwin")["sandbox"]["network"]["allowedDomains"] == ["github.com"]
     assert "api.notion.com" in settings_json(dict(conf, miroir={"outil": "notion"}), "darwin")["sandbox"]["network"]["allowedDomains"]
     assert "sandbox" not in settings_json(conf, "win32")
