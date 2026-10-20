@@ -8,7 +8,10 @@ Ordre de la page, pensé pour un novice :
   1. l'étape courante en tête, avec la phrase à dire à Claude Code en évidence ;
   2. les étapes à venir, en une ligne chacune ;
   3. les étapes faites, repliées ;
-  4. la notice complète (le texte de notice.md).
+  4. « à quoi il sert », une page schéma ;
+  5. la notice complète (le texte de notice.md).
+Tant qu'aucune étape n'est faite, la page « à quoi il sert » passe en tête :
+on lit pourquoi avant de lire quoi dire.
 
 Usage (`py` sous Windows vaut `python3`) :
     python3 rend_notice.py --pivot <etat.json> --sortie <notice.html> [--no-open]
@@ -241,11 +244,45 @@ _PAGE = """<!DOCTYPE html>
   .pastille {{ display: inline-block; border-radius: 99px; padding: 2px 12px;
                font-size: 13px; font-weight: 600; white-space: nowrap; }}
   details summary {{ cursor: pointer; font-weight: 600; margin: 0 0 8px; }}
+  .utilite {{ background: #FFFFFF; border: 1px solid #E5E5E3; border-radius: 12px;
+              padding: 28px 32px; margin: 8px 0 24px; }}
+  .utilite .sur {{ margin: 0; font-size: 13px; letter-spacing: .08em;
+                   text-transform: uppercase; color: #6B7280; }}
+  .utilite h2 {{ margin: 4px 0 20px; }}
+  .schema {{ display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+             gap: 8px; align-items: center; }}
+  .case {{ border: 1px solid #E5E5E3; border-radius: 10px; padding: 12px 14px;
+           font-size: 15px; color: #4B5563; }}
+  .case strong {{ display: block; color: #1C1C1C; font-size: 16px; margin-bottom: 2px; }}
+  .case.coeur {{ background: #1C2A3A; border-color: #1C2A3A; color: #D5DEE8; }}
+  .case.coeur strong {{ color: #FFFFFF; }}
+  .fleche {{ text-align: center; color: #6B7280; font-size: 13px; line-height: 1.2; }}
+  .fleche b {{ display: block; font-size: 22px; color: #94A7B3; }}
+  .frise {{ display: flex; list-style: none; padding: 0; margin: 24px 0 4px; }}
+  .frise li {{ flex: 1; position: relative; padding-top: 18px; font-size: 14px;
+               color: #4B5563; text-align: center; }}
+  .frise li::before {{ content: ""; position: absolute; top: 5px; left: 0; right: 0;
+                       border-top: 2px solid #E5E5E3; }}
+  .frise li::after {{ content: ""; position: absolute; top: 0; left: 50%; width: 12px;
+                      height: 12px; margin-left: -6px; border-radius: 99px;
+                      background: #94A7B3; }}
+  .frise li.ici {{ font-weight: 700; color: #1C1C1C; }}
+  .frise li.ici::after {{ background: #F4D35E; box-shadow: 0 0 0 3px #1C2A3A; }}
+  .legende {{ text-align: center; color: #6B7280; font-size: 14px; margin: 0 0 20px; }}
+  .trois {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }}
+  .trois p {{ margin: 0; font-size: 15px; color: #4B5563; }}
+  .trois strong {{ display: block; color: #1C1C1C; }}
+  @media (max-width: 600px) {{
+    .utilite {{ padding: 22px 18px; }}
+    .schema, .trois {{ grid-template-columns: 1fr; }}
+    .fleche b {{ transform: rotate(90deg); }}
+  }}
 </style>
 </head>
 <body>
 <main>
 <p class="meta">{meta}</p>
+{utilite_haut}
 {courante}
 <section class="bord">
 <h2>Ce qui vient ensuite</h2>
@@ -256,11 +293,33 @@ _PAGE = """<!DOCTYPE html>
 {faites}
 </details>
 </section>
+{utilite_bas}
 {notice}
 </main>
 </body>
 </html>
 """
+
+# « À quoi il sert » : la page schéma. HTML seul, ses styles vivent dans _PAGE.
+# Aucune URL, et jamais « À faire » : la recette compte neuf pastilles.
+_UTILITE = """<section class="utilite">
+<p class="sur">À quoi il sert</p>
+<h2>Un binôme qui tient le fil de vos dossiers</h2>
+<div class="schema">
+<div class="case"><strong>Vous et Claude</strong>Vous travaillez et vous décidez ensemble.</div>
+<div class="fleche"><b>→</b>la clôture</div>
+<div class="case coeur"><strong>Votre second cerveau</strong>Une fiche par dossier : où il en est, ce que vous avez décidé, la prochaine étape.</div>
+<div class="fleche"><b>→</b>renvoie vers</div>
+<div class="case"><strong>Vos outils</strong>Dossiers et documents, messagerie, agenda, logiciels. Ils restent la référence.</div>
+</div>
+<ol class="frise"><li>Le dossier démarre</li><li class="ici">Où il en est</li><li>La prochaine étape</li></ol>
+<p class="legende">À la fin de chaque séance, dites « clôture » : les fiches des dossiers travaillés se mettent à jour.</p>
+<div class="trois">
+<p><strong>Il rassemble</strong>les liens vers vos dossiers, documents et outils, en un seul endroit.</p>
+<p><strong>Il suit</strong>les grandes étapes de chaque dossier, à chaque clôture de fin de séance.</p>
+<p><strong>Il répond</strong>quand vous demandez où en est un dossier : il retrouve la fiche et renvoie vers la source.</p>
+</div>
+</section>"""
 
 
 def rendre(pivot, notice_md=None):
@@ -281,6 +340,8 @@ def rendre(pivot, notice_md=None):
         a_venir = [e for e in a_venir if rangs.index(e["numero"]) > rangs.index(n)]
     return _PAGE.format(
         meta=" · ".join(morceaux),
+        utilite_haut="" if faites else _UTILITE,
+        utilite_bas=_UTILITE if faites else "",
         courante=_courante(pivot),
         a_venir=_table(a_venir) if a_venir else "<p>Rien : c'est la dernière.</p>",
         titre_faites=(f"{len(faites)} étape(s) faite(s) ou sans objet"
@@ -300,9 +361,15 @@ def _autotest():
         assert page.count("À faire") == 9, page.count("À faire")   # dix moins la courante
         assert not re.search(r"https?://", page)
         assert "<strong>gras</strong>" in page and "<ul><li>a</li><li>b</li></ul>" in page
+        # Rien de fait : « à quoi il sert » en tête, une seule fois.
+        assert page.count('class="utilite"') == 1
+        assert page.index('class="utilite"') < page.index('class="courante"')
         (Path(tmp) / "poste.json").write_text('{"notice_ouverte_le": "x"}', encoding="utf-8")
         page = rendre(etat.generer(tmp), notice_md="")
         assert PHRASES[1] in page and "1 étape(s) faite(s)" in page
+        # Une étape faite : l'étape courante reprend la tête, la page schéma passe sous le suivi.
+        assert page.count('class="utilite"') == 1
+        assert page.index("Ce qui vient ensuite") < page.index('class="utilite"')
         assert "2 sur 10" in page
         for a in ("00-cadrage", "01-inventaire", "02-ontologie"):
             (Path(tmp) / f"{a}.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")

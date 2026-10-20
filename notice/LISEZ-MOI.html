@@ -34,11 +34,62 @@
   .pastille { display: inline-block; border-radius: 99px; padding: 2px 12px;
                font-size: 13px; font-weight: 600; white-space: nowrap; }
   details summary { cursor: pointer; font-weight: 600; margin: 0 0 8px; }
+  .utilite { background: #FFFFFF; border: 1px solid #E5E5E3; border-radius: 12px;
+              padding: 28px 32px; margin: 8px 0 24px; }
+  .utilite .sur { margin: 0; font-size: 13px; letter-spacing: .08em;
+                   text-transform: uppercase; color: #6B7280; }
+  .utilite h2 { margin: 4px 0 20px; }
+  .schema { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
+             gap: 8px; align-items: center; }
+  .case { border: 1px solid #E5E5E3; border-radius: 10px; padding: 12px 14px;
+           font-size: 15px; color: #4B5563; }
+  .case strong { display: block; color: #1C1C1C; font-size: 16px; margin-bottom: 2px; }
+  .case.coeur { background: #1C2A3A; border-color: #1C2A3A; color: #D5DEE8; }
+  .case.coeur strong { color: #FFFFFF; }
+  .fleche { text-align: center; color: #6B7280; font-size: 13px; line-height: 1.2; }
+  .fleche b { display: block; font-size: 22px; color: #94A7B3; }
+  .frise { display: flex; list-style: none; padding: 0; margin: 24px 0 4px; }
+  .frise li { flex: 1; position: relative; padding-top: 18px; font-size: 14px;
+               color: #4B5563; text-align: center; }
+  .frise li::before { content: ""; position: absolute; top: 5px; left: 0; right: 0;
+                       border-top: 2px solid #E5E5E3; }
+  .frise li::after { content: ""; position: absolute; top: 0; left: 50%; width: 12px;
+                      height: 12px; margin-left: -6px; border-radius: 99px;
+                      background: #94A7B3; }
+  .frise li.ici { font-weight: 700; color: #1C1C1C; }
+  .frise li.ici::after { background: #F4D35E; box-shadow: 0 0 0 3px #1C2A3A; }
+  .legende { text-align: center; color: #6B7280; font-size: 14px; margin: 0 0 20px; }
+  .trois { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .trois p { margin: 0; font-size: 15px; color: #4B5563; }
+  .trois strong { display: block; color: #1C1C1C; }
+  @media (max-width: 600px) {
+    .utilite { padding: 22px 18px; }
+    .schema, .trois { grid-template-columns: 1fr; }
+    .fleche b { transform: rotate(90deg); }
+  }
 </style>
 </head>
 <body>
 <main>
-<p class="meta">généré le 2026-10-04T22:57:22 · paquet 2.0.0</p>
+<p class="meta">généré le 2026-10-20T10:47:14 · paquet 2.4.3</p>
+<section class="utilite">
+<p class="sur">À quoi il sert</p>
+<h2>Un binôme qui tient le fil de vos dossiers</h2>
+<div class="schema">
+<div class="case"><strong>Vous et Claude</strong>Vous travaillez et vous décidez ensemble.</div>
+<div class="fleche"><b>→</b>la clôture</div>
+<div class="case coeur"><strong>Votre second cerveau</strong>Une fiche par dossier : où il en est, ce que vous avez décidé, la prochaine étape.</div>
+<div class="fleche"><b>→</b>renvoie vers</div>
+<div class="case"><strong>Vos outils</strong>Dossiers et documents, messagerie, agenda, logiciels. Ils restent la référence.</div>
+</div>
+<ol class="frise"><li>Le dossier démarre</li><li class="ici">Où il en est</li><li>La prochaine étape</li></ol>
+<p class="legende">À la fin de chaque séance, dites « clôture » : les fiches des dossiers travaillés se mettent à jour.</p>
+<div class="trois">
+<p><strong>Il rassemble</strong>les liens vers vos dossiers, documents et outils, en un seul endroit.</p>
+<p><strong>Il suit</strong>les grandes étapes de chaque dossier, à chaque clôture de fin de séance.</p>
+<p><strong>Il répond</strong>quand vous demandez où en est un dossier : il retrouve la fiche et renvoie vers la source.</p>
+</div>
+</section>
 <section class="courante"><p class="sur">Prochaine étape · 1 sur 10</p><h2>Poste</h2><p>Votre ordinateur reçoit les quelques outils nécessaires, et votre messagerie est reconnue.</p><p class="phrase">Pour la lancer, dites à Claude Code : <strong>« installe mon second cerveau »</strong></p><p class="meta">La notice propose, elle ne lance rien : vous décidez d'enchaîner.</p></section>
 <section class="bord">
 <h2>Ce qui vient ensuite</h2>
@@ -59,6 +110,7 @@
 
 </details>
 </section>
+
 <h1>Votre second cerveau</h1>
 <p>Un second cerveau est un dossier de notes structurées que Claude Code lit, remplit et entretient pour vous. Chaque projet, chaque personne, chaque décision y trouve une place. Vous posez des questions en langage ordinaire, l'outil retrouve et relie.</p>
 <p>Tout reste sur votre ordinateur. Vos documents ne sont pas copiés : le second cerveau pointe vers eux. Votre messagerie n'est lue que si vous le demandez, et seulement les en-têtes.</p>
