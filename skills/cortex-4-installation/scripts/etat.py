@@ -178,6 +178,13 @@ def _aval(atelier, numero):
     return any((atelier / a).is_file() for n, _, _, a in ETAPES[rang + 1:] if a and n != 8)
 
 
+def _construit(atelier):
+    """Vrai quand scaffold.py a inscrit `construit_le` dans 03-rangement.md (maillon 4 fait)."""
+    p = atelier / "03-rangement.md"
+    fm = _frontmatter(p.read_text(encoding="utf-8", errors="replace")) if p.is_file() else None
+    return bool(str((fm or {}).get("construit_le", "") or "").strip())
+
+
 def _journal_rangement(atelier):
     """(faits, retirés) du journal de l'étape 3b : les id dont la dernière ligne
     décisive est `fait`, et ceux dont elle est `annule`. ValueError si illisible."""
@@ -232,8 +239,10 @@ def _etape(numero, maillon, nom, artefact, atelier, conf):
     if artefact is None:
         # Le trou en 03 : projeté quand même, jamais deviné. La chaîne est
         # strictement ordonnée (l'étape 0 du maillon 5 exige le vault), donc
-        # un artefact aval présent prouve que l'installation a eu lieu.
-        e["etat"] = "faite_deduite" if _aval(atelier, numero) else "a_faire"
+        # un artefact aval présent prouve que l'installation a eu lieu ; et
+        # `construit_le`, que scaffold.py écrit dans 03-rangement.md, le prouve
+        # dès la fin de l'étape, sans quoi la notice redemanderait de construire.
+        e["etat"] = "faite_deduite" if _aval(atelier, numero) or _construit(atelier) else "a_faire"
         e["raison"] = RAISON_TROU_03
         return e
     if numero == "3b" and not (atelier / artefact).is_file():
@@ -372,6 +381,11 @@ def _autotest():
         assert p["profil"] == "employe" and p["regime"] == "copie"
         assert par(p, 8)["etat"] == "arbitre" and par(p, 8)["raison"] == RAISON_SOLO
         assert par(p, 4)["etat"] == "a_faire"
+        # Le vault construit, la notice ne redemande pas de construire : scaffold.py l'a écrit.
+        rangement = atelier / "03-rangement.md"
+        rangement.write_text("---\nstatut: passee\nconstruit_le: 2026-10-20\n---\n", encoding="utf-8")
+        assert par(generer(atelier), 4)["etat"] == "faite_deduite"
+        rangement.unlink()
         (atelier / "04-ingest.md").write_text("---\nstatut: valide\n---\n", encoding="utf-8")
         assert par(generer(atelier), 4)["etat"] == "faite_deduite"
         # A2 : le rangement facultatif, passé sans être fait, ne reste pas « à faire » à vie.
