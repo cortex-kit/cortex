@@ -59,6 +59,14 @@ def identite(vault, conf):
             courriel or str(org.get("courriel") or "").strip() or "cortex@localhost")
 
 
+def _dans(chemin, vault):
+    try:
+        Path(chemin).resolve().relative_to(vault)
+        return True
+    except ValueError:
+        return False
+
+
 def cloturer(vault, message, chemins):
     vault = Path(vault).expanduser().resolve()
     if not (vault / ".git").exists():
@@ -69,10 +77,11 @@ def cloturer(vault, message, chemins):
         print("[X] message vide une fois les lignes d'attribution retirées.", file=sys.stderr)
         return 1
     conf = config(vault)
-    export = (conf.get("commun") or {}).get("export") or "_export"
+    export = Path((conf.get("commun") or {}).get("export") or "_export").expanduser()
     cibles = [c for c in chemins if (vault / c).exists() or git(vault, "ls-files", "--", c).stdout]
-    if (vault / export).is_dir():
-        cibles.append(export)
+    # Postes séparés : un export hors du vault vit dans le partage, git ne le suit pas.
+    if (vault / export).is_dir() and _dans(vault / export, vault):
+        cibles.append(str(export))
     if cibles:
         r = git(vault, "add", "--", *cibles)
         if r.returncode:
@@ -117,6 +126,17 @@ def _autotest():
         assert cloturer(v, "rien", ["note.md"]) == 0          # rien à commiter : 0, aucun commit
         assert git(v, "rev-list", "--count", "HEAD").stdout.strip() == "1"
         assert cloturer(v, "Co-Authored-By: Claude <x>", ["note.md"]) == 1
+        # Postes séparés : un export hors du vault ne fait pas échouer le commit.
+        partage = Path(tmp).parent / (Path(tmp).name + "-partage") / "_export"
+        partage.mkdir(parents=True)
+        try:
+            (v / "config.yaml").write_text(f'commun:\n  export: "{partage.as_posix()}"\n', encoding="utf-8")
+            (v / "note.md").write_text("# note modifiée\n", encoding="utf-8")
+            assert cloturer(v, "Clôture hors vault", ["note.md", "config.yaml"]) == 0
+            assert git(v, "rev-list", "--count", "HEAD").stdout.strip() == "2"
+        finally:
+            import shutil
+            shutil.rmtree(partage.parent)
     print("OK cloture.py")
     return 0
 

@@ -19,6 +19,7 @@ Usage :
     python3 federe.py --config <commun>/federation.yaml
     python3 federe.py --inscrire <slug> --redacteur "<Prénom Nom>" --export <vault>/_export/<slug> \
                       --config <commun>/federation.yaml [--nom "<organisation>"] [--attendu "<Prénom Nom>" ...]
+                      [--relatif] [--visibilite prive|commun] [--mention "<nom>" ...]
                                                # inscrit un rédacteur au groupe, n'écrit que federation.yaml
     python3 federe.py --fixtures <dossier>     # trois exports fictifs + federation.yaml
     python3 federe.py --autotest
@@ -27,6 +28,7 @@ Usage :
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -405,13 +407,24 @@ def _nom_cle(nom):
     return " ".join(str(nom).split()).casefold()
 
 
-def inscrire(cfg, slug, redacteur, export, nom="", attendus=(), referentiel=""):
+def _premier(lu, donne):
+    """Décision de groupe : la première valeur posée tient ; une autre, donnée plus
+    tard, est ignorée et rendue pour être dite. Rend (gardée, ignorée)."""
+    lu, donne = str(lu or "").strip(), str(donne or "").strip()
+    return (lu or donne), (donne if donne and lu and donne != lu else "")
+
+
+def inscrire(cfg, slug, redacteur, export, nom="", attendus=(), referentiel="",
+             relatif=False, visibilite="", mentions=()):
     """Inscrit un rédacteur dans <commun>/federation.yaml, crée le dossier et le
     fichier s'il le faut, n'écrit rien d'autre. Idempotent. Un --attendu déjà
     membre (même rédacteur) est ignoré et rendu dans `ignores`, pour que l'étape 8
     n'attende jamais quelqu'un d'inscrit ; l'inscription d'un rédacteur l'en retire.
     `referentiel` (contrat 2.3 §2) est une décision de groupe : posé par le premier
-    rédacteur qui le donne, gardé tel quel ensuite ; un autre chemin est ignoré et rendu."""
+    rédacteur qui le donne, gardé tel quel ensuite ; un autre chemin est ignoré et rendu.
+    Postes séparés : `relatif` écrit l'export depuis le commun (`../Membres/<slug>/…`),
+    lisible de tout poste qui voit le partage ; `visibilite` et `mentions` sont les
+    décisions de groupe que les rédacteurs suivants relisent ici, et non chez le premier."""
     cfg = Path(cfg).expanduser()
     commun = cfg.parent
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", slug or ""):
@@ -430,7 +443,11 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=(), referentiel=""):
         moi = {"slug": slug}
         membres.append(moi)
     # Absolu avant la forme ~ : federe.py et etat.py résolvent un chemin relatif depuis le commun.
-    moi["redacteur"], moi["export"] = redacteur, _tilde(Path.cwd() / Path(export).expanduser())
+    absolu = Path.cwd() / Path(export).expanduser()
+    moi["redacteur"] = redacteur
+    # realpath des deux côtés : un lien du chemin (macOS : /var -> /private/var) ne fausse pas le relatif.
+    moi["export"] = (Path(os.path.relpath(os.path.realpath(absolu), os.path.realpath(commun))).as_posix()
+                     if relatif else _tilde(absolu))
     deja = {_nom_cle(m.get("redacteur", "")) for m in membres if m.get("redacteur")}
     liste = [str(a) for a in conf.get("attendus") or []]
     ignores = [a for a in attendus if _nom_cle(a) in deja]
@@ -438,12 +455,18 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=(), referentiel=""):
         if _nom_cle(a) not in deja and _nom_cle(a) not in {_nom_cle(x) for x in liste}:
             liste.append(a)
     liste = [a for a in liste if _nom_cle(a) not in deja]
-    ref_lu = str(conf.get("referentiel") or "").strip()
-    ref_donne = _tilde(referentiel) if str(referentiel or "").strip() else ""
-    ref = ref_lu or ref_donne
-    ref_ignore = ref_donne if ref_donne and ref_lu and ref_donne != ref_lu else ""
+    ref, ref_ignore = _premier(conf.get("referentiel"), _tilde(referentiel) if str(referentiel or "").strip() else "")
+    if str(visibilite or "").strip() not in ("", "prive", "commun"):
+        raise Refus(f"visibilité {visibilite!r} : prive ou commun")
+    vis, vis_ignore = _premier(conf.get("visibilite_defaut"), visibilite)
+    lues = [str(m) for m in conf.get("mentions") or []]
+    donnees = [str(m).strip() for m in mentions if str(m).strip()]
+    ment = lues or donnees
+    ment_ignore = [m for m in donnees if lues and m not in lues]
     lignes = [f"version: {VERSION_FEDERATION}", f"nom: {_cite(conf.get('nom') or nom)}"]
     lignes += [f"referentiel: {_cite(ref)}"] if ref else []
+    lignes += [f"visibilite_defaut: {vis}"] if vis else []
+    lignes += ["mentions: [" + ", ".join(_cite(m) for m in ment) + "]"] if ment else []
     lignes.append("membres:")
     for m in membres:
         champs = [f"slug: {m['slug']}"] + ([f"redacteur: {_cite(m['redacteur'])}"] if m.get("redacteur") else [])
@@ -452,7 +475,8 @@ def inscrire(cfg, slug, redacteur, export, nom="", attendus=(), referentiel=""):
     commun.mkdir(parents=True, exist_ok=True)
     cfg.write_text("\n".join(lignes) + "\n", encoding="utf-8")
     return {"membres": [str(m["slug"]) for m in membres], "attendus": liste, "ignores": ignores,
-            "referentiel": ref, "referentiel_ignore": ref_ignore}
+            "referentiel": ref, "referentiel_ignore": ref_ignore,
+            "visibilite": vis, "visibilite_ignoree": vis_ignore, "mentions": ment, "mentions_ignorees": ment_ignore}
 
 
 # ── Exports fictifs (recette) ───────────────────────────────────────────────
@@ -625,7 +649,7 @@ def _autotest():
         b = inscrire(groupe, "helene", "Hélène Vasseur", exp_h, nom="Alcyon Promotion",
                      attendus=["Karim Benali", "Hélène Vasseur"])
         assert b == {"membres": ["helene"], "attendus": ["Karim Benali"], "ignores": ["Hélène Vasseur"],
-                     "referentiel": "", "referentiel_ignore": ""}, b
+                     "referentiel": "", "referentiel_ignore": "", "visibilite": "", "visibilite_ignoree": "", "mentions": [], "mentions_ignorees": []}, b
         assert sorted(q.name for q in groupe.parent.iterdir()) == ["federation.yaml"]
         c = cortex_config.charger(groupe)
         assert c["nom"] == "Alcyon Promotion" and c["attendus"] == ["Karim Benali"], c
@@ -646,9 +670,29 @@ def _autotest():
         # Témoin : un --attendu qui nomme un membre déjà inscrit est ignoré, sans erreur,
         # et l'étape 8 n'aura personne à attendre.
         assert b == {"membres": ["helene", "karim"], "attendus": [], "ignores": ["Hélène Vasseur"],
-                     "referentiel": "", "referentiel_ignore": ""}, b
+                     "referentiel": "", "referentiel_ignore": "", "visibilite": "", "visibilite_ignoree": "", "mentions": [], "mentions_ignorees": []}, b
         c = cortex_config.charger(groupe)
         assert c["attendus"] == [] and c["nom"] == "Alcyon Promotion" and len(c["membres"]) == 2, c
+        # Postes séparés : export relatif au commun, décisions de groupe posées par le premier.
+        partage = Path(tmp) / "partage"
+        fy = partage / "Commun" / "federation.yaml"
+        b = inscrire(fy, "ana", "Ana Roux", partage / "Membres" / "ana" / "_export" / "ana", nom="Exemple",
+                     attendus=["Ben Petit"], relatif=True, visibilite="prive", mentions=["Ancien Client"])
+        assert b["visibilite"] == "prive" and b["mentions"] == ["Ancien Client"], b
+        b = inscrire(fy, "ben", "Ben Petit", partage / "Membres" / "ben" / "_export" / "ben",
+                     relatif=True, visibilite="commun", mentions=["Autre"])
+        assert b["visibilite"] == "prive" and b["visibilite_ignoree"] == "commun", b
+        assert b["mentions"] == ["Ancien Client"] and b["mentions_ignorees"] == ["Autre"], b
+        c = cortex_config.charger(fy)
+        assert [m["export"] for m in c["membres"]] == ["../Membres/ana/_export/ana", "../Membres/ben/_export/ben"], c
+        assert c["visibilite_defaut"] == "prive" and c["mentions"] == ["Ancien Client"] and c["attendus"] == [], c
+        # Le chemin relatif se résout depuis le commun, quel que soit le chemin du partage sur le poste.
+        assert (fy.parent / c["membres"][0]["export"]).resolve() == (partage / "Membres" / "ana" / "_export" / "ana").resolve()
+        try:
+            inscrire(fy, "clo", "Clo Martin", partage / "x", visibilite="tous")
+            raise AssertionError("une visibilité inconnue aurait dû être refusée")
+        except Refus:
+            pass
         # Un dossier étranger non vide : refus, rien d'écrit.
         try:
             inscrire(autre / "federation.yaml", "x", "X", "~/x")
@@ -712,6 +756,12 @@ def main():
     p.add_argument("--referentiel", default="",
                    help="avec --inscrire : chemin du dossier commun de l'entreprise (forme ~), "
                         "posé par le premier rédacteur, gardé ensuite")
+    p.add_argument("--relatif", action="store_true",
+                   help="avec --inscrire : écrit l'export relatif au commun (postes séparés, partage commun)")
+    p.add_argument("--visibilite", default="",
+                   help="avec --inscrire : visibilité par défaut du groupe (prive ou commun), posée par le premier")
+    p.add_argument("--mention", action="append", default=[],
+                   help="avec --inscrire : un nom à ne jamais faire apparaître, décision de groupe (répétable)")
     p.add_argument("--autotest", action="store_true")
     a = p.parse_args()
     if a.autotest:
@@ -726,7 +776,8 @@ def main():
             p.error("--inscrire exige --redacteur et --export")
         try:
             b = inscrire(a.config, a.inscrire, a.redacteur.strip(), a.export.strip(), a.nom.strip(),
-                         [x.strip() for x in a.attendu if x.strip()], a.referentiel.strip())
+                         [x.strip() for x in a.attendu if x.strip()], a.referentiel.strip(),
+                         a.relatif, a.visibilite.strip(), a.mention)
         except (Refus, ValueError) as e:
             print(f"[X] {e}", file=sys.stderr)
             return 1
@@ -739,6 +790,14 @@ def main():
             print(f"  dossier commun : {b['referentiel']}")
         if b["referentiel_ignore"]:
             print(f"  [i] {b['referentiel_ignore']} ignoré : le groupe a déjà fixé son dossier commun")
+        if b["visibilite"]:
+            print(f"  visibilité par défaut du groupe : {b['visibilite']}")
+        if b["visibilite_ignoree"]:
+            print(f"  [i] {b['visibilite_ignoree']} ignoré : le groupe a déjà fixé sa visibilité par défaut")
+        if b["mentions"]:
+            print(f"  noms à ne jamais faire apparaître : {', '.join(b['mentions'])}")
+        if b["mentions_ignorees"]:
+            print(f"  [i] {', '.join(b['mentions_ignorees'])} ignoré(s) : le groupe a déjà fixé sa liste")
         return 0
     cfg = Path(a.config).expanduser().resolve()
     try:

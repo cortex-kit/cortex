@@ -141,7 +141,7 @@ python3 .claude/skills/cloture/export.py --vault .
 
 En mode `federe`, le script vide puis réécrit `<commun.export>/<slug>/` : `index.json` et la copie des notes de `10 - Domaines`, `20 - Projets`, `40 - Acteurs`, `60 - Journal` dont `visibilite` vaut `commun` (une note sans clé prend `commun.visibilite_defaut` ; `prive` ne sort jamais). Régénéré en entier : idempotent. En mode `solo`, il ne fait rien et le dit.
 
-L'export est un dossier du vault, pas une écriture vers l'extérieur : c'est l'agrégateur du commun qui vient le lire.
+L'export est un dossier du vault, pas une écriture vers l'extérieur : c'est l'agrégateur du commun qui vient le lire. Une exception, choisie au cadrage : quand chacun travaille sur son propre ordinateur, `commun.export` nomme la boîte de la personne dans le partage du groupe (`<partage>/Membres/<slug>/_export`). L'export s'y écrit, avec la preuve de remise (`_cortex/06-passation.md`) à côté, et git ne le suit pas : le partage en est la sauvegarde.
 
 ## 8. Commit
 

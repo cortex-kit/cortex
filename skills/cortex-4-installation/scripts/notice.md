@@ -64,8 +64,10 @@ s'arrête si quelque chose manque.
 - **7. Passation.** Une fiche de reprise à froid, pour vous dans six mois, et
   deux rendez-vous de bilan, une semaine puis un mois après.
 - **8. Fédération.** Pour une société : plusieurs seconds cerveaux reliés à un
-  commun, généré et jamais édité à la main. Pour une personne seule, cette
-  étape est sans objet et la page le dit.
+  commun, généré et jamais édité à la main. Quand chacun travaille sur son
+  propre ordinateur, le commun vit dans un dossier partagé que tous voient,
+  choisi au cadrage. Pour une personne seule, cette étape est sans objet et la
+  page le dit.
 
 Comptez une dizaine de minutes par étape, hors temps de réflexion sur vos
 réponses. Vous pouvez vous arrêter entre deux étapes et reprendre plus tard :
@@ -100,7 +102,9 @@ L'application de bureau est en cours de vérification pour ce parcours.
 
 ## Ce que l'outil ne fait jamais
 
-- Il n'envoie rien hors de votre ordinateur.
+- Il n'envoie rien hors de votre ordinateur. Seule exception, si vous êtes
+  plusieurs : ce que vous marquez « commun » rejoint le dossier partagé que
+  vous avez choisi au cadrage.
 - Il n'installe rien sans votre accord explicite, outil par outil.
 - Il ne lit pas votre messagerie sans votre accord, tracé, et jamais le corps
   des messages.

@@ -17,10 +17,12 @@ Une société, ce sont plusieurs personnes, donc plusieurs vaults : un vault, un
 
 Quatre conditions, toutes vérifiables :
 
-1. Le profil est `societe` : chaque rédacteur a un vault installé (maillon 4) avec `mode: federe` et le même `commun.racine` dans son `config.yaml`, en forme `~`.
-2. **Au moins deux vaults membres sont remplis** et ont fait une clôture : `<vault>/_export/<slug>/index.json` existe chez chacun. L'export est écrit par la skill `cloture`, jamais à la main.
-3. Le dossier commun est accessible en lecture par tous les membres : dossier synchronisé, ou dépôt git privé (federe.py conserve `.git` et `.obsidian` quand il vide le dossier).
-4. **Tout le groupe est remis** : chaque membre de `federation.yaml` porte `remis_le` dans `<vault>/_cortex/06-passation.md`, et la liste `attendus` est vide. C'est la règle du tableau de bord : tant qu'un rédacteur manque, l'étape vaut « arbitrée, en attente de <noms> » et la notice ne propose pas « relie les cerveaux ».
+1. Le profil est `societe` : chaque rédacteur a un vault installé (maillon 4) avec `mode: federe` et le même commun dans son `config.yaml`, en forme `~`. Sur des postes séparés, c'est le même dossier vu depuis chaque poste : `commun.racine` vaut `<partage>/Commun`, avec le chemin du partage propre à chaque ordinateur.
+2. **Au moins deux vaults membres sont remplis** et ont fait une clôture : l'`index.json` de leur export existe. L'export est écrit par la skill `cloture`, jamais à la main : dans `<vault>/_export/<slug>/` sur un seul ordinateur, dans `<partage>/Membres/<slug>/_export/<slug>/` sur des postes séparés.
+3. Le dossier commun est accessible en lecture par tous les membres : dossier synchronisé, ou dépôt git privé (federe.py conserve `.git` et `.obsidian` quand il vide le dossier). Sur des postes séparés, `federation.yaml` porte des exports relatifs au commun (`../Membres/<slug>/…`) : la fédération se lance depuis n'importe quel poste qui voit le partage.
+4. **Tout le groupe est remis** : chaque membre de `federation.yaml` porte `remis_le` dans `_cortex/06-passation.md`, à côté de son dossier d'export (dans son vault, ou dans sa boîte du partage, où la clôture qui suit la remise le dépose), et la liste `attendus` est vide. C'est la règle du tableau de bord : tant qu'un rédacteur manque, l'étape vaut « arbitrée, en attente de <noms> » et la notice ne propose pas « relie les cerveaux ».
+
+`federe.py` qui répond « index.json introuvable, ce vault n'a pas encore fait de clôture » sur des postes séparés veut dire : ce membre n'a pas dit « clôture » depuis sa remise, ou la synchronisation du partage n'est pas encore arrivée sur ce poste. Le dire ainsi, attendre quelques minutes, relancer.
 
 Sans la condition 2 ou la condition 4, s'arrêter et dire, en mots ordinaires, qui manque encore : une fédération à un seul membre n'est qu'une copie, et `federe.py` la refuse ; un commun relié avant que tout le groupe soit remis montre une équipe incomplète comme si elle était entière.
 

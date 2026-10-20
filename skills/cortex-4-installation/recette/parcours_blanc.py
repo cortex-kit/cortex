@@ -106,6 +106,7 @@ CRITERES = [
     ("C9", "Zéro chemin absolu", "I2, §11", "toutes"),
     ("C10", "Paquet, notice hors ligne, README", "§11", "B"),
     ("C11", "Rangement, dossier commun, procédures", "2.3 §1-§8", "rangement"),
+    ("C12", "Postes séparés, partage commun", "2.5", "groupe"),
 ]
 MANUELS = [("M1", "Installation vivante du plugin (marketplace add, install, details)"),
            ("M2", "Sonde Cowork bureau : uvx --from \"markitdown[all]\" markitdown --version dans le bac à sable"),
@@ -1830,8 +1831,107 @@ def c11_rangement(tmp, configs):
 
 # ── Tableau ─────────────────────────────────────────────────────────────────
 
+def c12_postes_separes(tmp):
+    section("C12", "Postes séparés, partage commun (2.5) : défaut plausible : un commun relié depuis un "
+                   "poste qui ne voit pas les exports des autres, ou des décisions de groupe passées de bouche à oreille")
+    racine = tmp / "postes"
+    partage = racine / "partage"
+    (partage / "Commun").mkdir(parents=True)
+    export_py = GABARIT / ".claude" / "skills" / "cloture" / "export.py"
+    cloture_py = GABARIT / ".claude" / "skills" / "cloture" / "cloture.py"
+    # Trois ordinateurs : le même partage, vu à un chemin propre à chacun (deux Mac, un Windows imité).
+    postes = {"ana": ("A", "Ana Roux", "Library/CloudStorage/OneDrive-Exemple/Second cerveau"),
+              "ben": ("B", "Ben Petit", "Library/CloudStorage/OneDrive-Exemple/Second cerveau"),
+              "clo": ("C", "Clo Martin", "OneDrive - Exemple/Second cerveau")}
+
+    def sur(slug, script, *args):
+        home = racine / postes[slug][0]
+        return subprocess.run([sys.executable, str(script), *args], capture_output=True, text=True,
+                              timeout=120, env=dict(os.environ, HOME=str(home)))
+
+    vaults = {}
+    for slug, (poste, nom, local) in postes.items():
+        home = racine / poste
+        (home / local).parent.mkdir(parents=True, exist_ok=True)
+        (home / local).symlink_to(partage, target_is_directory=True)
+        v = home / "Cortex" / slug / "vault"
+        for rel, texte in (("20 - Projets/AFF - Dossier " + slug + ".md",
+                            "---\ntype: projet\nvisibilite: commun\n---\n# Dossier\n\nClient : [[Client Dupont]].\n"),
+                           ("40 - Acteurs/Client Dupont.md", "---\ntype: acteur\nvisibilite: commun\n---\n# Client Dupont\n"),
+                           ("40 - Acteurs/Perso.md", "---\ntype: acteur\nvisibilite: prive\n---\n# Perso\n")):
+            (v / rel).parent.mkdir(parents=True, exist_ok=True)
+            (v / rel).write_text(texte, encoding="utf-8")
+        (v / "config.yaml").write_text(
+            f'version: 1\norganisation:\n  nom: "Exemple"\n  code: {slug}\n  redacteur: "{nom}"\nmode: federe\n'
+            f'commun:\n  racine: "~/{local}/Commun"\n  export: "~/{local}/Membres/{slug}/_export"\n'
+            f'  visibilite_defaut: prive\n', encoding="utf-8")
+        subprocess.run(["git", "init", "-q", str(v)], check=True)
+        vaults[slug] = v
+
+    def inscrire(slug, *extra):
+        local = postes[slug][2]
+        return sur(slug, FEDERE, "--inscrire", slug, "--redacteur", postes[slug][1],
+                   "--export", f"~/{local}/Membres/{slug}/_export/{slug}", "--relatif",
+                   "--config", f"~/{local}/Commun/federation.yaml", "--nom", "Exemple", *extra)
+    r1 = inscrire("ana", "--visibilite", "prive", "--mention", "Ancien Client",
+                  "--attendu", "Ben Petit", "--attendu", "Clo Martin")
+    r2 = inscrire("ben", "--visibilite", "commun")
+    r3 = inscrire("clo")
+    fy = cortex_config.charger(partage / "Commun" / "federation.yaml")
+    verifie("trois inscriptions depuis trois postes : exports relatifs au commun, aucun attendu restant",
+            r1.returncode == r2.returncode == r3.returncode == 0 and fy.get("attendus") == []
+            and [m.get("export") for m in fy.get("membres", [])]
+            == [f"../Membres/{s}/_export/{s}" for s in ("ana", "ben", "clo")],
+            (r1.stderr + r2.stderr + r3.stderr)[:300] + str(fy))
+    verifie("les décisions de groupe vivent dans federation.yaml : la première tient, une autre est signalée",
+            fy.get("visibilite_defaut") == "prive" and fy.get("mentions") == ["Ancien Client"]
+            and "ignoré" in r2.stdout, r2.stdout[:200])
+
+    def remettre(slug):
+        (vaults[slug] / "_cortex").mkdir(exist_ok=True)
+        (vaults[slug] / "_cortex" / "06-passation.md").write_text("---\nremis_le: 2026-10-21\n---\n", encoding="utf-8")
+
+    def cloturer(slug):
+        e = sur(slug, export_py, "--vault", str(vaults[slug]))
+        c = sur(slug, cloture_py, "--vault", str(vaults[slug]), "--message", f"Clôture {slug}",
+                "20 - Projets", "40 - Acteurs", "config.yaml")
+        return e, c
+    remettre("ana"); remettre("ben")
+    clos = {s: cloturer(s) for s in postes}
+    verifie("la clôture de chaque poste écrit son export dans sa boîte du partage, et le commit du vault passe",
+            all(e.returncode == 0 and c.returncode == 0 for e, c in clos.values())
+            and all((partage / "Membres" / s / "_export" / s / "index.json").is_file() for s in postes)
+            and not any((vaults[s] / "_export").exists() for s in postes),
+            " | ".join((e.stderr or c.stderr)[:120] for e, c in clos.values()))
+    verifie("la preuve de remise suit la clôture dans la boîte, la note privée ne sort pas",
+            all((partage / "Membres" / s / "_cortex" / "06-passation.md").is_file() for s in ("ana", "ben"))
+            and not (partage / "Membres" / "clo" / "_cortex").exists()
+            and not list(partage.rglob("Perso.md")))
+
+    def sonde(slug):
+        """Ce que la notice de ce poste voit pour l'étape 8."""
+        code = (f"import sys; sys.path.insert(0, {str(RACINE / 'scripts')!r}); import etat; "
+                f"print(etat.attente_groupe({{'commun': {{'racine': '~/{postes[slug][2]}/Commun'}}}}))")
+        return subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                              env=dict(os.environ, HOME=str(racine / postes[slug][0])))
+    avant = sonde("ana").stdout.strip()
+    remettre("clo"); cloturer("clo")
+    apres_a, apres_c = sonde("ana").stdout.strip(), sonde("clo").stdout.strip()
+    verifie("la notice de chaque poste attend le non-remis, puis plus personne",
+            avant == "en attente de clo" and apres_a == apres_c == "None", f"{avant!r} {apres_a!r} {apres_c!r}")
+
+    fa = sur("ana", FEDERE, "--config", f"~/{postes['ana'][2]}/Commun/federation.yaml")
+    sceau_a = re.search(r"empreinte : (\w+)", fa.stdout)
+    fc = sur("clo", FEDERE, "--config", f"~/{postes['clo'][2]}/Commun/federation.yaml")
+    sceau_c = re.search(r"empreinte : (\w+)", fc.stdout)
+    verifie("le commun se relie depuis un Mac puis depuis le Windows, à l'identique",
+            fa.returncode == fc.returncode == 0 and sceau_a and sceau_c and sceau_a.group(1) == sceau_c.group(1)
+            and len(list((partage / "Commun" / "20 - Projets").glob("*.md"))) == 3,
+            (fa.stderr or fc.stderr)[:300])
+
+
 def tableau():
-    print("\nTableau C1 à C11 (contrôles passés / total)")
+    print("\nTableau C1 à C12 (contrôles passés / total)")
     for code, titre, contrat, lane in CRITERES:
         ok, xx = BILAN.get(code, [0, 0])
         etat = "VERT" if xx == 0 and ok else "ROUGE"
@@ -1871,6 +1971,7 @@ def main():
         c9_chemins_absolus()
         c10_paquet(tmp)
         c11_rangement(tmp, configs)
+        c12_postes_separes(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
         shutil.rmtree(ATELIER_RECETTE, ignore_errors=True)

@@ -9,11 +9,11 @@ Ce profil n'est pas un quatrième parcours. Chaque rédacteur suit la chaîne se
 Quatre choses, avant toute question individuelle, avec la personne qui porte la démarche pour le groupe.
 
 1. **La liste des rédacteurs.** Nom, poste, et pour chacun le profil de questions qu'il suivra. Trois à huit personnes est l'ordre de grandeur raisonnable ; au-delà, commencer par un noyau.
-2. **L'emplacement du commun.** Un dossier hors de tout vault individuel, forme `~`, par exemple `~/Cortex/commun`. Il sera régénéré à chaque fédération et ne se modifie jamais à la main.
+2. **L'emplacement du commun.** Un dossier hors de tout vault individuel, forme `~`, par exemple `~/Cortex/commun`. Il sera régénéré à chaque fédération et ne se modifie jamais à la main. Quand chacun travaille sur son propre ordinateur, cas ordinaire en entreprise, le commun vit dans un **partage** synchronisé sur tous les postes : `<partage>/Commun`, et la boîte de chaque rédacteur à côté, `<partage>/Membres/<slug>`. Le cadrage pose la question à chaque rédacteur et demande le chemin du partage sur son poste (`cortex-1-cadrage`, « En groupe, une question d'abord »).
 3. **Le défaut de visibilité.** Ce qu'une note devient quand son auteur n'a rien précisé : `prive` (rien ne sort sans geste explicite) ou `commun` (tout sort sauf mention contraire). Le défaut recommandé est `prive` : une note qui fuit coûte plus qu'une note qui manque.
 4. **Le dossier commun de l'entreprise**, où vivent la charte, les signatures, les procédures et les assistants établis pour tous. Existant, il se demande et s'ouvre une fois ; absent, le rangement proposera de le créer. Chaque vault y pointe, aucun ne le recopie.
 
-Ces quatre réponses s'écrivent dans chaque `config.yaml` individuel (`mode`, `commun.racine`, `commun.visibilite_defaut`, bloc `referentiel`). La liste des rédacteurs va aussi dans `federation.yaml`, qui vit dans le commun : chaque cadrage y inscrit son rédacteur par `federe.py --inscrire`, avec les autres noms du groupe comme attendus (`cortex-1-cadrage` §5). Pour les rédacteurs suivants, ces décisions se reprennent du premier cadrage et s'annoncent ; elles ne se reposent pas.
+Ces quatre réponses s'écrivent dans chaque `config.yaml` individuel (`mode`, `commun.racine`, `commun.export`, `commun.visibilite_defaut`, bloc `referentiel`). La liste des rédacteurs va aussi dans `federation.yaml`, qui vit dans le commun : chaque cadrage y inscrit son rédacteur par `federe.py --inscrire`, avec les autres noms du groupe comme attendus (`cortex-1-cadrage` §5). Sur des postes séparés, le premier y pose aussi la visibilité par défaut et les noms à ne jamais faire apparaître, pour que les suivants les relisent là, sans dépendre de qui a parlé à qui. Pour les rédacteurs suivants, ces décisions se reprennent et s'annoncent ; elles ne se reposent pas.
 
 ## Les questions, en langage ordinaire
 
@@ -69,7 +69,7 @@ Celui du profil de poste de chaque rédacteur. Le commun ne fusionne pas les cyc
 
 ## Le passage en `mode: federe` et le rôle du maillon 8
 
-Chaque rédacteur, à son cadrage, reçoit `mode: federe`, `commun.racine` et `commun.visibilite_defaut`, identiques pour tout le groupe. Sa clôture écrit alors `<vault>/_export/<slug>/` : les notes dont la visibilité vaut `commun`, avec `source_vault` et `exporte_le`, et un `index.json`. Une note `visibilite: prive` ne sort jamais.
+Chaque rédacteur, à son cadrage, reçoit `mode: federe`, `commun.racine` et `commun.visibilite_defaut`, identiques pour tout le groupe (sur des postes séparés, le même partage vu depuis chaque ordinateur, à son chemin local). Sa clôture écrit alors `<vault>/_export/<slug>/`, ou sa boîte `<partage>/Membres/<slug>/_export/<slug>/` sur des postes séparés : les notes dont la visibilité vaut `commun`, avec `source_vault` et `exporte_le`, et un `index.json`. Une note `visibilite: prive` ne sort jamais.
 
 Le maillon 8, `cortex-8-federation`, lit `federation.yaml` dans le commun (la liste des membres et le chemin de leur export), vide le commun et le régénère : Centre, domaines fusionnés par nom, projets et acteurs avec `source_vault`, un acteur présent chez deux rédacteurs devient une note unique. Deux fédérations sur les mêmes exports ne diffèrent que par la date. Le commun porte un `README.md` « généré, ne pas éditer » et une empreinte.
 

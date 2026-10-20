@@ -17,6 +17,12 @@ est le sha256 des octets écrits dans l'export, frontmatter enrichi compris :
 federe.py le recalcule sur ce fichier pour refuser un export touché après la
 clôture. Hasher la note d'origine faisait refuser tout export réel (Phase H).
 
+Postes séparés : `commun.export` peut nommer un dossier hors du vault, sous le
+partage que tous les postes voient (`<partage>/Membres/<slug>/_export`). L'export
+s'y écrit tel quel, et la même passe y dépose la preuve de remise
+(`_cortex/06-passation.md`, à côté de `_export/`), que la fédération lit pour savoir
+qui est remis.
+
 En mode `solo`, ne fait rien et le dit : il n'y a personne à qui exporter.
 
 Usage : python3 .claude/skills/cloture/export.py --vault . [--autotest]
@@ -52,7 +58,7 @@ def exporter(vault, conf, aujourdhui=None):
     commun = conf.get("commun") or {}
     slug = (conf.get("organisation") or {}).get("code", "vault")
     defaut = commun.get("visibilite_defaut", "prive")
-    cible = vault / (commun.get("export") or "_export") / slug
+    cible = vault / Path(commun.get("export") or "_export").expanduser() / slug
     jour = (aujourdhui or date.today()).isoformat()
 
     shutil.rmtree(cible, ignore_errors=True)
@@ -81,6 +87,12 @@ def exporter(vault, conf, aujourdhui=None):
              "exporte_le": jour, "notes": notes}
     (cible / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n",
                                       encoding="utf-8")
+    # Hors du vault, la boîte du membre porte aussi sa preuve de remise : sans elle,
+    # un autre poste verrait ce membre « en attente » à jamais.
+    boite, remise = cible.parent.parent, vault / "_cortex" / "06-passation.md"
+    if boite.resolve() != vault.resolve() and remise.is_file():
+        (boite / "_cortex").mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(remise, boite / "_cortex" / "06-passation.md")
     return cible, notes
 
 
@@ -97,7 +109,11 @@ def main():
     if cible is None:
         print("mode solo : aucun export, rien à faire.")
     else:
-        print(f"✓ Export : {len(notes)} note(s) dans {cible.relative_to(vault)}/")
+        try:
+            ou = cible.relative_to(vault)
+        except ValueError:
+            ou = cible  # postes séparés : l'export vit dans le partage
+        print(f"✓ Export : {len(notes)} note(s) dans {ou}/")
     return 0
 
 
@@ -132,6 +148,15 @@ def _autotest():
         apres = sorted((str(p.relative_to(cible)), p.read_bytes()) for p in cible.rglob("*") if p.is_file())
         assert avant == apres
         assert exporter(v, {"mode": "solo"})[0] is None
+        # Postes séparés : l'export et la preuve de remise vont dans la boîte du membre.
+        boite = Path(tmp) / "partage" / "Membres" / "camille"
+        conf["commun"]["export"] = str(boite / "_export")
+        (v / "_cortex").mkdir()
+        (v / "_cortex" / "06-passation.md").write_text("---\nremis_le: 2026-10-21\n---\n", encoding="utf-8")
+        cible3, _ = exporter(v, conf, date(2026, 9, 19))
+        assert cible3 == boite / "_export" / "camille" and (cible3 / "index.json").is_file(), cible3
+        assert "remis_le: 2026-10-21" in (boite / "_cortex" / "06-passation.md").read_text(encoding="utf-8")
+        assert not (v / str(boite)[1:]).exists()
     print("OK export.py")
     return 0
 

@@ -140,14 +140,19 @@ def settings_json(conf, plateforme=None):
     # ponytail: pas de sandbox sous Windows natif (non pris en charge par Claude
     # Code) ; Bash y reste couvert par les seules règles, à revoir avec WSL2.
     if (plateforme or sys.platform) != "win32":
-        commun = ((conf.get("commun") or {}).get("racine", "")
-                  if conf.get("mode") == "federe" else "")
+        bloc = (conf.get("commun") or {}) if conf.get("mode") == "federe" else {}
+        commun = bloc.get("racine", "")
+        # Postes séparés : un export hors du vault s'écrit dans la boîte du membre,
+        # sous le partage ; la clôture doit pouvoir y écrire (export et preuve de remise).
+        export = str(bloc.get("export", "") or "").strip().replace("\\", "/")
+        boite = (forme_tilde(export.rstrip("/").rsplit("/", 1)[0])
+                 if export.startswith("~") or export.startswith("/") or ":" in export[:3] else "")
         s["sandbox"] = {
             "enabled": True,
             "allowUnsandboxedCommands": False,
             "autoAllowBashIfSandboxed": False,
             "filesystem": {"denyWrite": formes,
-                           "allowWrite": [forme_tilde(commun)] if commun else []},
+                           "allowWrite": [x for x in (forme_tilde(commun) if commun else "", boite) if x]},
             # Le miroir lit la base de projets : son domaine seul s'ajoute, et seulement s'il est configuré.
             "network": {"allowedDomains": ["github.com"] + (
                 ["api.notion.com"] if (conf.get("miroir") or {}).get("outil") == "notion" else [])},
@@ -763,6 +768,11 @@ def _autotest():
     assert sb["filesystem"] == {"denyWrite": ["~/Documents", "~/Desktop/Travail"],
                                 "allowWrite": ["~/Cortex/commun"]}, sb
     assert settings_json(conf, "darwin")["sandbox"]["filesystem"]["allowWrite"] == []
+    # Postes séparés : la boîte du membre sous le partage s'ajoute au commun.
+    partage = "~/Library/CloudStorage/OneDrive-Exemple/Second cerveau"
+    sb = settings_json(dict(conf, mode="federe", commun={"racine": partage + "/Commun",
+                                                         "export": partage + "/Membres/ana/_export"}), "darwin")["sandbox"]
+    assert sb["filesystem"]["allowWrite"] == [partage + "/Commun", partage + "/Membres/ana"], sb
     assert settings_json(conf, "darwin")["sandbox"]["network"]["allowedDomains"] == ["github.com"]
     assert "api.notion.com" in settings_json(dict(conf, miroir={"outil": "notion"}), "darwin")["sandbox"]["network"]["allowedDomains"]
     assert "sandbox" not in settings_json(conf, "win32")
